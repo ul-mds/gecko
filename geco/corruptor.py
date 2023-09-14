@@ -1,3 +1,4 @@
+import csv
 import html
 import string
 from dataclasses import dataclass, field
@@ -144,6 +145,44 @@ def from_cldr(
 
         # mutate every string one by one
         return [_corrupt_single(s) for s in str_in_list]
+
+    return _corrupt
+
+
+def from_replacement_table(
+        csv_file_path: Path,
+        header: bool = False,
+        encoding: str = "utf-8",
+        delimiter: str = ",",
+        rng: Generator | None = None
+) -> CorruptorFunc:
+    if rng is None:
+        rng = np.random.default_rng()
+
+    mut_dict: dict[str, list[str]] = {}
+
+    with csv_file_path.open(mode="r", encoding=encoding, newline="") as f:
+        # csv reader instance
+        reader = csv.reader(f, delimiter=delimiter)
+
+        # skip header if necessary
+        if header:
+            next(reader)
+
+        for line in reader:
+            if len(line) != 2:
+                raise ValueError("CSV file must contain two columns")
+
+            line_from, line_to = line[0], line[1]
+
+            if line_from not in mut_dict:
+                mut_dict[line_from] = []
+
+            mut_dict[line_from].append(line_to)
+
+    # todo finish
+    def _corrupt(str_in_list: list[str]) -> list[str]:
+        return []
 
     return _corrupt
 
