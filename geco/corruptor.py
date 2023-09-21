@@ -195,6 +195,8 @@ def from_replacement_table(
         mutated_mask = np.full(len(str_in_list), False)
         # find() returns -1 when a substring wasn't found, so create an array to quickly compare against
         not_found_mask = np.full(len(str_in_list), -1)
+        # create randomized mask s.t. every string has a probability of `p` of being mutated
+        rand_mask = rng.choice([False, True], len(str_in_list), p=[p, 1 - p])
         # create copy of input list
         str_out_list = str_in_list[:]
 
@@ -206,8 +208,6 @@ def from_replacement_table(
             mutable_str_mask = np.equal(mutable_str_idx_list, not_found_mask)
             # perform an AND s.t. strings that have been mutated aren't mutated again
             mutable_str_mask = mutated_mask | mutable_str_mask
-            # create randomized mask
-            rand_mask = rng.choice([False, True], len(str_in_list), p=[p, 1 - p])
             mutable_str_mask = mutable_str_mask | rand_mask
             # now mask the input list s.t. we get the elements that are supposed to be mutated
             str_in_list_masked = np.ma.array(str_in_list, mask=mutable_str_mask)
