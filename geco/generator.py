@@ -8,7 +8,7 @@ from numpy.random import Generator
 P = ParamSpec('P')
 
 CallableGeneratorFunc = Callable[P, str]
-GeneratorFunc = Callable[[int], list[str]]
+GeneratorFunc = Callable[[int], list[list[str]]]
 
 
 def from_function(
@@ -16,8 +16,8 @@ def from_function(
         *args,
         **kwargs
 ) -> GeneratorFunc:
-    def _generate(count: int) -> list[str]:
-        return [func(*args, **kwargs) for _ in np.arange(count)]
+    def _generate(count: int) -> list[list[str]]:
+        return [[func(*args, **kwargs) for _ in np.arange(count)]]
 
     return _generate
 
@@ -61,7 +61,7 @@ def from_frequency_table(
 
     # return type can be treated as a list
     # noinspection PyTypeChecker
-    def _generate(count: int) -> list[str]:
-        return rng.choice(value_list, count, p=rel_freq_list)
+    def _generate(count: int) -> list[list[str]]:
+        return [rng.choice(value_list, count, p=rel_freq_list)]
 
     return _generate
