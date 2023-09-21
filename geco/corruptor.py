@@ -336,7 +336,7 @@ def with_edit(
             chr_0 = str_in[idx_0]
 
             # get neighboring character
-            idx_1 = idx_0
+            idx_1 = idx_0 + 1
             chr_1 = str_in[idx_1]
 
             # check if the characters are distinct from one another
