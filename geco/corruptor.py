@@ -1,6 +1,7 @@
 import csv
 import html
 from dataclasses import dataclass, field
+from enum import Enum
 from pathlib import Path
 from typing import Callable
 
@@ -221,3 +222,49 @@ def from_replacement_table(
         return str_out_list
 
     return _corrupt
+
+
+class ReplacementStrategy(Enum):
+    ALL = 1
+    ONLY_EMPTY = 2
+    ONLY_BLANK = 3
+
+
+def _corrupt_all_from_value(
+        value: str
+) -> CorruptorFunc:
+    def _corrupt_list(str_in_list: list[str]) -> list[str]:
+        return [value for _ in str_in_list]
+
+    return _corrupt_list
+
+
+def _corrupt_only_empty_from_value(
+        value: str
+) -> CorruptorFunc:
+    def _corrupt_list(str_in_list: list[str]) -> list[str]:
+        return [str_in or value for str_in in str_in_list]
+
+    return _corrupt_list
+
+
+def _corrupt_only_blank_from_value(
+        value: str
+) -> CorruptorFunc:
+    def _corrupt_list(str_in_list: list[str]) -> list[str]:
+        return [str_in or value for str_in in np.char.strip(str_in_list)]
+
+    return _corrupt_list
+
+
+def from_value(
+        value: str = "",
+        strategy: ReplacementStrategy = ReplacementStrategy.ALL
+) -> CorruptorFunc:
+    match strategy:
+        case ReplacementStrategy.ALL:
+            return _corrupt_all_from_value(value)
+        case ReplacementStrategy.ONLY_BLANK:
+            return _corrupt_only_blank_from_value(value)
+        case ReplacementStrategy.ONLY_EMPTY:
+            return _corrupt_only_empty_from_value(value)
