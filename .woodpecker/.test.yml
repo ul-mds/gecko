@@ -1,0 +1,8 @@
+steps:
+
+  test:
+    image: python:3.11
+    commands:
+      - python -m pip install poetry
+      - poetry install
+      - poetry run pytest
