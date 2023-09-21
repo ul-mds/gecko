@@ -285,6 +285,9 @@ def with_edit(
     edit_ops = ["ins", "del", "sub", "trs"]
     edit_ops_prob = [p_insert, p_delete, p_substitute, p_transpose]
 
+    for p in edit_ops_prob:
+        _check_probability_in_bounds(p)
+
     charset_lst = list(charset)
 
     try:
