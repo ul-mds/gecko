@@ -1,5 +1,6 @@
 import csv
 import html
+import string
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
@@ -268,3 +269,101 @@ def with_missing_value(
             return _corrupt_only_blank_from_value(value)
         case ReplacementStrategy.ONLY_EMPTY:
             return _corrupt_only_empty_from_value(value)
+
+
+def with_edit(
+        p_insert: float = 0.3,
+        p_delete: float = 0.3,
+        p_substitute: float = 0.2,
+        p_transpose: float = 0.2,
+        rng: Generator | None = None,
+        charset: str = string.ascii_letters
+) -> CorruptorFunc:
+    if rng is None:
+        rng = np.random.default_rng()
+
+    edit_ops = ["ins", "del", "sub", "trs"]
+    edit_ops_prob = [p_insert, p_delete, p_substitute, p_transpose]
+
+    charset_lst = list(charset)
+
+    try:
+        # sanity check
+        rng.choice(edit_ops, p=edit_ops_prob)
+    except ValueError:
+        raise ValueError("probabilities must sum up to 1.0")
+
+    def _corrupt_single_insert(str_in: str) -> str:
+        if str_in == "":
+            return str_in
+
+        c = rng.choice(charset_lst)
+        i = rng.choice(len(str_in))
+
+        return str_in[:i] + c + str_in[i:]
+
+    def _corrupt_single_delete(str_in: str) -> str:
+        if str_in == "":
+            return str_in
+
+        i = rng.choice(len(str_in))
+        return str_in[:i] + str_in[i + 1:]
+
+    def _corrupt_single_substitute(str_in: str) -> str:
+        if str_in == "":
+            return str_in
+
+        # select random character to substitute
+        i = rng.choice(len(str_in))
+        c = str_in[i]
+        # draw a random character from the charset minus the character to be substituted
+        x = rng.choice(list(charset.replace(c, "")))
+        return str_in[:i] + x + str_in[i + 1:]
+
+    def _corrupt_single_transpose(str_in: str) -> str:
+        if len(str_in) < 2:
+            return str_in
+
+        # trivial case
+        if len(str_in) == 2:
+            return str_in[1] + str_in[0]
+
+        # collect all indices 0...n-2 because n-1 may need to be selected later
+        idx_shuffle = np.arange(len(str_in) - 1)
+        rng.shuffle(idx_shuffle)
+
+        for idx_0 in idx_shuffle:
+            chr_0 = str_in[idx_0]
+
+            # get neighboring character
+            idx_1 = idx_0
+            chr_1 = str_in[idx_1]
+
+            # check if the characters are distinct from one another
+            if chr_0 != chr_1:
+                return str_in[:idx_0] + chr_1 + chr_0 + str_in[idx_1 + 1:]
+
+        # otherwise the string is composed of one character only and there's nothing to transpose
+        return str_in
+
+    def _corrupt_list(str_in_list: list[str]) -> list[str]:
+        str_in_edit_ops = rng.choice(edit_ops, size=len(str_in_list), p=edit_ops_prob)
+        str_out_list = str_in_list[:]
+
+        for e_idx, edit_op in np.ndenumerate(str_in_edit_ops):
+            idx = e_idx[0]
+            str_in = str_in_list[idx]
+
+            match edit_op:
+                case "ins":
+                    str_out_list[idx] = _corrupt_single_insert(str_in)
+                case "del":
+                    str_out_list[idx] = _corrupt_single_delete(str_in)
+                case "sub":
+                    str_out_list[idx] = _corrupt_single_substitute(str_in)
+                case "trs":
+                    str_out_list[idx] = _corrupt_single_transpose(str_in)
+
+        return str_out_list
+
+    return _corrupt_list
