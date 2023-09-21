@@ -38,7 +38,7 @@ class KeyMutation:
     col: list[str] = field(default_factory=list)
 
 
-def from_cldr(
+def with_cldr_keymap(
         cldr_path: Path,
         p: float = 0.1,
         rng: Generator | None = None
@@ -153,7 +153,7 @@ def from_cldr(
     return _corrupt
 
 
-def from_replacement_table(
+def with_replacement_table(
         csv_file_path: Path,
         header: bool = False,
         encoding: str = "utf-8",
@@ -257,7 +257,7 @@ def _corrupt_only_blank_from_value(
     return _corrupt_list
 
 
-def from_value(
+def with_missing_value(
         value: str = "",
         strategy: ReplacementStrategy = ReplacementStrategy.ALL
 ) -> CorruptorFunc:
