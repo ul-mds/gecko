@@ -17,6 +17,11 @@ _kb_map_max_rows = 5
 _kb_map_max_cols = 15
 
 
+def _check_probability_in_bounds(p: float):
+    if p < 0 or p > 1:
+        raise ValueError("probability is out of range, must be between 0 and 1")
+
+
 def decode_iso_kb_pos(iso_kb_pos: str) -> (int, int):
     kb_row_dict = {"A": 4, "B": 3, "C": 2, "D": 1, "E": 0}
 
@@ -34,11 +39,10 @@ class KeyMutation:
 
 def from_cldr(
         cldr_path: Path,
-        probability: float = 0.1,
+        p: float = 0.1,
         rng: Generator | None = None
 ):
-    if probability < 0 or probability > 1:
-        raise ValueError("probability is out of range, must be between 0 and 1")
+    _check_probability_in_bounds(p)
 
     if rng is None:
         rng = np.random.default_rng()
@@ -118,7 +122,7 @@ def from_cldr(
             str_out = list(str_in)
 
             # construct a mask where `False` marks a character for mutation and `True` keeps a character as-is
-            chr_mask = rng.choice([False, True], len(str_out), p=[probability, 1 - probability])
+            chr_mask = rng.choice([False, True], len(str_out), p=[p, 1 - p])
             str_mask = np.ma.array(str_out, mask=chr_mask)
 
             # this iterates over all unmasked chars, meaning the ones marked for mutation
@@ -154,8 +158,10 @@ def from_replacement_table(
         encoding: str = "utf-8",
         delimiter: str = ",",
         rng: Generator | None = None,
-        probability: float = 0.1
+        p: float = 0.1
 ) -> CorruptorFunc:
+    _check_probability_in_bounds(p)
+
     if rng is None:
         rng = np.random.default_rng()
 
@@ -200,7 +206,7 @@ def from_replacement_table(
             # perform an AND s.t. strings that have been mutated aren't mutated again
             mutable_str_mask = mutated_mask | mutable_str_mask
             # create randomized mask
-            rand_mask = rng.choice([False, True], len(str_in_list), p=[probability, 1-probability])
+            rand_mask = rng.choice([False, True], len(str_in_list), p=[p, 1 - p])
             mutable_str_mask = mutable_str_mask | rand_mask
             # now mask the input list s.t. we get the elements that are supposed to be mutated
             str_in_list_masked = np.ma.array(str_in_list, mask=mutable_str_mask)
