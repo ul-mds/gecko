@@ -1,6 +1,5 @@
 import csv
 import html
-import string
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Callable
@@ -154,7 +153,8 @@ def from_replacement_table(
         header: bool = False,
         encoding: str = "utf-8",
         delimiter: str = ",",
-        rng: Generator | None = None
+        rng: Generator | None = None,
+        probability: float = 0.1
 ) -> CorruptorFunc:
     if rng is None:
         rng = np.random.default_rng()
@@ -180,22 +180,38 @@ def from_replacement_table(
 
             mut_dict[line_from].append(line_to)
 
-    # todo finish
+    # keep track of all strings that can be mutated
+    mutable_str_list = list(mut_dict.keys())
+
     def _corrupt(str_in_list: list[str]) -> list[str]:
-        return []
+        # keep track of strs that have already been mutated
+        mutated_mask = np.full(len(str_in_list), False)
+        # find() returns -1 when a substring wasn't found, so create an array to quickly compare against
+        not_found_mask = np.full(len(str_in_list), -1)
+        # create copy of input list
+        str_out_list = str_in_list[:]
+
+        for mutable_str in mutable_str_list:
+            # find index of mutable str within list of input strings
+            mutable_str_idx_list = np.char.find(str_in_list, mutable_str)
+            # this will create an array where every string in the input list will have its corresponding
+            # index set to `True` if substr is not present (will be masked), or `False` if it is (will not be masked)
+            mutable_str_mask = np.equal(mutable_str_idx_list, not_found_mask)
+            # perform an AND s.t. strings that have been mutated aren't mutated again
+            mutable_str_mask = mutated_mask | mutable_str_mask
+            # create randomized mask
+            rand_mask = rng.choice([False, True], len(str_in_list), p=[probability, 1-probability])
+            mutable_str_mask = mutable_str_mask | rand_mask
+            # now mask the input list s.t. we get the elements that are supposed to be mutated
+            str_in_list_masked = np.ma.array(str_in_list, mask=mutable_str_mask)
+
+            for s_idx, s in np.ma.ndenumerate(str_in_list_masked):
+                idx = s_idx[0]
+                # perform replacement
+                str_out_list[idx] = s.replace(mutable_str, rng.choice(mut_dict[mutable_str]), 1)
+                # mark string as mutated
+                mutated_mask[idx] = True
+
+        return str_out_list
 
     return _corrupt
-
-
-if __name__ == "__main__":
-    corr = from_cldr(Path("windows/de-t-k0-windows.xml"), .1)
-
-    strs = [
-        "".join(np.random.choice(list(string.ascii_lowercase), 20)) for _ in range(10)
-    ]
-
-    corr_strs = corr(strs)
-
-    for i in range(len(strs)):
-        print(strs[i])
-        print("=>", corr_strs[i])
