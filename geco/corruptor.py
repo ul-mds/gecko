@@ -272,10 +272,10 @@ def with_missing_value(
 
 
 def with_edit(
-        p_insert: float = 0.3,
-        p_delete: float = 0.3,
-        p_substitute: float = 0.2,
-        p_transpose: float = 0.2,
+        p_insert: float = 0,
+        p_delete: float = 0,
+        p_substitute: float = 0,
+        p_transpose: float = 0,
         rng: Generator | None = None,
         charset: str = string.ascii_letters
 ) -> CorruptorFunc:

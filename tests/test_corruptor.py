@@ -21,7 +21,7 @@ def test_with_value_replace_blank():
 
 def test_with_edit_insert(rng):
     x = ["foobar"]
-    corr = with_edit(p_insert=1, p_delete=0, p_substitute=0, p_transpose=0, rng=rng, charset="0")
+    corr = with_edit(p_insert=1, rng=rng, charset="0")
     x_corr = corr(x)
 
     assert x != x_corr
@@ -33,7 +33,7 @@ def test_with_edit_insert(rng):
 
 def test_with_edit_delete(rng):
     x = ["foobar"]
-    corr = with_edit(p_insert=0, p_delete=1, p_substitute=0, p_transpose=0, rng=rng)
+    corr = with_edit(p_delete=1, rng=rng)
     x_corr = corr(x)
 
     assert x != x_corr
@@ -56,7 +56,7 @@ def test_with_edit_substitute(rng):
 def test_with_edit_substitute_overlap(rng):
     x = ["foobar"]
     # all characters of "foobar" are in the charset, but a character should never be substituted with itself
-    corr = with_edit(p_insert=0, p_delete=0, p_substitute=1, p_transpose=0, rng=rng, charset="fobar")
+    corr = with_edit(p_substitute=1, rng=rng, charset="fobar")
 
     # after about 1000 times we can be pretty sure this worked
     for _ in range(1000):
@@ -66,9 +66,8 @@ def test_with_edit_substitute_overlap(rng):
 
 def test_with_edit_transpose(rng):
     x = ["foobar"]
-    corr = with_edit(p_insert=0, p_delete=0, p_substitute=0, p_transpose=1, rng=rng)
+    corr = with_edit(p_transpose=1, rng=rng)
     x_corr = corr(x)
 
     assert x != x_corr
     assert len(x[0]) == len(x_corr[0])
-
