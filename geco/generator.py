@@ -177,3 +177,60 @@ def from_multicolumn_frequency_table(
         return list(list(t) for t in zip(*x))
 
     return _generate
+
+
+def to_csv(
+        file_path: Path,
+        generators: list[tuple[GeneratorFunc, str | list[str]]],
+        count: int,
+        encoding: str = "utf-8",
+        delimiter: str = ","
+):
+    if len(generators) == 0:
+        raise ValueError("list of generators may not be empty")
+
+    out_column_names: list[str] = []
+    out_values: list[list[str]] = []
+
+    for generator, column_names in generators:
+        # if a single string is provided, concat by wrapping it into a list
+        if isinstance(column_names, str):
+            column_names = [column_names]
+
+        out_column_names += column_names
+        generator_values = generator(count)
+
+        if len(generator_values) != len(column_names):
+            raise ValueError(f"generator returned {len(generator_values)} columns, but requires {len(column_names)} to "
+                             f"fill column(s) for: {','.join(column_names)}")
+
+        out_values += generator_values
+
+    with open(file_path, mode="a", encoding=encoding, newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=out_column_names, delimiter=delimiter)
+
+        # check if we're at the start of the file
+        if f.tell() == 0:
+            writer.writeheader()
+
+        writer.writerows([
+            {
+                out_column_names[j]: out_values[j][i] for j in range(len(out_column_names))
+            } for i in range(count)
+        ])
+
+
+if __name__ == "__main__":
+    p = Path("./myfile.csv")
+    rng = np.random.default_rng(727)
+
+    gen_1 = from_frequency_table(Path(__file__).parent.parent / "data" / "surname.csv", rng=rng)
+    gen_2 = from_multicolumn_frequency_table(Path(__file__).parent.parent / "data" / "test.csv", rng=rng,
+                                             column_names=["col1", "col2"])
+    gen_3 = from_uniform_distribution(rng, 10, 100, int)
+
+    to_csv(p, [
+        (gen_1, "surname"),
+        (gen_2, ["x", "y"]),
+        (gen_3, "age")
+    ], 100000)
