@@ -1,6 +1,6 @@
 import csv
 from pathlib import Path
-from typing import Callable, ParamSpec
+from typing import Callable, ParamSpec, Type
 
 import numpy as np
 from numpy.random import Generator
@@ -18,6 +18,57 @@ def from_function(
 ) -> GeneratorFunc:
     def _generate(count: int) -> list[list[str]]:
         return [[func(*args, **kwargs) for _ in np.arange(count)]]
+
+    return _generate
+
+
+def _generate_from_uniform_distribution_float(
+        rng: Generator,
+        low: float,
+        high: float
+) -> GeneratorFunc:
+    def _generate(count: int) -> list[list[str]]:
+        return [np.char.mod("%f", rng.uniform(low, high, count))]
+
+    return _generate
+
+
+def _generate_from_uniform_distribution_int(
+        rng: Generator,
+        low: int,
+        high: int
+) -> GeneratorFunc:
+    def _generate(count: int) -> list[list[str]]:
+        return [np.char.mod("%d", rng.integers(low, high, size=count))]
+
+    return _generate
+
+
+def from_uniform_distribution(
+        rng: Generator | None = None,
+        low: float | int = 0,
+        high: float | int = 1,
+        dtype: Type[int | float] = float
+) -> GeneratorFunc:
+    if rng is None:
+        rng = np.random.default_rng()
+
+    if dtype is float:
+        return _generate_from_uniform_distribution_float(rng, low, high)
+
+    if dtype is int:
+        return _generate_from_uniform_distribution_int(rng, low, high)
+
+    raise NotImplementedError(f"unexpected data type: {dtype}")
+
+
+def from_normal_distribution(
+        rng: Generator | None = None,
+        mean: float = 0,
+        sd: float = 1
+) -> GeneratorFunc:
+    def _generate(count: int) -> list[list[str]]:
+        return [np.char.mod("%f", rng.normal(mean, sd, count))]
 
     return _generate
 
