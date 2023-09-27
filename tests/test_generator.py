@@ -24,7 +24,10 @@ def test_from_frequency_table_no_header(rng, foobar_freq_head):
 
 
 def test_from_frequency_table_with_header(rng, foobar_freq_head):
-    generate_tab = generator.from_frequency_table(get_asset_path("freq_table_header.csv"), rng=rng, header=True)
+    generate_tab = generator.from_frequency_table(
+        get_asset_path("freq_table_header.csv"), rng=rng, header=True,
+        value_column="value", count_column="freq"
+    )
     h = generate_tab(len(foobar_freq_head))[0]
     assert (h == foobar_freq_head).all()
 

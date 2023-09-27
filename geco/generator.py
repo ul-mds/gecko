@@ -77,6 +77,8 @@ def from_normal_distribution(
 def from_frequency_table(
         csv_file_path: Path,
         header: bool = False,
+        value_column: str | int = 0,
+        count_column: str | int = 1,
         encoding: str = "utf-8",
         delimiter: str = ",",
         rng: Generator | None = None
@@ -84,37 +86,20 @@ def from_frequency_table(
     if rng is None:
         rng = np.random.default_rng()
 
-    with csv_file_path.open(mode="r", encoding=encoding, newline="") as f:
-        # create csv reader instance
-        reader = csv.reader(f, delimiter=delimiter)
-        # setup local vars
-        value_list: list[str] = []
-        abs_freq_list: list[int] = []
+    if type(value_column) is not type(count_column):
+        raise ValueError("type of the value column must either be both strings or both integers")
 
-        # skip header row
-        if header:
-            next(reader)
+    # read csv file
+    df = pd.read_csv(csv_file_path, header=0 if header else None, usecols=[value_column, count_column],
+                     dtype={count_column: "int"}, sep=delimiter, encoding=encoding)
 
-        for line in reader:
-            if len(line) != 2:
-                raise ValueError("CSV file must contain two columns")
+    # convert absolute to relative frequencies
+    srs_value = df[value_column]
+    srs_prob = df[count_column] / df[count_column].sum()
 
-            line_val, line_freq = line[0], int(line[1])
-
-            if line_freq < 0:
-                raise ValueError("absolute frequency must not be negative")
-
-            value_list.append(line_val)
-            abs_freq_list.append(line_freq)
-
-    # this works because abs_freq_list is broadcast to a numpy array
-    # noinspection PyUnresolvedReferences
-    rel_freq_list = abs_freq_list / np.sum(abs_freq_list)
-
-    # return type can be treated as a list
     # noinspection PyTypeChecker
     def _generate(count: int) -> list[list[str]]:
-        return [rng.choice(value_list, count, p=rel_freq_list)]
+        return [rng.choice(srs_value, count, p=srs_prob)]
 
     return _generate
 
@@ -210,3 +195,10 @@ def to_dataframe(
     return pd.DataFrame({
         col_names[i]: col_values[i] for i in range(len(col_names))
     })
+
+
+if __name__ == "__main__":
+    gen = from_frequency_table(Path(__file__).parent.parent / "data" / "test.csv", header=True,
+                               value_column="col1", count_column="count")
+
+    print(gen(10))
