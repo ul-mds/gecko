@@ -1,6 +1,6 @@
 import csv
 from pathlib import Path
-from typing import Callable, Type
+from typing import Callable, Type, Optional
 
 import numpy as np
 import pandas as pd
@@ -47,7 +47,7 @@ def _generate_from_uniform_distribution_int(
 
 
 def from_uniform_distribution(
-        rng: Generator | None = None,
+        rng: Optional[Generator] = None,
         low: float | int = 0,
         high: float | int = 1,
         dtype: Type[int | float] = float
@@ -65,7 +65,7 @@ def from_uniform_distribution(
 
 
 def from_normal_distribution(
-        rng: Generator | None = None,
+        rng: Optional[Generator] = None,
         mean: float = 0,
         sd: float = 1
 ) -> GeneratorFunc:
@@ -82,7 +82,7 @@ def from_frequency_table(
         count_column: str | int = 1,
         encoding: str = "utf-8",
         delimiter: str = ",",
-        rng: Generator | None = None
+        rng: Optional[Generator] = None
 ) -> GeneratorFunc:
     if rng is None:
         rng = np.random.default_rng()
@@ -109,8 +109,8 @@ def from_multicolumn_frequency_table(
         csv_file_path: Path,
         encoding: str = "utf-8",
         delimiter: str = ",",
-        rng: Generator | None = None,
-        column_names: str | list[str] | None = None,
+        rng: Optional[Generator] = None,
+        column_names: Optional[str | list[str]] = None,
         count_column_name: str = "count"
 ) -> GeneratorFunc:
     if column_names is None:
