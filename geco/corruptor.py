@@ -12,8 +12,6 @@ from numpy.random import Generator
 
 CorruptorFunc = Callable[[list[str]], list[str]]
 
-_cldr_kb_base_path = Path(__file__).parent.parent / "vendor" / "cldr" / "keyboards"
-
 # todo can this be decided on the fly?
 _kb_map_max_rows = 5
 _kb_map_max_cols = 15
@@ -39,7 +37,7 @@ class KeyMutation:
     col: list[str] = field(default_factory=list)
 
 
-def with_cldr_keymap(
+def with_cldr_keymap_file(
         cldr_path: Path,
         p: float = 0.1,
         rng: Generator | None = None
@@ -49,10 +47,7 @@ def with_cldr_keymap(
     if rng is None:
         rng = np.random.default_rng()
 
-    # get path to cldr keyboard definition file
-    full_cldr_path = _cldr_kb_base_path / cldr_path
-
-    with full_cldr_path.open(mode="r", encoding="utf-8") as f:
+    with cldr_path.open(mode="r", encoding="utf-8") as f:
         tree = etree.parse(f)
 
     # create keymap with all fields set to an empty string at first

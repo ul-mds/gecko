@@ -1,3 +1,0 @@
-[submodule "vendor/cldr"]
-	path = vendor/cldr
-	url = git@github.com:unicode-org/cldr.git
