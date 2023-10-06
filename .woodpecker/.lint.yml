@@ -1,0 +1,10 @@
+steps:
+  lint:
+    image: python:3.11
+    commands:
+      - python -m pip install poetry
+      - poetry install
+      - poetry run flake8
+    when:
+      path:
+        include: [ ".woodpecker/*.yml", "geco/**/*.py", "tests/**/*.py", ".flake8", "pyproject.toml" ]

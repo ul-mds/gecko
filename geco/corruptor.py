@@ -4,7 +4,7 @@ import string
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
-from typing import Callable
+from typing import Callable, Optional
 
 import numpy as np
 from lxml import etree
@@ -40,7 +40,7 @@ class KeyMutation:
 def with_cldr_keymap_file(
         cldr_path: Path,
         p: float = 0.1,
-        rng: Generator | None = None
+        rng: Optional[Generator] = None
 ):
     _check_probability_in_bounds(p)
 
@@ -154,7 +154,7 @@ def with_replacement_table(
         header: bool = False,
         encoding: str = "utf-8",
         delimiter: str = ",",
-        rng: Generator | None = None,
+        rng: Optional[Generator] = None,
         p: float = 0.1
 ) -> CorruptorFunc:
     _check_probability_in_bounds(p)
@@ -257,13 +257,14 @@ def with_missing_value(
         value: str = "",
         strategy: ReplacementStrategy = ReplacementStrategy.ALL
 ) -> CorruptorFunc:
-    match strategy:
-        case ReplacementStrategy.ALL:
-            return _corrupt_all_from_value(value)
-        case ReplacementStrategy.ONLY_BLANK:
-            return _corrupt_only_blank_from_value(value)
-        case ReplacementStrategy.ONLY_EMPTY:
-            return _corrupt_only_empty_from_value(value)
+    if strategy == ReplacementStrategy.ALL:
+        return _corrupt_all_from_value(value)
+    elif strategy == ReplacementStrategy.ONLY_BLANK:
+        return _corrupt_only_blank_from_value(value)
+    elif strategy == ReplacementStrategy.ONLY_EMPTY:
+        return _corrupt_only_empty_from_value(value)
+    else:
+        raise ValueError(f"unrecognized replacement strategy: {strategy}")
 
 
 def with_edit(
@@ -271,7 +272,7 @@ def with_edit(
         p_delete: float = 0,
         p_substitute: float = 0,
         p_transpose: float = 0,
-        rng: Generator | None = None,
+        rng: Optional[Generator] = None,
         charset: str = string.ascii_letters
 ) -> CorruptorFunc:
     if rng is None:
@@ -352,15 +353,16 @@ def with_edit(
             idx = e_idx[0]
             str_in = str_in_list[idx]
 
-            match edit_op:
-                case "ins":
-                    str_out_list[idx] = _corrupt_single_insert(str_in)
-                case "del":
-                    str_out_list[idx] = _corrupt_single_delete(str_in)
-                case "sub":
-                    str_out_list[idx] = _corrupt_single_substitute(str_in)
-                case "trs":
-                    str_out_list[idx] = _corrupt_single_transpose(str_in)
+            if edit_op == "ins":
+                str_out_list[idx] = _corrupt_single_insert(str_in)
+            elif edit_op == "del":
+                str_out_list[idx] = _corrupt_single_delete(str_in)
+            elif edit_op == "sub":
+                str_out_list[idx] = _corrupt_single_substitute(str_in)
+            elif edit_op == "trs":
+                str_out_list[idx] = _corrupt_single_transpose(str_in)
+            else:
+                raise ValueError(f"unsupported edit operation: {edit_op}")
 
         return str_out_list
 

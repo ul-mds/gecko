@@ -1,12 +1,14 @@
 import csv
 from pathlib import Path
-from typing import Callable, ParamSpec, Type
+from typing import Callable, Optional, Union
 
 import numpy as np
 import pandas as pd
 from numpy.random import Generator
+from typing_extensions import ParamSpec  # required for 3.9 backport
 
 P = ParamSpec('P')
+NumericType = Union[float, int]
 
 CallableGeneratorFunc = Callable[P, str]
 GeneratorFunc = Callable[[int], list[list[str]]]
@@ -46,10 +48,10 @@ def _generate_from_uniform_distribution_int(
 
 
 def from_uniform_distribution(
-        rng: Generator | None = None,
-        low: float | int = 0,
-        high: float | int = 1,
-        dtype: Type[int | float] = float
+        rng: Optional[Generator] = None,
+        low: NumericType = 0,
+        high: NumericType = 1,
+        dtype: type[Union[int, float]] = float
 ) -> GeneratorFunc:
     if rng is None:
         rng = np.random.default_rng()
@@ -64,7 +66,7 @@ def from_uniform_distribution(
 
 
 def from_normal_distribution(
-        rng: Generator | None = None,
+        rng: Optional[Generator] = None,
         mean: float = 0,
         sd: float = 1
 ) -> GeneratorFunc:
@@ -77,11 +79,11 @@ def from_normal_distribution(
 def from_frequency_table(
         csv_file_path: Path,
         header: bool = False,
-        value_column: str | int = 0,
-        count_column: str | int = 1,
+        value_column: Union[str, int] = 0,
+        count_column: Union[str, int] = 1,
         encoding: str = "utf-8",
         delimiter: str = ",",
-        rng: Generator | None = None
+        rng: Optional[Generator] = None
 ) -> GeneratorFunc:
     if rng is None:
         rng = np.random.default_rng()
@@ -108,8 +110,8 @@ def from_multicolumn_frequency_table(
         csv_file_path: Path,
         encoding: str = "utf-8",
         delimiter: str = ",",
-        rng: Generator | None = None,
-        column_names: str | list[str] | None = None,
+        rng: Optional[Generator] = None,
+        column_names: Optional[Union[str, list[str]]] = None,
         count_column_name: str = "count"
 ) -> GeneratorFunc:
     if column_names is None:
@@ -166,7 +168,7 @@ def from_multicolumn_frequency_table(
 
 
 def to_dataframe(
-        generators: list[tuple[GeneratorFunc, str | list[str]]],
+        generators: list[tuple[GeneratorFunc, Union[str, list[str]]]],
         count: int
 ):
     if len(generators) == 0:

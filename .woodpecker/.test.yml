@@ -1,24 +1,20 @@
-variables:
-  pre_setup: &pre_setup
-    - python -m pip install poetry
-    - poetry install
+matrix:
+  PYTHON_VERSION:
+    - 3.12
+    - 3.11
+    - 3.10
+    - 3.9
 
 steps:
-
-  lint:
-    image: python:3.11
-    commands:
-      - <<: *pre_setup
-      - poetry run flake8
-    when:
-      path:
-        include: [ ".woodpecker/*.yml", "geco/**/*.py", "tests/**/*.py", ".flake8", "pyproject.toml" ]
-
   test:
-    image: python:3.11
+    image: python:${PYTHON_VERSION}
     commands:
-      - <<: *pre_setup
+      - python -m pip install poetry
+      - poetry install
       - poetry run pytest
     when:
       path:
         include: [ ".woodpecker/*.yml", "geco/**/*.py", "tests/**/*.py", "tests/assets/**", "pyproject.toml" ]
+
+depends_on:
+  - lint
