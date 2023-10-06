@@ -3,6 +3,11 @@ variables:
     - python -m pip install poetry
     - poetry install
 
+matrix:
+  PYTHON_VERSION:
+    - 3.11
+    - 3.10
+
 steps:
 
   lint:
@@ -15,7 +20,7 @@ steps:
         include: [ ".woodpecker/*.yml", "geco/**/*.py", "tests/**/*.py", ".flake8", "pyproject.toml" ]
 
   test:
-    image: python:3.11
+    image: python:${PYTHON_VERSION}
     commands:
       - <<: *pre_setup
       - poetry run pytest
