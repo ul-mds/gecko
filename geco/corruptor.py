@@ -4,7 +4,7 @@ import string
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
-from typing import Callable
+from typing import Callable, Optional
 
 import numpy as np
 from lxml import etree
@@ -40,7 +40,7 @@ class KeyMutation:
 def with_cldr_keymap_file(
         cldr_path: Path,
         p: float = 0.1,
-        rng: Generator | None = None
+        rng: Optional[Generator] = None
 ):
     _check_probability_in_bounds(p)
 
@@ -154,7 +154,7 @@ def with_replacement_table(
         header: bool = False,
         encoding: str = "utf-8",
         delimiter: str = ",",
-        rng: Generator | None = None,
+        rng: Optional[Generator] = None,
         p: float = 0.1
 ) -> CorruptorFunc:
     _check_probability_in_bounds(p)
@@ -271,7 +271,7 @@ def with_edit(
         p_delete: float = 0,
         p_substitute: float = 0,
         p_transpose: float = 0,
-        rng: Generator | None = None,
+        rng: Optional[Generator] = None,
         charset: str = string.ascii_letters
 ) -> CorruptorFunc:
     if rng is None:
