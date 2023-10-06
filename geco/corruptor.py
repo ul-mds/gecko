@@ -257,13 +257,14 @@ def with_missing_value(
         value: str = "",
         strategy: ReplacementStrategy = ReplacementStrategy.ALL
 ) -> CorruptorFunc:
-    match strategy:
-        case ReplacementStrategy.ALL:
-            return _corrupt_all_from_value(value)
-        case ReplacementStrategy.ONLY_BLANK:
-            return _corrupt_only_blank_from_value(value)
-        case ReplacementStrategy.ONLY_EMPTY:
-            return _corrupt_only_empty_from_value(value)
+    if strategy == ReplacementStrategy.ALL:
+        return _corrupt_all_from_value(value)
+    elif strategy == ReplacementStrategy.ONLY_BLANK:
+        return _corrupt_only_blank_from_value(value)
+    elif strategy == ReplacementStrategy.ONLY_EMPTY:
+        return _corrupt_only_empty_from_value(value)
+    else:
+        raise ValueError(f"unrecognized replacement strategy: {strategy}")
 
 
 def with_edit(
