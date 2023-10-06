@@ -1,0 +1,24 @@
+variables:
+  pre_setup: &pre_setup
+    - python -m pip install poetry
+    - poetry install
+
+steps:
+
+  lint:
+    image: python:3.11
+    commands:
+      - <<: *pre_setup
+      - poetry run flake8
+    when:
+      path:
+        include: [ ".woodpecker/*.yml", "geco/**/*.py", "tests/**/*.py", ".flake8", "pyproject.toml" ]
+
+  test:
+    image: python:3.11
+    commands:
+      - <<: *pre_setup
+      - poetry run pytest
+    when:
+      path:
+        include: [ ".woodpecker/*.yml", "geco/**/*.py", "tests/**/*.py", "tests/assets/**", "pyproject.toml" ]
