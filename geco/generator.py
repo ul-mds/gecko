@@ -51,7 +51,7 @@ def from_uniform_distribution(
         rng: Optional[Generator] = None,
         low: NumericType = 0,
         high: NumericType = 1,
-        dtype: type[int | float] = float
+        dtype: type[Union[int, float]] = float
 ) -> GeneratorFunc:
     if rng is None:
         rng = np.random.default_rng()
