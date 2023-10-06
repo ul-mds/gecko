@@ -1,6 +1,6 @@
 import csv
 from pathlib import Path
-from typing import Callable, Type, Optional, Union
+from typing import Callable, Optional, Union
 
 import numpy as np
 import pandas as pd
@@ -51,7 +51,7 @@ def from_uniform_distribution(
         rng: Optional[Generator] = None,
         low: NumericType = 0,
         high: NumericType = 1,
-        dtype: Type[int | float] = float
+        dtype: type[int | float] = float
 ) -> GeneratorFunc:
     if rng is None:
         rng = np.random.default_rng()
