@@ -1,10 +1,11 @@
 import csv
 from pathlib import Path
-from typing import Callable, ParamSpec, Type
+from typing import Callable, Type
 
 import numpy as np
 import pandas as pd
 from numpy.random import Generator
+from typing_extensions import ParamSpec  # required for 3.9 backport
 
 P = ParamSpec('P')
 

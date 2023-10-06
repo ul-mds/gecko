@@ -352,15 +352,16 @@ def with_edit(
             idx = e_idx[0]
             str_in = str_in_list[idx]
 
-            match edit_op:
-                case "ins":
-                    str_out_list[idx] = _corrupt_single_insert(str_in)
-                case "del":
-                    str_out_list[idx] = _corrupt_single_delete(str_in)
-                case "sub":
-                    str_out_list[idx] = _corrupt_single_substitute(str_in)
-                case "trs":
-                    str_out_list[idx] = _corrupt_single_transpose(str_in)
+            if edit_op == "ins":
+                str_out_list[idx] = _corrupt_single_insert(str_in)
+            elif edit_op == "del":
+                str_out_list[idx] = _corrupt_single_delete(str_in)
+            elif edit_op == "sub":
+                str_out_list[idx] = _corrupt_single_substitute(str_in)
+            elif edit_op == "trs":
+                str_out_list[idx] = _corrupt_single_transpose(str_in)
+            else:
+                raise ValueError(f"unsupported edit operation: {edit_op}")
 
         return str_out_list
 
