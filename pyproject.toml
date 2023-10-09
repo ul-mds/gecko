@@ -4,6 +4,7 @@ version = "0.1.0"
 description = ""
 authors = ["Maximilian Jugl <Maximilian.Jugl@medizin.uni-leipzig.de>"]
 readme = "README.md"
+packages = [{include = "geco"}]
 
 [tool.poetry.dependencies]
 python = ">=3.9,<3.13"
