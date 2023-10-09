@@ -1,4 +1,5 @@
-from geco.corruptor import with_missing_value, ReplacementStrategy, with_edit
+from geco.corruptor import with_missing_value, ReplacementStrategy, with_edit, with_categorical_values
+from tests.helpers import get_asset_path
 
 
 def test_with_value_replace_all():
@@ -71,3 +72,22 @@ def test_with_edit_transpose(rng):
 
     assert x != x_corr
     assert len(x[0]) == len(x_corr[0])
+
+
+def test_with_categorical_values(rng):
+    def _generate_gender_list():
+        nonlocal rng
+        return rng.choice(["m", "f", "d", "x"], size=1000)
+
+    corr = with_categorical_values(
+        get_asset_path("freq_table_gender.csv"),
+        header=True, value_column="gender"
+    )
+
+    x = _generate_gender_list()
+    x_corr = corr(x)
+
+    assert len(x) == len(x_corr)
+
+    for i in range(len(x)):
+        assert x[i] != x_corr[i]

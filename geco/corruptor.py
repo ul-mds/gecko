@@ -4,9 +4,10 @@ import string
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
-from typing import Callable, Optional
+from typing import Callable, Optional, Union
 
 import numpy as np
+import pandas as pd
 from lxml import etree
 from numpy.random import Generator
 
@@ -365,5 +366,40 @@ def with_edit(
                 raise ValueError(f"unsupported edit operation: {edit_op}")
 
         return str_out_list
+
+    return _corrupt_list
+
+
+def with_categorical_values(
+        csv_file_path: Path,
+        header: bool = False,
+        value_column: Union[str, int] = 0,
+        encoding: str = "utf-8",
+        delimiter: str = ",",
+        rng: Optional[Generator] = None
+) -> CorruptorFunc:
+    if rng is None:
+        rng = np.random.default_rng()
+
+    if header and type(value_column) is not str:
+        raise ValueError("header present, but value column must be a string")
+
+    # read csv file
+    df = pd.read_csv(csv_file_path, header=0 if header else None, usecols=[value_column],
+                     sep=delimiter, encoding=encoding)
+
+    # fetch unique values
+    unique_values = pd.Series(df[value_column].dropna().unique())
+
+    def _map_value(x):
+        # select from all values without the one that's supposed to be mapped
+        value_options = unique_values[~unique_values.isin([x])]
+        # randomly pick a value from the resulting list
+        return rng.choice(value_options)
+
+    def _corrupt_list(str_in_list: list[str]) -> list[str]:
+        nonlocal unique_values
+        str_in_srs = pd.Series(str_in_list)
+        return list(str_in_srs.map(_map_value))
 
     return _corrupt_list
