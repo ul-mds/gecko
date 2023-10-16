@@ -1,22 +1,22 @@
-from geco.corruptor import with_missing_value, ReplacementStrategy, with_edit, with_categorical_values
+from geco.corruptor import with_missing_value, with_edit, with_categorical_values
 from tests.helpers import get_asset_path
 
 
 def test_with_value_replace_all():
     x = ["foo", "   ", ""]
-    corr = with_missing_value("bar", ReplacementStrategy.ALL)
+    corr = with_missing_value("bar", "all")
     assert corr(x) == ["bar", "bar", "bar"]
 
 
 def test_with_value_replace_empty():
     x = ["foo", "   ", ""]
-    corr = with_missing_value("bar", ReplacementStrategy.ONLY_EMPTY)
+    corr = with_missing_value("bar", "empty")
     assert corr(x) == ["foo", "   ", "bar"]
 
 
 def test_with_value_replace_blank():
     x = ["foo", "   ", ""]
-    corr = with_missing_value("bar", ReplacementStrategy.ONLY_BLANK)
+    corr = with_missing_value("bar", "blank")
     assert corr(x) == ["foo", "bar", "bar"]
 
 

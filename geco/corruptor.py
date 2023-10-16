@@ -2,9 +2,8 @@ import csv
 import html
 import string
 from dataclasses import dataclass, field
-from enum import Enum
 from pathlib import Path
-from typing import Callable, Optional, Union
+from typing import Callable, Optional, Union, Literal
 
 import numpy as np
 import pandas as pd
@@ -221,12 +220,6 @@ def with_replacement_table(
     return _corrupt
 
 
-class ReplacementStrategy(Enum):
-    ALL = 1
-    ONLY_EMPTY = 2
-    ONLY_BLANK = 3
-
-
 def _corrupt_all_from_value(
         value: str
 ) -> CorruptorFunc:
@@ -256,13 +249,13 @@ def _corrupt_only_blank_from_value(
 
 def with_missing_value(
         value: str = "",
-        strategy: ReplacementStrategy = ReplacementStrategy.ALL
+        strategy: Literal["all", "blank", "empty"] = "all"
 ) -> CorruptorFunc:
-    if strategy == ReplacementStrategy.ALL:
+    if strategy == "all":
         return _corrupt_all_from_value(value)
-    elif strategy == ReplacementStrategy.ONLY_BLANK:
+    elif strategy == "blank":
         return _corrupt_only_blank_from_value(value)
-    elif strategy == ReplacementStrategy.ONLY_EMPTY:
+    elif strategy == "empty":
         return _corrupt_only_empty_from_value(value)
     else:
         raise ValueError(f"unrecognized replacement strategy: {strategy}")
