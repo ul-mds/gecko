@@ -2,6 +2,7 @@ import csv
 import html
 import string
 from dataclasses import dataclass, field
+from os import PathLike
 from pathlib import Path
 from typing import Callable, Optional, Union, Literal, NamedTuple
 
@@ -46,14 +47,14 @@ class KeyMutation:
 
 
 def with_cldr_keymap_file(
-    cldr_path: Path, p: float = 0.1, rng: Optional[Generator] = None
+    cldr_path: Union[PathLike, str], p: float = 0.1, rng: Optional[Generator] = None
 ):
     _check_probability_in_bounds(p)
 
     if rng is None:
         rng = np.random.default_rng()
 
-    with cldr_path.open(mode="r", encoding="utf-8") as f:
+    with Path(cldr_path).open(mode="r", encoding="utf-8") as f:
         tree = etree.parse(f)
 
     # create keymap with all fields set to an empty string at first
@@ -163,7 +164,7 @@ def with_cldr_keymap_file(
 
 
 def with_phonetic_replacement_table(
-    csv_file_path: Path,
+    csv_file_path: Union[PathLike, str],
     header: bool = False,
     encoding: str = "utf-8",
     delimiter: str = ",",
@@ -217,6 +218,7 @@ def with_phonetic_replacement_table(
 
     def _corrupt(str_in_list: list[str]) -> list[str]:
         def _corrupt_single(str_in: str) -> str:
+            # noinspection PyTypeChecker
             rng.shuffle(phonetic_replacement_rules)
 
             for rule in phonetic_replacement_rules:
@@ -245,7 +247,7 @@ def with_phonetic_replacement_table(
 
 
 def with_replacement_table(
-    csv_file_path: Path,
+    csv_file_path: Union[PathLike, str],
     header: bool = False,
     encoding: str = "utf-8",
     delimiter: str = ",",
@@ -259,7 +261,7 @@ def with_replacement_table(
 
     mut_dict: dict[str, list[str]] = {}
 
-    with csv_file_path.open(mode="r", encoding=encoding, newline="") as f:
+    with Path(csv_file_path).open(mode="r", encoding=encoding, newline="") as f:
         # csv reader instance
         reader = csv.reader(f, delimiter=delimiter)
 
@@ -454,7 +456,7 @@ def with_edit(
 
 
 def with_categorical_values(
-    csv_file_path: Path,
+    csv_file_path: Union[PathLike, str],
     header: bool = False,
     value_column: Union[str, int] = 0,
     encoding: str = "utf-8",

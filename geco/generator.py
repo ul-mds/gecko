@@ -1,4 +1,5 @@
 import csv
+from os import PathLike
 from pathlib import Path
 from typing import Callable, Optional, Union
 
@@ -67,7 +68,7 @@ def from_normal_distribution(
 
 
 def from_frequency_table(
-    csv_file_path: Path,
+    csv_file_path: Union[str, PathLike[str]],
     header: bool = False,
     value_column: Union[str, int] = 0,
     count_column: Union[str, int] = 1,
@@ -105,7 +106,7 @@ def from_frequency_table(
 
 
 def from_multicolumn_frequency_table(
-    csv_file_path: Path,
+    csv_file_path: Union[str, PathLike[str]],
     encoding: str = "utf-8",
     delimiter: str = ",",
     rng: Optional[Generator] = None,
@@ -124,7 +125,7 @@ def from_multicolumn_frequency_table(
     if rng is None:
         rng = np.random.default_rng()
 
-    with csv_file_path.open(mode="r", encoding=encoding, newline="") as f:
+    with Path(csv_file_path).open(mode="r", encoding=encoding, newline="") as f:
         # create reader instance
         reader = csv.DictReader(f, delimiter=delimiter)
 
