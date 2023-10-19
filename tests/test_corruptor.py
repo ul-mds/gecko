@@ -95,10 +95,10 @@ def test_with_categorical_values(rng):
 
 def test_with_phonetic_replacement_table(rng):
     corr = with_phonetic_replacement_table(get_asset_path("homophone-de.csv"), rng=rng)
-    x = ["schande", "liebe", "straße", "ziehen", "leere", "stadt", "lahn", "phonetik", "conny", "fern", "seife",
-         "uhren", "uralt", "glied"]
+    x = ["schande", "liebe", "straße", "zwiebel", "leere", "stadt", "lahn", "phonetik", "conny", "fern", "seife",
+         "uhren", "uralt", "glied", "medizin", "medicin", "kalt", "calt"]
 
     assert corr(x) == [
-        "shande", "libe", "strasse", "zihen", "lehre", "statt", "lan", "fonetik", "konny", "vern", "saife", "uren",
-        "uhralt", "glid"
+        "shande", "libe", "strasse", "zwibel", "lehre", "statt", "lan", "fonetik", "konny", "vern", "saife", "uren",
+        "uhralt", "glid", "medicin", "medizin", "calt", "kalt"
     ]
