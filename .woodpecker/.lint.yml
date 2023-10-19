@@ -4,7 +4,7 @@ steps:
     commands:
       - python -m pip install poetry
       - poetry install
-      - poetry run black --check --no-color
+      - poetry run black --check --no-color geco tests
     when:
       path:
         include: [ ".woodpecker/*.yml", "geco/**/*.py", "tests/**/*.py", "pyproject.toml" ]
