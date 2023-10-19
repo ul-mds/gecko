@@ -1,10 +1,10 @@
 steps:
   lint:
-    image: python:3.11
+    image: python:3.12
     commands:
       - python -m pip install poetry
       - poetry install
-      - poetry run flake8
+      - poetry run black --check --no-color geco tests
     when:
       path:
-        include: [ ".woodpecker/*.yml", "geco/**/*.py", "tests/**/*.py", ".flake8", "pyproject.toml" ]
+        include: [ ".woodpecker/*.yml", "geco/**/*.py", "tests/**/*.py", "pyproject.toml" ]

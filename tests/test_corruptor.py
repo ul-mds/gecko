@@ -1,4 +1,9 @@
-from geco.corruptor import with_missing_value, with_edit, with_categorical_values, with_phonetic_replacement_table
+from geco.corruptor import (
+    with_missing_value,
+    with_edit,
+    with_categorical_values,
+    with_phonetic_replacement_table,
+)
 from tests.helpers import get_asset_path
 
 
@@ -44,7 +49,9 @@ def test_with_edit_delete(rng):
 
 def test_with_edit_substitute(rng):
     x = ["foobar"]
-    corr = with_edit(p_insert=0, p_delete=0, p_substitute=1, p_transpose=0, rng=rng, charset="0")
+    corr = with_edit(
+        p_insert=0, p_delete=0, p_substitute=1, p_transpose=0, rng=rng, charset="0"
+    )
     x_corr = corr(x)
 
     assert x != x_corr
@@ -80,8 +87,7 @@ def test_with_categorical_values(rng):
         return rng.choice(["m", "f", "d", "x"], size=1000)
 
     corr = with_categorical_values(
-        get_asset_path("freq_table_gender.csv"),
-        header=True, value_column="gender"
+        get_asset_path("freq_table_gender.csv"), header=True, value_column="gender"
     )
 
     x = _generate_gender_list()
@@ -95,10 +101,44 @@ def test_with_categorical_values(rng):
 
 def test_with_phonetic_replacement_table(rng):
     corr = with_phonetic_replacement_table(get_asset_path("homophone-de.csv"), rng=rng)
-    x = ["schande", "liebe", "straße", "zwiebel", "leere", "stadt", "lahn", "phonetik", "conny", "fern", "seife",
-         "uhren", "uralt", "glied", "medizin", "medicin", "kalt", "calt"]
+    x = [
+        "schande",
+        "liebe",
+        "straße",
+        "zwiebel",
+        "leere",
+        "stadt",
+        "lahn",
+        "phonetik",
+        "conny",
+        "fern",
+        "seife",
+        "uhren",
+        "uralt",
+        "glied",
+        "medizin",
+        "medicin",
+        "kalt",
+        "calt",
+    ]
 
     assert corr(x) == [
-        "shande", "libe", "strasse", "zwibel", "lehre", "statt", "lan", "fonetik", "konny", "vern", "saife", "uren",
-        "uhralt", "glid", "medicin", "medizin", "calt", "kalt"
+        "shande",
+        "libe",
+        "strasse",
+        "zwibel",
+        "lehre",
+        "statt",
+        "lan",
+        "fonetik",
+        "konny",
+        "vern",
+        "saife",
+        "uren",
+        "uhralt",
+        "glid",
+        "medicin",
+        "medizin",
+        "calt",
+        "kalt",
     ]

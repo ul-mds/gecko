@@ -46,9 +46,7 @@ class KeyMutation:
 
 
 def with_cldr_keymap_file(
-        cldr_path: Path,
-        p: float = 0.1,
-        rng: Optional[Generator] = None
+    cldr_path: Path, p: float = 0.1, rng: Optional[Generator] = None
 ):
     _check_probability_in_bounds(p)
 
@@ -59,8 +57,15 @@ def with_cldr_keymap_file(
         tree = etree.parse(f)
 
     # create keymap with all fields set to an empty string at first
-    kb_map = np.chararray(shape=(_kb_map_max_rows, _kb_map_max_cols,), itemsize=1, unicode=True)
-    kb_map[:] = ''
+    kb_map = np.chararray(
+        shape=(
+            _kb_map_max_rows,
+            _kb_map_max_cols,
+        ),
+        itemsize=1,
+        unicode=True,
+    )
+    kb_map[:] = ""
 
     # this dict records the row and column for each character (lowercase only so far)
     kb_char_to_idx_dict: dict[str, (int, int)] = {}
@@ -158,14 +163,14 @@ def with_cldr_keymap_file(
 
 
 def with_phonetic_replacement_table(
-        csv_file_path: Path,
-        header: bool = False,
-        encoding: str = "utf-8",
-        delimiter: str = ",",
-        pattern_column: Union[int, str] = 0,
-        replacement_column: Union[int, str] = 1,
-        flags_column: Union[int, str] = 2,
-        rng: Optional[Generator] = None
+    csv_file_path: Path,
+    header: bool = False,
+    encoding: str = "utf-8",
+    delimiter: str = ",",
+    pattern_column: Union[int, str] = 0,
+    replacement_column: Union[int, str] = 1,
+    flags_column: Union[int, str] = 2,
+    rng: Optional[Generator] = None,
 ) -> CorruptorFunc:
     def _parse_flags(flags_str: Optional[str]) -> list[PhoneticFlag]:
         if pd.isna(flags_str) or flags_str == "" or flags_str is None:
@@ -189,9 +194,16 @@ def with_phonetic_replacement_table(
         rng = np.random.default_rng()
 
     # read csv file
-    df = pd.read_csv(csv_file_path, header=0 if header else None, dtype=str,
-                     usecols=[pattern_column, replacement_column, flags_column], sep=delimiter, encoding=encoding)
+    df = pd.read_csv(
+        csv_file_path,
+        header=0 if header else None,
+        dtype=str,
+        usecols=[pattern_column, replacement_column, flags_column],
+        sep=delimiter,
+        encoding=encoding,
+    )
 
+    # test
     phonetic_replacement_rules: list[PhoneticReplacementRule] = []
 
     for _, row in df.iterrows():
@@ -199,7 +211,9 @@ def with_phonetic_replacement_table(
         replacement = row[replacement_column]
         flags = _parse_flags(row[flags_column])
 
-        phonetic_replacement_rules.append(PhoneticReplacementRule(pattern, replacement, flags))
+        phonetic_replacement_rules.append(
+            PhoneticReplacementRule(pattern, replacement, flags)
+        )
 
     def _corrupt(str_in_list: list[str]) -> list[str]:
         def _corrupt_single(str_in: str) -> str:
@@ -231,12 +245,12 @@ def with_phonetic_replacement_table(
 
 
 def with_replacement_table(
-        csv_file_path: Path,
-        header: bool = False,
-        encoding: str = "utf-8",
-        delimiter: str = ",",
-        rng: Optional[Generator] = None,
-        p: float = 0.1
+    csv_file_path: Path,
+    header: bool = False,
+    encoding: str = "utf-8",
+    delimiter: str = ",",
+    rng: Optional[Generator] = None,
+    p: float = 0.1,
 ) -> CorruptorFunc:
     _check_probability_in_bounds(p)
 
@@ -292,7 +306,9 @@ def with_replacement_table(
             for s_idx, s in np.ma.ndenumerate(str_in_list_masked):
                 idx = s_idx[0]
                 # perform replacement
-                str_out_list[idx] = s.replace(mutable_str, rng.choice(mut_dict[mutable_str]), 1)
+                str_out_list[idx] = s.replace(
+                    mutable_str, rng.choice(mut_dict[mutable_str]), 1
+                )
                 # mark string as mutated
                 mutated_mask[idx] = True
 
@@ -301,27 +317,21 @@ def with_replacement_table(
     return _corrupt
 
 
-def _corrupt_all_from_value(
-        value: str
-) -> CorruptorFunc:
+def _corrupt_all_from_value(value: str) -> CorruptorFunc:
     def _corrupt_list(str_in_list: list[str]) -> list[str]:
         return [value for _ in str_in_list]
 
     return _corrupt_list
 
 
-def _corrupt_only_empty_from_value(
-        value: str
-) -> CorruptorFunc:
+def _corrupt_only_empty_from_value(value: str) -> CorruptorFunc:
     def _corrupt_list(str_in_list: list[str]) -> list[str]:
         return [str_in or value for str_in in str_in_list]
 
     return _corrupt_list
 
 
-def _corrupt_only_blank_from_value(
-        value: str
-) -> CorruptorFunc:
+def _corrupt_only_blank_from_value(value: str) -> CorruptorFunc:
     def _corrupt_list(str_in_list: list[str]) -> list[str]:
         return [str_in or value for str_in in np.char.strip(str_in_list)]
 
@@ -329,8 +339,7 @@ def _corrupt_only_blank_from_value(
 
 
 def with_missing_value(
-        value: str = "",
-        strategy: Literal["all", "blank", "empty"] = "all"
+    value: str = "", strategy: Literal["all", "blank", "empty"] = "all"
 ) -> CorruptorFunc:
     if strategy == "all":
         return _corrupt_all_from_value(value)
@@ -343,12 +352,12 @@ def with_missing_value(
 
 
 def with_edit(
-        p_insert: float = 0,
-        p_delete: float = 0,
-        p_substitute: float = 0,
-        p_transpose: float = 0,
-        rng: Optional[Generator] = None,
-        charset: str = string.ascii_letters
+    p_insert: float = 0,
+    p_delete: float = 0,
+    p_substitute: float = 0,
+    p_transpose: float = 0,
+    rng: Optional[Generator] = None,
+    charset: str = string.ascii_letters,
 ) -> CorruptorFunc:
     if rng is None:
         rng = np.random.default_rng()
@@ -381,7 +390,7 @@ def with_edit(
             return str_in
 
         i = rng.choice(len(str_in))
-        return str_in[:i] + str_in[i + 1:]
+        return str_in[:i] + str_in[i + 1 :]
 
     def _corrupt_single_substitute(str_in: str) -> str:
         if str_in == "":
@@ -392,7 +401,7 @@ def with_edit(
         c = str_in[i]
         # draw a random character from the charset minus the character to be substituted
         x = rng.choice(list(charset.replace(c, "")))
-        return str_in[:i] + x + str_in[i + 1:]
+        return str_in[:i] + x + str_in[i + 1 :]
 
     def _corrupt_single_transpose(str_in: str) -> str:
         if len(str_in) < 2:
@@ -415,7 +424,7 @@ def with_edit(
 
             # check if the characters are distinct from one another
             if chr_0 != chr_1:
-                return str_in[:idx_0] + chr_1 + chr_0 + str_in[idx_1 + 1:]
+                return str_in[:idx_0] + chr_1 + chr_0 + str_in[idx_1 + 1 :]
 
         # otherwise the string is composed of one character only and there's nothing to transpose
         return str_in
@@ -445,12 +454,12 @@ def with_edit(
 
 
 def with_categorical_values(
-        csv_file_path: Path,
-        header: bool = False,
-        value_column: Union[str, int] = 0,
-        encoding: str = "utf-8",
-        delimiter: str = ",",
-        rng: Optional[Generator] = None
+    csv_file_path: Path,
+    header: bool = False,
+    value_column: Union[str, int] = 0,
+    encoding: str = "utf-8",
+    delimiter: str = ",",
+    rng: Optional[Generator] = None,
 ) -> CorruptorFunc:
     if rng is None:
         rng = np.random.default_rng()
@@ -459,8 +468,13 @@ def with_categorical_values(
         raise ValueError("header present, but value column must be a string")
 
     # read csv file
-    df = pd.read_csv(csv_file_path, header=0 if header else None, usecols=[value_column],
-                     sep=delimiter, encoding=encoding)
+    df = pd.read_csv(
+        csv_file_path,
+        header=0 if header else None,
+        usecols=[value_column],
+        sep=delimiter,
+        encoding=encoding,
+    )
 
     # fetch unique values
     unique_values = pd.Series(df[value_column].dropna().unique())
@@ -477,10 +491,3 @@ def with_categorical_values(
         return list(str_in_srs.map(_map_value))
 
     return _corrupt_list
-
-
-if __name__ == "__main__":
-    corr = with_phonetic_replacement_table(Path(__file__).parent.parent / "data" / "homophone-de.csv")
-    x = ["schande", "liebe", "straße", "fieh", "leere", "stadt", "lahn", "phonetik", "conny"]
-    print(x)
-    print(corr(x))

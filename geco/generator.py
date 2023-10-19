@@ -7,18 +7,14 @@ import pandas as pd
 from numpy.random import Generator
 from typing_extensions import ParamSpec  # required for 3.9 backport
 
-P = ParamSpec('P')
+P = ParamSpec("P")
 NumericType = Union[float, int]
 
 CallableGeneratorFunc = Callable[P, str]
 GeneratorFunc = Callable[[int], list[list[str]]]
 
 
-def from_function(
-        func: CallableGeneratorFunc,
-        *args,
-        **kwargs
-) -> GeneratorFunc:
+def from_function(func: CallableGeneratorFunc, *args, **kwargs) -> GeneratorFunc:
     def _generate(count: int) -> list[list[str]]:
         return [[func(*args, **kwargs) for _ in np.arange(count)]]
 
@@ -26,9 +22,7 @@ def from_function(
 
 
 def _generate_from_uniform_distribution_float(
-        rng: Generator,
-        low: float,
-        high: float
+    rng: Generator, low: float, high: float
 ) -> GeneratorFunc:
     def _generate(count: int) -> list[list[str]]:
         return [np.char.mod("%f", rng.uniform(low, high, count))]
@@ -37,9 +31,7 @@ def _generate_from_uniform_distribution_float(
 
 
 def _generate_from_uniform_distribution_int(
-        rng: Generator,
-        low: int,
-        high: int
+    rng: Generator, low: int, high: int
 ) -> GeneratorFunc:
     def _generate(count: int) -> list[list[str]]:
         return [np.char.mod("%d", rng.integers(low, high, size=count))]
@@ -48,10 +40,10 @@ def _generate_from_uniform_distribution_int(
 
 
 def from_uniform_distribution(
-        rng: Optional[Generator] = None,
-        low: NumericType = 0,
-        high: NumericType = 1,
-        dtype: type[Union[int, float]] = float
+    rng: Optional[Generator] = None,
+    low: NumericType = 0,
+    high: NumericType = 1,
+    dtype: type[Union[int, float]] = float,
 ) -> GeneratorFunc:
     if rng is None:
         rng = np.random.default_rng()
@@ -66,9 +58,7 @@ def from_uniform_distribution(
 
 
 def from_normal_distribution(
-        rng: Optional[Generator] = None,
-        mean: float = 0,
-        sd: float = 1
+    rng: Optional[Generator] = None, mean: float = 0, sd: float = 1
 ) -> GeneratorFunc:
     def _generate(count: int) -> list[list[str]]:
         return [np.char.mod("%f", rng.normal(mean, sd, count))]
@@ -77,23 +67,31 @@ def from_normal_distribution(
 
 
 def from_frequency_table(
-        csv_file_path: Path,
-        header: bool = False,
-        value_column: Union[str, int] = 0,
-        count_column: Union[str, int] = 1,
-        encoding: str = "utf-8",
-        delimiter: str = ",",
-        rng: Optional[Generator] = None
+    csv_file_path: Path,
+    header: bool = False,
+    value_column: Union[str, int] = 0,
+    count_column: Union[str, int] = 1,
+    encoding: str = "utf-8",
+    delimiter: str = ",",
+    rng: Optional[Generator] = None,
 ) -> GeneratorFunc:
     if rng is None:
         rng = np.random.default_rng()
 
     if type(value_column) is not type(count_column):
-        raise ValueError("type of the value column must either be both strings or both integers")
+        raise ValueError(
+            "type of the value column must either be both strings or both integers"
+        )
 
     # read csv file
-    df = pd.read_csv(csv_file_path, header=0 if header else None, usecols=[value_column, count_column],
-                     dtype={count_column: "int"}, sep=delimiter, encoding=encoding)
+    df = pd.read_csv(
+        csv_file_path,
+        header=0 if header else None,
+        usecols=[value_column, count_column],
+        dtype={count_column: "int"},
+        sep=delimiter,
+        encoding=encoding,
+    )
 
     # convert absolute to relative frequencies
     srs_value = df[value_column]
@@ -107,12 +105,12 @@ def from_frequency_table(
 
 
 def from_multicolumn_frequency_table(
-        csv_file_path: Path,
-        encoding: str = "utf-8",
-        delimiter: str = ",",
-        rng: Optional[Generator] = None,
-        column_names: Optional[Union[str, list[str]]] = None,
-        count_column_name: str = "count"
+    csv_file_path: Path,
+    encoding: str = "utf-8",
+    delimiter: str = ",",
+    rng: Optional[Generator] = None,
+    column_names: Optional[Union[str, list[str]]] = None,
+    count_column_name: str = "count",
 ) -> GeneratorFunc:
     if column_names is None:
         raise ValueError("column names must be defined")
@@ -168,8 +166,7 @@ def from_multicolumn_frequency_table(
 
 
 def to_dataframe(
-        generators: list[tuple[GeneratorFunc, Union[str, list[str]]]],
-        count: int
+    generators: list[tuple[GeneratorFunc, Union[str, list[str]]]], count: int
 ):
     if len(generators) == 0:
         raise ValueError("list of generators may not be empty")
@@ -189,18 +186,11 @@ def to_dataframe(
 
         # check that the generator returned as many columns as expected
         if len(gen_col_values) != len(gen_col_names):
-            raise ValueError(f"generator returned {len(gen_col_values)} columns, but requires {len(gen_col_names)} to "
-                             f"fill column(s) for: {','.join(gen_col_names)}")
+            raise ValueError(
+                f"generator returned {len(gen_col_values)} columns, but requires {len(gen_col_names)} to "
+                f"fill column(s) for: {','.join(gen_col_names)}"
+            )
 
         col_values += gen_col_values
 
-    return pd.DataFrame({
-        col_names[i]: col_values[i] for i in range(len(col_names))
-    })
-
-
-if __name__ == "__main__":
-    gen = from_frequency_table(Path(__file__).parent.parent / "data" / "test.csv", header=True,
-                               value_column="col1", count_column="count")
-
-    print(gen(10))
+    return pd.DataFrame({col_names[i]: col_values[i] for i in range(len(col_names))})
