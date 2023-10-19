@@ -3,7 +3,7 @@ import html
 import string
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Callable, Optional, Union, Literal
+from typing import Callable, Optional, Union, Literal, NamedTuple
 
 import numpy as np
 import pandas as pd
@@ -11,6 +11,14 @@ from lxml import etree
 from numpy.random import Generator
 
 CorruptorFunc = Callable[[list[str]], list[str]]
+PhoneticFlag = Literal["start", "end", "middle"]
+
+
+class PhoneticReplacementRule(NamedTuple):
+    pattern: str
+    replacement: str
+    flags: list[PhoneticFlag]
+
 
 # todo can this be decided on the fly?
 _kb_map_max_rows = 5
@@ -144,6 +152,79 @@ def with_cldr_keymap_file(
             return "".join(str_out)
 
         # mutate every string one by one
+        return [_corrupt_single(s) for s in str_in_list]
+
+    return _corrupt
+
+
+def with_phonetic_replacement_table(
+        csv_file_path: Path,
+        header: bool = False,
+        encoding: str = "utf-8",
+        delimiter: str = ",",
+        pattern_column: Union[int, str] = 0,
+        replacement_column: Union[int, str] = 1,
+        flags_column: Union[int, str] = 2,
+        rng: Optional[Generator] = None
+) -> CorruptorFunc:
+    def _parse_flags(flags_str: Optional[str]) -> list[PhoneticFlag]:
+        if pd.isna(flags_str) or flags_str == "" or flags_str is None:
+            return ["start", "end", "middle"]
+
+        flags_list: list[PhoneticFlag] = []
+
+        for char in flags_str:
+            if char == "^":
+                flags_list.append("start")
+            elif char == "$":
+                flags_list.append("end")
+            elif char == "_":
+                flags_list.append("middle")
+            else:
+                raise ValueError(f"unknown flag: {char}")
+
+        return flags_list
+
+    if rng is None:
+        rng = np.random.default_rng()
+
+    # read csv file
+    df = pd.read_csv(csv_file_path, header=0 if header else None, dtype=str,
+                     usecols=[pattern_column, replacement_column, flags_column], sep=delimiter, encoding=encoding)
+
+    phonetic_replacement_rules: list[PhoneticReplacementRule] = []
+
+    for _, row in df.iterrows():
+        pattern = row[pattern_column]
+        replacement = row[replacement_column]
+        flags = _parse_flags(row[flags_column])
+
+        phonetic_replacement_rules.append(PhoneticReplacementRule(pattern, replacement, flags))
+
+    def _corrupt(str_in_list: list[str]) -> list[str]:
+        def _corrupt_single(str_in: str) -> str:
+            rng.shuffle(phonetic_replacement_rules)
+
+            for rule in phonetic_replacement_rules:
+                max_pattern_idx = len(str_in) - len(rule.pattern)
+                pattern_idx = str_in.find(rule.pattern)
+
+                if pattern_idx == -1:
+                    continue
+
+                if pattern_idx == 0:
+                    if "start" not in rule.flags:
+                        continue
+                elif pattern_idx == max_pattern_idx:
+                    if "end" not in rule.flags:
+                        continue
+                elif "middle" not in rule.flags:
+                    continue
+
+                return str_in.replace(rule.pattern, rule.replacement)
+
+            return str_in
+
         return [_corrupt_single(s) for s in str_in_list]
 
     return _corrupt
@@ -396,3 +477,10 @@ def with_categorical_values(
         return list(str_in_srs.map(_map_value))
 
     return _corrupt_list
+
+
+if __name__ == "__main__":
+    corr = with_phonetic_replacement_table(Path(__file__).parent.parent / "data" / "homophone-de.csv")
+    x = ["schande", "liebe", "straße", "fieh", "leere", "stadt", "lahn", "phonetik", "conny"]
+    print(x)
+    print(corr(x))

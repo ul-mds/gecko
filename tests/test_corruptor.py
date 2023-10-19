@@ -1,4 +1,4 @@
-from geco.corruptor import with_missing_value, with_edit, with_categorical_values
+from geco.corruptor import with_missing_value, with_edit, with_categorical_values, with_phonetic_replacement_table
 from tests.helpers import get_asset_path
 
 
@@ -91,3 +91,14 @@ def test_with_categorical_values(rng):
 
     for i in range(len(x)):
         assert x[i] != x_corr[i]
+
+
+def test_with_phonetic_replacement_table(rng):
+    corr = with_phonetic_replacement_table(get_asset_path("homophone-de.csv"), rng=rng)
+    x = ["schande", "liebe", "straße", "ziehen", "leere", "stadt", "lahn", "phonetik", "conny", "fern", "seife",
+         "uhren", "uralt", "glied"]
+
+    assert corr(x) == [
+        "shande", "libe", "strasse", "zihen", "lehre", "statt", "lan", "fonetik", "konny", "vern", "saife", "uren",
+        "uhralt", "glid"
+    ]
