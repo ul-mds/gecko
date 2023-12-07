@@ -11,8 +11,9 @@ import pandas as pd
 from lxml import etree
 from numpy.random import Generator
 
-CorruptorFunc = Callable[[list[str]], list[str]]
+CorruptorFunc = Callable[[pd.Series], pd.Series]
 PhoneticFlag = Literal["start", "end", "middle"]
+_EditOp = Literal["ins", "del", "sub", "trs"]
 
 
 class PhoneticReplacementRule(NamedTuple):
@@ -48,7 +49,7 @@ class KeyMutation:
 
 def with_cldr_keymap_file(
     cldr_path: Union[PathLike, str], p: float = 0.1, rng: Optional[Generator] = None
-):
+) -> CorruptorFunc:
     _check_probability_in_bounds(p)
 
     if rng is None:
@@ -127,7 +128,9 @@ def with_cldr_keymap_file(
 
         kb_char_to_mut_dict[kb_char] = km
 
-    def _corrupt(str_in_list: list[str]) -> list[str]:
+    # TODO could probably be replaced with all pandas functions? similar to character replacement.
+    # draw a random character from each string, check the possible replacements, select a random one for each, replace?
+    def _corrupt(srs_str_in: pd.Series) -> pd.Series:
         def _corrupt_single(str_in: str) -> str:
             # deconstruct the string into its single characters
             str_out = list(str_in)
@@ -149,7 +152,7 @@ def with_cldr_keymap_file(
                 mut_chars = mut.row + mut.col
 
                 # this shouldn't happen but better to be safe than sorry
-                if len(mut_chars) != 0:
+                if len(mut_chars) == 0:
                     continue
 
                 # draw random character
@@ -158,7 +161,7 @@ def with_cldr_keymap_file(
             return "".join(str_out)
 
         # mutate every string one by one
-        return [_corrupt_single(s) for s in str_in_list]
+        return srs_str_in.map(_corrupt_single)
 
     return _corrupt
 
@@ -216,7 +219,7 @@ def with_phonetic_replacement_table(
             PhoneticReplacementRule(pattern, replacement, flags)
         )
 
-    def _corrupt(str_in_list: list[str]) -> list[str]:
+    def _corrupt(srs_str_in: pd.Series) -> pd.Series:
         def _corrupt_single(str_in: str) -> str:
             # noinspection PyTypeChecker
             rng.shuffle(phonetic_replacement_rules)
@@ -241,7 +244,7 @@ def with_phonetic_replacement_table(
 
             return str_in
 
-        return [_corrupt_single(s) for s in str_in_list]
+        return srs_str_in.map(_corrupt_single)
 
     return _corrupt
 
@@ -254,6 +257,8 @@ def with_replacement_table(
     rng: Optional[Generator] = None,
     p: float = 0.1,
 ) -> CorruptorFunc:
+    # TODO allow selection of source columns
+    # TODO remove p
     _check_probability_in_bounds(p)
 
     if rng is None:
@@ -283,15 +288,17 @@ def with_replacement_table(
     # keep track of all strings that can be mutated
     mutable_str_list = list(mut_dict.keys())
 
-    def _corrupt(str_in_list: list[str]) -> list[str]:
+    def _corrupt(srs_str_in: pd.Series) -> pd.Series:
+        # create copy of input series
+        srs_str_out = srs_str_in.copy()
         # keep track of strs that have already been mutated
-        mutated_mask = np.full(len(str_in_list), False)
+        mutated_mask = np.full(len(srs_str_in), False)
         # find() returns -1 when a substring wasn't found, so create an array to quickly compare against
-        not_found_mask = np.full(len(str_in_list), -1)
+        not_found_mask = np.full(len(srs_str_in), -1)
         # create randomized mask s.t. every string has a probability of `p` of being mutated
-        rand_mask = rng.choice([False, True], len(str_in_list), p=[p, 1 - p])
-        # create copy of input list
-        str_out_list = str_in_list[:]
+        rand_mask = rng.choice([False, True], len(srs_str_in), p=[p, 1 - p])
+        # hack for now to move to pd series as quickly as possible
+        str_in_list = srs_str_in.to_list()
 
         for mutable_str in mutable_str_list:
             # find index of mutable str within list of input strings
@@ -308,41 +315,59 @@ def with_replacement_table(
             for s_idx, s in np.ma.ndenumerate(str_in_list_masked):
                 idx = s_idx[0]
                 # perform replacement
-                str_out_list[idx] = s.replace(
+                srs_str_out.iloc[idx] = s.replace(
                     mutable_str, rng.choice(mut_dict[mutable_str]), 1
                 )
                 # mark string as mutated
                 mutated_mask[idx] = True
 
-        return str_out_list
+        return srs_str_out
 
     return _corrupt
 
 
 def _corrupt_all_from_value(value: str) -> CorruptorFunc:
-    def _corrupt_list(str_in_list: list[str]) -> list[str]:
-        return [value for _ in str_in_list]
+    def _corrupt_list(str_in_srs: pd.Series) -> pd.Series:
+        str_out_srs = str_in_srs.copy()
+        str_out_srs.loc[:] = value
+        return str_out_srs
 
     return _corrupt_list
 
 
 def _corrupt_only_empty_from_value(value: str) -> CorruptorFunc:
-    def _corrupt_list(str_in_list: list[str]) -> list[str]:
-        return [str_in or value for str_in in str_in_list]
+    def _corrupt_list(str_in_srs: pd.Series) -> pd.Series:
+        str_out_srs = str_in_srs.copy()
+        str_out_srs[str_out_srs == ""] = value
+        return str_out_srs
 
     return _corrupt_list
 
 
 def _corrupt_only_blank_from_value(value: str) -> CorruptorFunc:
-    def _corrupt_list(str_in_list: list[str]) -> list[str]:
-        return [str_in or value for str_in in np.char.strip(str_in_list)]
+    def _corrupt_list(str_in_srs: pd.Series) -> pd.Series:
+        str_out_srs = str_in_srs.copy()
+        str_out_srs[str_out_srs.str.strip() == ""] = value
+        return str_out_srs
 
     return _corrupt_list
 
 
 def with_missing_value(
-    value: str = "", strategy: Literal["all", "blank", "empty"] = "all"
+    value: str = "",
+    strategy: Literal["all", "blank", "empty"] = "blank",
 ) -> CorruptorFunc:
+    """
+    Corrupt a series of strings by replacing select entries with a representative "missing" value.
+    Strings are selected for replacement depending on the chosen strategy.
+    If `all`, then all strings in the series will be replaced with the missing value.
+    If `blank`, then all strings that are either empty or consist of whitespace characters only will be replaced with the missing value.
+    If `empty`, then all strings that are empty will be replaced with the missing value.
+
+    :param value: "missing" value to replace select entries with (default: empty string)
+    :param strategy: `all`, `blank` or `empty` to select values to replace (default: `blank`)
+    :return: function returning Pandas series of strings where select entries are replaced with a "missing" value
+    """
     if strategy == "all":
         return _corrupt_all_from_value(value)
     elif strategy == "blank":
@@ -353,24 +378,208 @@ def with_missing_value(
         raise ValueError(f"unrecognized replacement strategy: {strategy}")
 
 
-def with_edit(
-    p_insert: float = 0,
-    p_delete: float = 0,
-    p_substitute: float = 0,
-    p_transpose: float = 0,
-    rng: Optional[Generator] = None,
+def with_insert(
     charset: str = string.ascii_letters,
+    rng: Optional[Generator] = None,
 ) -> CorruptorFunc:
+    """
+    Corrupt a series of strings by inserting random characters.
+    The characters are drawn from the provided charset.
+
+    :param charset: string to sample random characters from (default: all ASCII letters)
+    :param rng: random number generator to use (default: None)
+    :return: function returning Pandas series of strings with randomly inserted characters
+    """
     if rng is None:
         rng = np.random.default_rng()
 
-    edit_ops = ["ins", "del", "sub", "trs"]
+    def _corrupt(srs_str_in: pd.Series) -> pd.Series:
+        srs_str_out = srs_str_in.copy()
+        str_count = len(srs_str_out)
+
+        # get series of lengths of all strings in series
+        srs_str_out_len = srs_str_out.str.len()
+        # draw random values
+        arr_rng_vals = rng.random(size=str_count)
+        # compute indices from random values (+1 because letters can be inserted at the ned)
+        arr_rng_insert_indices = np.floor((srs_str_out_len + 1) * arr_rng_vals).astype(
+            int
+        )
+        # generate random char for each string
+        srs_rand_chars = pd.Series(
+            rng.choice(list(charset), size=str_count),
+            copy=False,  # use np array
+            index=srs_str_out.index,  # align index
+        )
+        # determine all unique random indices
+        arr_uniq_idx = arr_rng_insert_indices.unique()
+
+        for i in arr_uniq_idx:
+            # select all strings with the same random insert index
+            srs_idx_mask = arr_rng_insert_indices == i
+            # insert character at current index
+            srs_str_out[srs_idx_mask] = (
+                srs_str_out[srs_idx_mask].str[:i]
+                + srs_rand_chars[srs_idx_mask]
+                + srs_str_out[srs_idx_mask].str[i:]
+            )
+
+        return srs_str_out
+
+    return _corrupt
+
+
+def with_delete(rng: Optional[Generator] = None) -> CorruptorFunc:
+    """
+    Corrupt a series of strings by randomly deleting characters.
+
+    :param rng: random number generator to use (default: None)
+    :return: function returning Pandas series of strings with randomly deleted characters
+    """
+    if rng is None:
+        rng = np.random.default_rng()
+
+    def _corrupt(srs_str_in: pd.Series) -> pd.Series:
+        srs_str_out = srs_str_in.copy()
+
+        # get series of string lengths
+        srs_str_out_len = srs_str_out.str.len()
+        # generate random indices
+        arr_rng_vals = rng.random(size=len(srs_str_out))
+        arr_rng_delete_indices = np.floor(srs_str_out_len * arr_rng_vals).astype(int)
+        # determine unique indices
+        arr_uniq_idx = arr_rng_delete_indices.unique()
+
+        for i in arr_uniq_idx:
+            # select all strings with the same random delete index
+            srs_idx_mask = arr_rng_delete_indices == i
+            # delete character at selected index
+            srs_str_out[srs_idx_mask] = srs_str_out[srs_idx_mask].str.slice_replace(
+                i, i + 1, ""
+            )
+
+        return srs_str_out
+
+    return _corrupt
+
+
+def with_transpose(rng: Optional[Generator] = None) -> CorruptorFunc:
+    """
+    Corrupt a series of strings by randomly swapping neighboring characters.
+    Note that it is possible for the same two neighboring characters to be swapped.
+
+    :param rng: random number generator to use (default: None)
+    :return: function returning Pandas series of strings with randomly swapped neighboring characters
+    """
+    if rng is None:
+        rng = np.random.default_rng()
+
+    def _corrupt(srs_str_in: pd.Series) -> pd.Series:
+        srs_str_out = srs_str_in.copy()
+
+        # length of strings
+        srs_str_out_len = srs_str_out.str.len()
+        # generate random numbers
+        arr_rng_vals = rng.random(size=len(srs_str_out))
+        # -1 as neighboring char can be transposed
+        arr_rng_transpose_indices = np.floor(
+            (srs_str_out_len - 1) * arr_rng_vals
+        ).astype(int)
+        # unique indices
+        arr_uniq_idx = arr_rng_transpose_indices.unique()
+
+        for i in arr_uniq_idx:
+            # select strings that have the same transposition
+            srs_idx_mask = arr_rng_transpose_indices == i
+            srs_str_out[srs_idx_mask] = (
+                srs_str_out[srs_idx_mask].str[:i]
+                + srs_str_out[srs_idx_mask].str[i + 1]
+                + srs_str_out[srs_idx_mask].str[i]
+                + srs_str_out[srs_idx_mask].str[i + 2 :]
+            )
+
+        return srs_str_out
+
+    return _corrupt
+
+
+def with_substitute(
+    charset: str = string.ascii_letters,
+    rng: Optional[Generator] = None,
+) -> CorruptorFunc:
+    """
+    Corrupt a series of strings by replacing single characters with a new one.
+    The characters are drawn from the provided charset.
+    Note that it is possible for a character to be replaced by itself.
+
+    :param charset: string to sample random characters from (default: all ASCII letters)
+    :param rng: random number generator to use (default: None)
+    :return: function returning Pandas series of strings with randomly inserted characters
+    """
+    if rng is None:
+        rng = np.random.default_rng()
+
+    def _corrupt(srs_str_in: pd.Series) -> pd.Series:
+        srs_str_out = srs_str_in.copy()
+        str_count = len(srs_str_out)
+
+        # string length series
+        srs_str_out_len = srs_str_out.str.len()
+        # random indices
+        arr_rng_vals = rng.random(size=str_count)
+        arr_rng_sub_indices = np.floor(srs_str_out_len * arr_rng_vals).astype(int)
+        # random substitution chars
+        srs_rand_chars = pd.Series(
+            rng.choice(list(charset), size=str_count),
+            copy=False,  # use np array
+            index=srs_str_out.index,  # align index
+        )
+        arr_uniq_idx = arr_rng_sub_indices.unique()
+
+        for i in arr_uniq_idx:
+            srs_idx_mask = arr_rng_sub_indices == i
+            srs_str_out[srs_idx_mask] = (
+                srs_str_out[srs_idx_mask].str[:i]
+                + srs_rand_chars[srs_idx_mask]
+                + srs_str_out[srs_idx_mask].str[i + 1 :]
+            )
+
+        return srs_str_out
+
+    return _corrupt
+
+
+def with_edit(
+    p_insert: float = 0.25,
+    p_delete: float = 0.25,
+    p_substitute: float = 0.25,
+    p_transpose: float = 0.25,
+    charset: str = string.ascii_letters,
+    rng: Optional[Generator] = None,
+) -> CorruptorFunc:
+    """
+    Corrupt a series of strings by randomly applying insertion, deletion, substitution or transposition of characters.
+    This corruptor works as a wrapper around the respective corruptors for the mentioned individual operations.
+    The charset of allowed characters is passed on to the insertion and substitution corruptors.
+    Each corruptor receives its own isolated RNG which is derived from the RNG passed into this function.
+    The probabilities of each corruptor must sum up to 1.
+
+    :param p_insert: probability of random character insertion on a string (default: 0.25, 25%)
+    :param p_delete: probability of random character deletion on a string (default: 0.25, 25%)
+    :param p_substitute: probability of random character substitution on a string (default: 0.25, 25%)
+    :param p_transpose: probability of random character transposition on a string (default: 0.25, 25%)
+    :param charset: string to sample random characters from for insertion and substitution (default: all ASCII letters)
+    :param rng: random number generator to use (default: None)
+    :return: function returning Pandas series of strings with randomly mutated characters
+    """
+    if rng is None:
+        rng = np.random.default_rng()
+
+    edit_ops: list[_EditOp] = ["ins", "del", "sub", "trs"]
     edit_ops_prob = [p_insert, p_delete, p_substitute, p_transpose]
 
     for p in edit_ops_prob:
         _check_probability_in_bounds(p)
-
-    charset_lst = list(charset)
 
     try:
         # sanity check
@@ -378,79 +587,42 @@ def with_edit(
     except ValueError:
         raise ValueError("probabilities must sum up to 1.0")
 
-    def _corrupt_single_insert(str_in: str) -> str:
-        if str_in == "":
-            return str_in
+    # equip every corruptor with its own independent rng derived from this corruptor's rng
+    rng_ins, rng_del, rng_sub, rng_trs = rng.spawn(4)
+    corr_ins, corr_del, corr_sub, corr_trs = (
+        with_insert(charset, rng_ins),
+        with_delete(rng_del),
+        with_substitute(charset, rng_sub),
+        with_transpose(rng_trs),
+    )
 
-        c = rng.choice(charset_lst)
-        i = rng.choice(len(str_in))
+    def _corrupt_list(srs_in: pd.Series) -> pd.Series:
+        str_in_edit_ops = pd.Series(
+            rng.choice(edit_ops, size=len(srs_in), p=edit_ops_prob)
+        )
+        srs_out = srs_in.copy()
 
-        return str_in[:i] + c + str_in[i:]
+        msk_ins = str_in_edit_ops == "ins"
 
-    def _corrupt_single_delete(str_in: str) -> str:
-        if str_in == "":
-            return str_in
+        if msk_ins.sum() != 0:
+            srs_out[msk_ins] = corr_ins(srs_out[msk_ins])
 
-        i = rng.choice(len(str_in))
-        return str_in[:i] + str_in[i + 1 :]
+        msk_del = str_in_edit_ops == "del"
 
-    def _corrupt_single_substitute(str_in: str) -> str:
-        if str_in == "":
-            return str_in
+        if msk_del.sum() != 0:
+            srs_out[msk_del] = corr_del(srs_out[msk_del])
 
-        # select random character to substitute
-        i = rng.choice(len(str_in))
-        c = str_in[i]
-        # draw a random character from the charset minus the character to be substituted
-        x = rng.choice(list(charset.replace(c, "")))
-        return str_in[:i] + x + str_in[i + 1 :]
+        msk_sub = str_in_edit_ops == "sub"
 
-    def _corrupt_single_transpose(str_in: str) -> str:
-        if len(str_in) < 2:
-            return str_in
+        if msk_sub.sum() != 0:
+            srs_out[msk_sub] = corr_sub(srs_out[msk_sub])
 
-        # trivial case
-        if len(str_in) == 2:
-            return str_in[1] + str_in[0]
+        msk_trs = str_in_edit_ops == "trs"
 
-        # collect all indices 0...n-2 because n-1 may need to be selected later
-        idx_shuffle = np.arange(len(str_in) - 1)
-        rng.shuffle(idx_shuffle)
+        if msk_trs.sum() != 0:
+            srs_out[msk_trs] = corr_trs(srs_out[msk_trs])
 
-        for idx_0 in idx_shuffle:
-            chr_0 = str_in[idx_0]
-
-            # get neighboring character
-            idx_1 = idx_0 + 1
-            chr_1 = str_in[idx_1]
-
-            # check if the characters are distinct from one another
-            if chr_0 != chr_1:
-                return str_in[:idx_0] + chr_1 + chr_0 + str_in[idx_1 + 1 :]
-
-        # otherwise the string is composed of one character only and there's nothing to transpose
-        return str_in
-
-    def _corrupt_list(str_in_list: list[str]) -> list[str]:
-        str_in_edit_ops = rng.choice(edit_ops, size=len(str_in_list), p=edit_ops_prob)
-        str_out_list = str_in_list[:]
-
-        for e_idx, edit_op in np.ndenumerate(str_in_edit_ops):
-            idx = e_idx[0]
-            str_in = str_in_list[idx]
-
-            if edit_op == "ins":
-                str_out_list[idx] = _corrupt_single_insert(str_in)
-            elif edit_op == "del":
-                str_out_list[idx] = _corrupt_single_delete(str_in)
-            elif edit_op == "sub":
-                str_out_list[idx] = _corrupt_single_substitute(str_in)
-            elif edit_op == "trs":
-                str_out_list[idx] = _corrupt_single_transpose(str_in)
-            else:
-                raise ValueError(f"unsupported edit operation: {edit_op}")
-
-        return str_out_list
+        return srs_out
 
     return _corrupt_list
 
@@ -463,6 +635,19 @@ def with_categorical_values(
     delimiter: str = ",",
     rng: Optional[Generator] = None,
 ) -> CorruptorFunc:
+    """
+    Corrupt a series of strings by replacing it with another from a list of categorical values.
+    This corruptor reads all unique values from a column within a CSV file.
+    All strings within a series will be replaced with a different random value from this column.
+
+    :param csv_file_path: CSV file to read from
+    :param header: `True` if the file contains a header, `False` otherwise (default: `False`)
+    :param value_column: name of column with categorical values if the file contains a header, otherwise the column index (default: `0`)
+    :param encoding: character encoding of the CSV file (default: `UTF-8`)
+    :param delimiter: column delimiter (default: `,`)
+    :param rng: random number generator to use (default: `None`)
+    :return: function returning Pandas series of strings that are replaced with a different value from a category
+    """
     if rng is None:
         rng = np.random.default_rng()
 
@@ -481,15 +666,37 @@ def with_categorical_values(
     # fetch unique values
     unique_values = pd.Series(df[value_column].dropna().unique())
 
-    def _map_value(x):
-        # select from all values without the one that's supposed to be mapped
-        value_options = unique_values[~unique_values.isin([x])]
-        # randomly pick a value from the resulting list
-        return rng.choice(value_options)
-
-    def _corrupt_list(str_in_list: list[str]) -> list[str]:
+    def _corrupt_list(srs_in: pd.Series) -> pd.Series:
         nonlocal unique_values
-        str_in_srs = pd.Series(str_in_list)
-        return list(str_in_srs.map(_map_value))
+
+        # create a new series with which the original one will be updated.
+        # for starters all rows will be NaN. dtype is to avoid typecast warning.
+        srs_in_update = pd.Series(np.full(len(srs_in), np.nan), copy=False, dtype=str)
+
+        for unique_val in unique_values:
+            # remove current value from list of unique values
+            unique_vals_without_current = np.setdiff1d(unique_values, unique_val)
+            # select all rows that equal the current value
+            srs_in_matching_val = srs_in.str.fullmatch(unique_val)
+            # count the rows that contain the current value
+            unique_val_total = srs_in_matching_val.sum()
+
+            # skip if there are no values to generate
+            if unique_val_total == 0:
+                continue
+
+            # draw from the list of values excluding the current one
+            new_unique_vals = rng.choice(
+                unique_vals_without_current, size=unique_val_total
+            )
+
+            # populate the series that is used for updating the original one
+            srs_in_update[srs_in_matching_val] = new_unique_vals
+
+        # update() is performed in-place, so create a copy of the initial series first.
+        srs_out = srs_in.copy()
+        srs_out.update(srs_in_update)
+
+        return srs_out
 
     return _corrupt_list
