@@ -168,7 +168,7 @@ def with_cldr_keymap_file(
         for i in arr_uniq_idx:
             # there is a possibility that a char might not have a replacement, so pd.notna() will have to
             # act as an extra filter to not modify strings that have no replacement
-            idx_mask = (arr_rng_typo_indices == i) & pd.notna(srs_typo_chars)
+            idx_mask = (arr_rng_typo_indices == i) & pd.notna(srs_repl_chars)
             srs_str_out[idx_mask] = (
                 srs_str_out[idx_mask].str[:i]
                 + srs_repl_chars[idx_mask]
