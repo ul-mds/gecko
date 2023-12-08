@@ -170,7 +170,7 @@ def test_with_replacement_table(rng):
 
 def test_with_cldr_keymap_file(rng):
     x = pd.Series(["d", "e"])
-    corr = with_cldr_keymap_file(get_asset_path("de-t-k0-windows.xml"))
+    corr = with_cldr_keymap_file(get_asset_path("de-t-k0-windows.xml"), rng=rng)
     x_corr = corr(x)
 
     assert len(x) == len(x_corr)

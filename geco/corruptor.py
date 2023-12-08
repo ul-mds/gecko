@@ -124,7 +124,11 @@ def with_cldr_keymap_file(
 
             # check that there are any candidates
             if len(kb_char_candidates) > 0:
-                kb_char_to_candidates_dict[kb_char] = "".join(kb_char_candidates)
+                kb_char_to_candidates_dict[kb_char] = "".join(
+                    sorted(
+                        kb_char_candidates
+                    )  # needs to be sorted to ensure reproducibility
+                )
 
     def _corrupt(srs_str_in: pd.Series) -> pd.Series:
         srs_str_out = srs_str_in.copy()
@@ -144,6 +148,8 @@ def with_cldr_keymap_file(
             idx_mask = arr_rng_typo_indices == i
             srs_typo_chars[idx_mask] = srs_str_out[idx_mask].str[i]
 
+        # create a new series that will track the replacement chars for the selected chars
+        srs_repl_chars = pd.Series(dtype=str, index=srs_str_out.index)
         arr_uniq_chars = srs_typo_chars.unique()
 
         for char in arr_uniq_chars:
@@ -155,12 +161,9 @@ def with_cldr_keymap_file(
             char_candidates = kb_char_to_candidates_dict[char]
             # count the rows that have this character selected
             char_count = (srs_typo_chars == char).sum()
-            # draw replacements for the current character. we can overwrite the srs_typo_chars series
-            # because we need to iterate over the indices later, not chars.
-            srs_typo_chars[srs_typo_chars == char] = pd.Series(
-                np.random.choice(list(char_candidates), size=char_count),
-                index=srs_typo_chars[srs_typo_chars == char].index,
-            )
+            # draw replacements for the current character
+            rand_chars = rng.choice(list(char_candidates), size=char_count)
+            srs_repl_chars[srs_typo_chars == char] = rand_chars
 
         for i in arr_uniq_idx:
             # there is a possibility that a char might not have a replacement, so pd.notna() will have to
@@ -168,7 +171,7 @@ def with_cldr_keymap_file(
             idx_mask = (arr_rng_typo_indices == i) & pd.notna(srs_typo_chars)
             srs_str_out[idx_mask] = (
                 srs_str_out[idx_mask].str[:i]
-                + srs_typo_chars[idx_mask]
+                + srs_repl_chars[idx_mask]
                 + srs_str_out[idx_mask].str[i + 1 :]
             )
 
