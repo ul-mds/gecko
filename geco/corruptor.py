@@ -1,5 +1,4 @@
 import csv
-import html
 import string
 from dataclasses import dataclass, field
 from os import PathLike
@@ -10,6 +9,8 @@ import numpy as np
 import pandas as pd
 from lxml import etree
 from numpy.random import Generator
+
+from geco.cldr import decode_iso_kb_pos, unescape_kb_char, get_neighbor_kb_pos_for
 
 CorruptorFunc = Callable[[pd.Series], pd.Series]
 PhoneticFlag = Literal["start", "end", "middle"]
@@ -22,23 +23,9 @@ class PhoneticReplacementRule(NamedTuple):
     flags: list[PhoneticFlag]
 
 
-# todo can this be decided on the fly?
-_kb_map_max_rows = 5
-_kb_map_max_cols = 15
-
-
 def _check_probability_in_bounds(p: float):
     if p < 0 or p > 1:
         raise ValueError("probability is out of range, must be between 0 and 1")
-
-
-def decode_iso_kb_pos(iso_kb_pos: str) -> (int, int):
-    kb_row_dict = {"A": 4, "B": 3, "C": 2, "D": 1, "E": 0}
-
-    kb_row = kb_row_dict.get(iso_kb_pos[0])
-    kb_col = int(iso_kb_pos[1:])
-
-    return kb_row, kb_col
 
 
 @dataclass(frozen=True)
@@ -48,120 +35,144 @@ class KeyMutation:
 
 
 def with_cldr_keymap_file(
-    cldr_path: Union[PathLike, str], p: float = 0.1, rng: Optional[Generator] = None
+    cldr_path: Union[PathLike, str],
+    rng: Optional[Generator] = None,
 ) -> CorruptorFunc:
-    _check_probability_in_bounds(p)
+    """
+    Corrupt a series of strings by randomly introducing typos.
+    Potential typos are sourced from a Common Locale Data Repository (CLDR) keymap.
+    Any character may be replaced with one of its horizontal or vertical neighbors on a keyboard.
+    They may also be replaced with its upper- or lowercase variant.
+    It is possible for a string to not be modified if a selected character has no possible replacements.
 
+    :param cldr_path: path to CLDR keymap file
+    :param rng: random number generator to use (default: None)
+    :return: function returning Pandas series of strings with random typos
+    """
     if rng is None:
         rng = np.random.default_rng()
 
     with Path(cldr_path).open(mode="r", encoding="utf-8") as f:
         tree = etree.parse(f)
 
-    # create keymap with all fields set to an empty string at first
+    root = tree.getroot()
+
+    # compute the row and column count
+    max_row, max_col = 0, 0
+
+    for map_node in root.iterfind("./keyMap/map"):
+        # decode_iso_kb_pos is cached so calling this repeatedly shouldn't have an impact on performance
+        kb_row, kb_col = decode_iso_kb_pos(map_node.get("iso"))
+        max_row = max(max_row, kb_row)
+        max_col = max(max_col, kb_col)
+
     kb_map = np.chararray(
         shape=(
-            _kb_map_max_rows,
-            _kb_map_max_cols,
-        ),
-        itemsize=1,
+            max_row + 1,
+            max_col + 1,
+            2,
+        ),  # + 1 because rows and cols are zero-indexed, 2 to accommodate shift
+        itemsize=1,  # each cell holds one unicode char
         unicode=True,
     )
-    kb_map[:] = ""
+    kb_map[:] = ""  # initialize with empty strings
 
-    # this dict records the row and column for each character (lowercase only so far)
-    kb_char_to_idx_dict: dict[str, (int, int)] = {}
+    # remember the kb pos for each character
+    kb_char_to_kb_pos_dict: dict[str, (int, int, int)] = {}
 
-    root = tree.getroot()
-    keymap_list = root.findall("keyMap")
+    for key_map_node in root.iterfind("./keyMap"):
+        key_map_mod = key_map_node.get("modifiers")
 
-    for keymap in keymap_list:
-        keymap_mod = keymap.get("modifiers")
-
-        # todo account for shift modifier in the future
-        if keymap_mod is not None:
+        if key_map_mod is None:
+            kb_mod = 0
+        elif key_map_mod == "shift":
+            kb_mod = 1
+        else:
             continue
 
-        for key in keymap.findall("map"):
-            # determine the row and column for a character on the specified keyboard,
-            # store in keymap and in lookup dict
-            key_pos, key_char = key.get("iso"), html.unescape(key.get("to"))
-            key_idx = decode_iso_kb_pos(key_pos)
+        for map_node in key_map_node.iterfind("./map"):
+            kb_row, kb_col = decode_iso_kb_pos(map_node.get("iso"))
+            kb_char = unescape_kb_char(map_node.get("to"))
 
-            kb_map[key_idx[0], key_idx[1]] = key_char
-            kb_char_to_idx_dict[key_char] = (key_idx[0], key_idx[1])
+            kb_char_to_kb_pos_dict[kb_char] = (kb_row, kb_col, kb_mod)
+            kb_map[kb_row, kb_col, kb_mod] = kb_char
 
-    # now construct all possible mutations for each character
-    kb_char_to_mut_dict: dict[str, KeyMutation] = {}
+    # map each character with other nearby characters that it could be replaced with due to a typo
+    kb_char_to_candidates_dict: dict[str, str] = {}
 
-    for kb_char, kb_idx in kb_char_to_idx_dict.items():
-        kb_row, kb_col = kb_idx
-        km = KeyMutation()
+    with np.nditer(kb_map, flags=["multi_index"], op_flags=[["readonly"]]) as it:
+        for kb_char in it:
+            # iterator returns str as array of unicode chars. convert it to str.
+            kb_char = str(kb_char)
 
-        # check if there's a row above the current character
-        if kb_row > 0:
-            kb_top = kb_map[kb_row - 1, kb_col]
+            # skip keys that don't have a character assigned to them
+            if kb_char == "":
+                continue
 
-            if kb_top != "":
-                km.row.append(str(kb_top))
+            kb_pos = it.multi_index
+            # noinspection PyTypeChecker
+            kb_pos_neighbors = get_neighbor_kb_pos_for(kb_pos, max_row, max_col)
+            kb_char_candidates = set()
 
-        # check if there's a row beneath the current character
-        if kb_row < _kb_map_max_rows - 1:
-            kb_bottom = kb_map[kb_row + 1, kb_col]
+            for kb_pos_neighbor in kb_pos_neighbors:
+                kb_char_candidate = kb_map[kb_pos_neighbor]
 
-            if kb_bottom != "":
-                km.row.append(str(kb_bottom))
+                # check that the key pos has a char assigned to it. it may also happen that the char is the same
+                # despite the kb modifier. that needs to be accounted for.
+                if kb_char_candidate != "" and kb_char_candidate != kb_char:
+                    kb_char_candidates.add(kb_char_candidate)
 
-        # check if there's a column to the left of the current character
-        if kb_col > 0:
-            kb_left = kb_map[kb_row, kb_col - 1]
+            # check that there are any candidates
+            if len(kb_char_candidates) > 0:
+                kb_char_to_candidates_dict[kb_char] = "".join(kb_char_candidates)
 
-            if kb_left != "":
-                km.col.append(str(kb_left))
-
-        # check if there's a column to the right of the current character
-        if kb_col < _kb_map_max_cols - 1:
-            kb_right = kb_map[kb_row, kb_col + 1]
-
-            if kb_right != "":
-                km.col.append(str(kb_right))
-
-        kb_char_to_mut_dict[kb_char] = km
-
-    # TODO could probably be replaced with all pandas functions? similar to character replacement.
-    # draw a random character from each string, check the possible replacements, select a random one for each, replace?
     def _corrupt(srs_str_in: pd.Series) -> pd.Series:
-        def _corrupt_single(str_in: str) -> str:
-            # deconstruct the string into its single characters
-            str_out = list(str_in)
+        srs_str_out = srs_str_in.copy()
+        str_count = len(srs_str_out)
 
-            # construct a mask where `False` marks a character for mutation and `True` keeps a character as-is
-            chr_mask = rng.choice([False, True], len(str_out), p=[p, 1 - p])
-            str_mask = np.ma.array(str_out, mask=chr_mask)
+        # string length series
+        srs_str_out_len = srs_str_out.str.len()
+        # random indices
+        arr_rng_vals = rng.random(size=str_count)
+        arr_rng_typo_indices = np.floor(srs_str_out_len * arr_rng_vals).astype(int)
 
-            # this iterates over all unmasked chars, meaning the ones marked for mutation
-            for c_idx, c in np.ma.ndenumerate(str_mask):
-                c_idx = c_idx[0]  # c_idx would be a tuple here
+        # create a new series containing the chars that have been randomly selected for replacement
+        srs_typo_chars = pd.Series(dtype=str, index=srs_str_out.index)
+        arr_uniq_idx = arr_rng_typo_indices.unique()
 
-                # if char cannot be mutated, skip
-                if c not in kb_char_to_mut_dict:
-                    continue
+        for i in arr_uniq_idx:
+            idx_mask = arr_rng_typo_indices == i
+            srs_typo_chars[idx_mask] = srs_str_out[idx_mask].str[i]
 
-                # get the list of characters that this char can be mutated to
-                mut = kb_char_to_mut_dict[c]
-                mut_chars = mut.row + mut.col
+        arr_uniq_chars = srs_typo_chars.unique()
 
-                # this shouldn't happen but better to be safe than sorry
-                if len(mut_chars) == 0:
-                    continue
+        for char in arr_uniq_chars:
+            # check if there are any possible replacements for this char
+            if char not in kb_char_to_candidates_dict:
+                continue
 
-                # draw random character
-                str_out[c_idx] = rng.choice(mut_chars)
+            # get candidate strings
+            char_candidates = kb_char_to_candidates_dict[char]
+            # count the rows that have this character selected
+            char_count = (srs_typo_chars == char).sum()
+            # draw replacements for the current character. we can overwrite the srs_typo_chars series
+            # because we need to iterate over the indices later, not chars.
+            srs_typo_chars[srs_typo_chars == char] = pd.Series(
+                np.random.choice(list(char_candidates), size=char_count),
+                index=srs_typo_chars[srs_typo_chars == char].index,
+            )
 
-            return "".join(str_out)
+        for i in arr_uniq_idx:
+            # there is a possibility that a char might not have a replacement, so pd.notna() will have to
+            # act as an extra filter to not modify strings that have no replacement
+            idx_mask = (arr_rng_typo_indices == i) & pd.notna(srs_typo_chars)
+            srs_str_out[idx_mask] = (
+                srs_str_out[idx_mask].str[:i]
+                + srs_typo_chars[idx_mask]
+                + srs_str_out[idx_mask].str[i + 1 :]
+            )
 
-        # mutate every string one by one
-        return srs_str_in.map(_corrupt_single)
+        return srs_str_out
 
     return _corrupt
 

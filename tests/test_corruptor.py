@@ -146,22 +146,6 @@ def test_with_edit(rng):
     assert ~(x == x_corr).all()
 
 
-def test_with_cldr_keymap_file(rng):
-    x = pd.Series(["d", "e"])
-    corr = with_cldr_keymap_file(
-        get_asset_path("de-t-k0-windows.xml"),
-        p=1,
-        rng=rng,
-    )
-    x_corr = corr(x)
-
-    assert len(x) == len(x_corr)
-    assert ~(x == x_corr).all()
-
-    assert x_corr.iloc[0] in "ecsf"  # neighboring keys of `d`
-    assert x_corr.iloc[1] in "3dwr"  # neighboring keys of `e`
-
-
 def test_with_phonetic_replacement_table(rng):
     df_phonetic_in_out = pd.read_csv(get_asset_path("phonetic-test.csv"))
     srs_original = df_phonetic_in_out["original"]
@@ -182,3 +166,27 @@ def test_with_replacement_table(rng):
     x_corr = corr(srs_original)
 
     assert (x_corr == srs_corrupt).all()
+
+
+def test_with_cldr_keymap_file(rng):
+    x = pd.Series(["d", "e"])
+    corr = with_cldr_keymap_file(get_asset_path("de-t-k0-windows.xml"))
+    x_corr = corr(x)
+
+    assert len(x) == len(x_corr)
+    assert (x.str.len() == x_corr.str.len()).all()
+    assert ~(x == x_corr).all()
+
+    assert x_corr.iloc[0] in "Decsf"  # neighboring keys of `d`
+    assert x_corr.iloc[1] in "E3dwr"  # neighboring keys of `e`
+
+
+def test_with_cldr_keymap_file_no_replacement(rng):
+    # this should stay the same since á is not mapped in the keymap
+    x = pd.Series(["á"])
+    corr = with_cldr_keymap_file(get_asset_path("de-t-k0-windows.xml"))
+    x_corr = corr(x)
+
+    assert len(x) == len(x_corr)
+    assert (x.str.len() == x_corr.str.len()).all()
+    assert (x == x_corr).all()
