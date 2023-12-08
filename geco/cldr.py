@@ -63,7 +63,3 @@ def get_neighbor_kb_pos_for(
     kb_neighbors.append((_kb_row, _kb_col, _kb_mod ^ 1))
 
     return kb_neighbors
-
-
-if __name__ == "__main__":
-    parse("./../tests/assets/de-t-k0-windows.xml")
