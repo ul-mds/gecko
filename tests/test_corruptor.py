@@ -157,17 +157,6 @@ def test_with_phonetic_replacement_table(rng):
     assert (x_corr == srs_corrupt).all()
 
 
-def test_with_replacement_table(rng):
-    df_ocr_in_out = pd.read_csv(get_asset_path("ocr-test.csv"))
-    srs_original = df_ocr_in_out["original"]
-    srs_corrupt = df_ocr_in_out["corrupt"]
-
-    corr = with_replacement_table(get_asset_path("ocr.csv"), rng=rng, p=1)
-    x_corr = corr(srs_original)
-
-    assert (x_corr == srs_corrupt).all()
-
-
 def test_with_cldr_keymap_file(rng):
     x = pd.Series(["d", "e"])
     corr = with_cldr_keymap_file(get_asset_path("de-t-k0-windows.xml"), rng=rng)
@@ -190,3 +179,24 @@ def test_with_cldr_keymap_file_no_replacement(rng):
     assert len(x) == len(x_corr)
     assert (x.str.len() == x_corr.str.len()).all()
     assert (x == x_corr).all()
+
+
+def test_with_replacement_table(rng):
+    x = pd.Series(["k", "5", "2", "1", "g", "q", "l", "i"])
+    corr = with_replacement_table(get_asset_path("ocr.csv"))
+    x_corr = corr(x)
+
+    assert len(x) == len(x_corr)
+    assert (x != x_corr).all()
+
+
+def test_with_replacement_table_multiple_options(rng):
+    # `q` has more than one mapping in the replacement table, so running
+    # 100 q's through the corruptor should yield different results
+    x = pd.Series(["q"] * 100)
+    corr = with_replacement_table(get_asset_path("ocr.csv"), rng=rng)
+    x_corr = corr(x)
+
+    assert len(x) == len(x_corr)
+    assert (x != x_corr).all()
+    assert len(x_corr.unique()) > 1

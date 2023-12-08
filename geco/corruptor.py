@@ -1,4 +1,3 @@
-import csv
 import string
 from dataclasses import dataclass, field
 from os import PathLike
@@ -266,74 +265,125 @@ def with_phonetic_replacement_table(
 def with_replacement_table(
     csv_file_path: Union[PathLike, str],
     header: bool = False,
+    source_column: Union[str, int] = 0,
+    target_column: Union[str, int] = 1,
     encoding: str = "utf-8",
     delimiter: str = ",",
     rng: Optional[Generator] = None,
-    p: float = 0.1,
 ) -> CorruptorFunc:
-    # TODO allow selection of source columns
-    # TODO remove p
-    _check_probability_in_bounds(p)
+    """
+    Corrupt a series of strings by randomly substituting sequences from a replacement table.
+    The table must have at least two columns: a source and a target value column.
+    A source value may have multiple target values that it can map to.
+    Strings that do not contain any possible source values are not corrupted.
+    It is possible for a string to not be modified if no target value could be picked for its assigned source value.
+    This can only happen if a source value is mapped to multiple target values.
+    In this case, each target value will be independently selected or not.
 
+    :param csv_file_path: path to CSV file with source and target column
+    :param header: `True` if the file contains a header, `False` otherwise (default: `False`)
+    :param source_column: name of the source column if the file contains a header, otherwise the column index (default: `0`)
+    :param target_column: name of the target column if the file contains a header, otherwise the column index (default: `1`)
+    :param encoding: character encoding of the CSV file (default: `UTF-8`)
+    :param delimiter: column delimiter (default: `,`)
+    :param rng: random number generator to use (default: `None`)
+    :return: function returning Pandas series of strings with inline substitutions according to replacement table
+    """
     if rng is None:
         rng = np.random.default_rng()
 
-    mut_dict: dict[str, list[str]] = {}
+    if header and (type(source_column) is not str or type(target_column) is not str):
+        raise ValueError(
+            "header present, but source and target columns must be strings"
+        )
 
-    with Path(csv_file_path).open(mode="r", encoding=encoding, newline="") as f:
-        # csv reader instance
-        reader = csv.reader(f, delimiter=delimiter)
+    df = pd.read_csv(
+        csv_file_path,
+        header=0 if header else None,
+        usecols=[source_column, target_column],
+        sep=delimiter,
+        encoding=encoding,
+    )
 
-        # skip header if necessary
-        if header:
-            next(reader)
-
-        for line in reader:
-            if len(line) != 2:
-                raise ValueError("CSV file must contain two columns")
-
-            line_from, line_to = line[0], line[1]
-
-            if line_from not in mut_dict:
-                mut_dict[line_from] = []
-
-            mut_dict[line_from].append(line_to)
-
-    # keep track of all strings that can be mutated
-    mutable_str_list = list(mut_dict.keys())
+    srs_unique_source_values = df[source_column].unique()
 
     def _corrupt(srs_str_in: pd.Series) -> pd.Series:
         # create copy of input series
         srs_str_out = srs_str_in.copy()
-        # keep track of strs that have already been mutated
-        mutated_mask = np.full(len(srs_str_in), False)
-        # find() returns -1 when a substring wasn't found, so create an array to quickly compare against
-        not_found_mask = np.full(len(srs_str_in), -1)
-        # create randomized mask s.t. every string has a probability of `p` of being mutated
-        rand_mask = rng.choice([False, True], len(srs_str_in), p=[p, 1 - p])
-        # hack for now to move to pd series as quickly as possible
-        str_in_list = srs_str_in.to_list()
+        str_count = len(srs_str_out)
+        # create series to compute probability of substitution for each row
+        srs_str_sub_prob = pd.Series(dtype=float, index=srs_str_out.index)
+        srs_str_sub_prob[:] = 0
 
-        for mutable_str in mutable_str_list:
-            # find index of mutable str within list of input strings
-            mutable_str_idx_list = np.char.find(str_in_list, mutable_str)
-            # this will create an array where every string in the input list will have its corresponding
-            # index set to `True` if substr is not present (will be masked), or `False` if it is (will not be masked)
-            mutable_str_mask = np.equal(mutable_str_idx_list, not_found_mask)
-            # perform an AND s.t. strings that have been mutated aren't mutated again
-            mutable_str_mask = mutated_mask | mutable_str_mask
-            mutable_str_mask = mutable_str_mask | rand_mask
-            # now mask the input list s.t. we get the elements that are supposed to be mutated
-            str_in_list_masked = np.ma.array(str_in_list, mask=mutable_str_mask)
+        for source in srs_unique_source_values:
+            # increment absolute frequency for each string containing source value by one
+            srs_str_sub_prob[srs_str_out.str.contains(source)] += 1
 
-            for s_idx, s in np.ma.ndenumerate(str_in_list_masked):
-                idx = s_idx[0]
-                # perform replacement
-                srs_str_out.iloc[idx] = s.replace(
-                    mutable_str, rng.choice(mut_dict[mutable_str]), 1
+        # prevent division by zero
+        mask_eligible_strs = srs_str_sub_prob != 0
+        # convert absolute frequencies into relative frequencies
+        srs_str_sub_prob[mask_eligible_strs] = 1 / srs_str_sub_prob[mask_eligible_strs]
+
+        # create dataframe to track source and target for each row
+        df_replacement = pd.DataFrame(
+            index=srs_str_out.index, columns=["source", "target"], dtype=str
+        )
+
+        for source in srs_unique_source_values:
+            # select all rows that contain the source value
+            srs_str_contains_source = srs_str_out.str.contains(source)
+            # draw random numbers for each row
+            arr_rand_vals = rng.random(size=str_count)
+            # select only rows that contain the source string, have a random number drawn that's
+            # in range of its probability to be modified, and hasn't been marked for replacement yet
+            mask_strings_to_replace = (
+                srs_str_contains_source
+                & (arr_rand_vals < srs_str_sub_prob)
+                & pd.isna(df_replacement["source"])
+            )
+            # count all strings that meet the conditions above
+            replacement_count = mask_strings_to_replace.sum()
+
+            # skip if there are no replacements to be made
+            if replacement_count == 0:
+                continue
+
+            # fill in the source column of the replacement table
+            df_replacement.loc[mask_strings_to_replace, "source"] = source
+
+            # select all target values that can be generated from the current source value
+            replacement_options = df[df[source_column] == source][
+                target_column
+            ].tolist()
+
+            # trivial case
+            if len(replacement_options) == 1:
+                target = replacement_options[0]
+                df_replacement.loc[mask_strings_to_replace, "target"] = target
+                continue
+
+            # otherwise draw a random target value for each row
+            df_replacement.loc[mask_strings_to_replace, "target"] = rng.choice(
+                replacement_options, size=replacement_count
+            )
+
+        # iterate over all unique source values
+        for source in df_replacement["source"].unique():
+            # skip nan
+            if pd.isna(source):
+                continue
+
+            # for each unique source value, iterate over its unique target values
+            for target in df_replacement[df_replacement["source"] == source][
+                "target"
+            ].unique():
+                # select all rows that have this specific source -> target replacement going
+                mask = (df_replacement["source"] == source) & (
+                    df_replacement["target"] == target
                 )
-                # mark string as mutated
-                mutated_mask[idx] = True
+
+                # perform replacement of source -> target
+                srs_str_out[mask] = srs_str_out[mask].str.replace(source, target, n=1)
 
         return srs_str_out
 
