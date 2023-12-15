@@ -12,14 +12,13 @@ from numpy.random import Generator
 from geco.cldr import decode_iso_kb_pos, unescape_kb_char, get_neighbor_kb_pos_for
 
 CorruptorFunc = Callable[[pd.Series], pd.Series]
-PhoneticFlag = Literal["start", "end", "middle"]
 _EditOp = Literal["ins", "del", "sub", "trs"]
 
 
 class PhoneticReplacementRule(NamedTuple):
     pattern: str
     replacement: str
-    flags: list[PhoneticFlag]
+    flags: str
 
 
 def _check_probability_in_bounds(p: float):
@@ -189,23 +188,17 @@ def with_phonetic_replacement_table(
     flags_column: Union[int, str] = 2,
     rng: Optional[Generator] = None,
 ) -> CorruptorFunc:
-    def _parse_flags(flags_str: Optional[str]) -> list[PhoneticFlag]:
-        if pd.isna(flags_str) or flags_str == "" or flags_str is None:
-            return ["start", "end", "middle"]
+    _all_flags = "".join(sorted("^$_"))
 
-        flags_list: list[PhoneticFlag] = []
+    def _validate_flags(flags_str: Optional[str]) -> str:
+        if pd.isna(flags_str) or flags_str == "" or flags_str is None:
+            return _all_flags
 
         for char in flags_str:
-            if char == "^":
-                flags_list.append("start")
-            elif char == "$":
-                flags_list.append("end")
-            elif char == "_":
-                flags_list.append("middle")
-            else:
+            if char not in _all_flags:
                 raise ValueError(f"unknown flag: {char}")
 
-        return flags_list
+        return flags_str
 
     if rng is None:
         rng = np.random.default_rng()
@@ -220,44 +213,132 @@ def with_phonetic_replacement_table(
         encoding=encoding,
     )
 
-    # test
     phonetic_replacement_rules: list[PhoneticReplacementRule] = []
 
     for _, row in df.iterrows():
         pattern = row[pattern_column]
         replacement = row[replacement_column]
-        flags = _parse_flags(row[flags_column])
+        flags = _validate_flags(row[flags_column])
 
         phonetic_replacement_rules.append(
             PhoneticReplacementRule(pattern, replacement, flags)
         )
 
     def _corrupt(srs_str_in: pd.Series) -> pd.Series:
-        def _corrupt_single(str_in: str) -> str:
-            # noinspection PyTypeChecker
-            rng.shuffle(phonetic_replacement_rules)
+        # create a copy of input series
+        srs_str_out = srs_str_in.copy()
+        # get series of string lengths
+        srs_str_out_len = srs_str_out.str.len()
+        # get series length
+        str_count = len(srs_str_out)
+        # create series to compute substitution probability
+        srs_str_sub_prob = pd.Series(dtype=float, index=srs_str_out.index)
+        srs_str_sub_prob[:] = 0
+        # track possible replacements for each rule
+        rule_to_flag_dict: dict[PhoneticReplacementRule, pd.Series] = {}
 
-            for rule in phonetic_replacement_rules:
-                max_pattern_idx = len(str_in) - len(rule.pattern)
-                pattern_idx = str_in.find(rule.pattern)
+        for rule in phonetic_replacement_rules:
+            # increment absolute frequency for each string where rule applies
+            srs_str_flags = pd.Series(dtype=str, index=srs_str_out.index)
+            srs_str_flags[:] = ""
 
-                if pattern_idx == -1:
+            # find pattern in series
+            srs_pattern_idx = srs_str_out.str.find(rule.pattern)
+
+            if "^" in rule.flags:
+                # increment counter for all strings where pattern is found at start of string
+                mask_pattern_at_start = srs_pattern_idx == 0
+                srs_str_flags[mask_pattern_at_start] += "^"
+
+            if "$" in rule.flags:
+                # increment counter for all strings where pattern is found at end of string
+                mask_pattern_at_end = (
+                    srs_pattern_idx + len(rule.pattern) == srs_str_out_len
+                )
+                srs_str_flags[mask_pattern_at_end] += "$"
+
+            if "_" in rule.flags:
+                # increment counter for all strings where pattern is not at the start and at the end
+                mask_pattern_in_middle = (srs_pattern_idx > 0) & (
+                    srs_pattern_idx + len(rule.pattern) < srs_str_out_len
+                )
+                srs_str_flags[mask_pattern_in_middle] += "_"
+
+            rule_to_flag_dict[rule] = srs_str_flags
+            srs_str_sub_prob[srs_str_flags != ""] += 1
+
+        # prevent division by zero
+        mask_eligible_strs = srs_str_sub_prob != 0
+        # absolute -> relative frequency
+        srs_str_sub_prob[mask_eligible_strs] = 1 / srs_str_sub_prob[mask_eligible_strs]
+        # keep track of modified rows
+        mask_modified_rows = pd.Series(dtype=bool, index=srs_str_out.index)
+        mask_modified_rows[:] = False
+
+        for rule in phonetic_replacement_rules:
+            # draw random numbers for each row
+            arr_rand_vals = rng.random(size=str_count)
+            # get flags that were generated for each row
+            srs_str_flags = rule_to_flag_dict[rule]
+            # get candidate row mask
+            mask_candidate_rows = (arr_rand_vals < srs_str_sub_prob) & (
+                srs_str_flags != ""
+            )
+
+            # create copy of rule flags and shuffle it in-place
+            arr_rand_flags = list(rule.flags)
+            rng.shuffle(arr_rand_flags)
+
+            for flag in arr_rand_flags:
+                # select rows that can have the current rule applied to them, fit into the correct flag
+                # and haven't been modified yet
+                if flag == "^":
+                    mask_current_flag = srs_str_out.str.startswith(rule.pattern)
+                elif flag == "$":
+                    mask_current_flag = srs_str_out.str.endswith(rule.pattern)
+                elif flag == "_":
+                    mask_current_flag = ~srs_str_out.str.startswith(rule.pattern) & (
+                        ~srs_str_out.str.endswith(rule.pattern)
+                    )
+                else:
+                    raise ValueError(f"invalid state: unknown flag {flag}")
+
+                mask_current_candidate_rows = (
+                    mask_candidate_rows & mask_current_flag & ~mask_modified_rows
+                )
+
+                # skip if there are no replacements to be made
+                if mask_current_candidate_rows.sum() == 0:
                     continue
 
-                if pattern_idx == 0:
-                    if "start" not in rule.flags:
-                        continue
-                elif pattern_idx == max_pattern_idx:
-                    if "end" not in rule.flags:
-                        continue
-                elif "middle" not in rule.flags:
-                    continue
+                if flag == "^":
+                    srs_str_out[mask_current_candidate_rows] = srs_str_out[
+                        mask_current_candidate_rows
+                    ].str.replace(f"^{rule.pattern}", rule.replacement, n=1, regex=True)
+                elif flag == "$":
+                    srs_str_out[mask_current_candidate_rows] = srs_str_out[
+                        mask_current_candidate_rows
+                    ].str.replace(f"{rule.pattern}$", rule.replacement, n=1, regex=True)
+                elif flag == "_":
+                    # matching groups are the parts that are supposed to be preserved
+                    # (anything but the string to replace).
+                    srs_str_out[mask_current_candidate_rows] = srs_str_out[
+                        mask_current_candidate_rows
+                    ].str.replace(
+                        f"^(.+){rule.pattern}(.+)$",
+                        f"\\1{rule.replacement}\\2",
+                        n=1,
+                        regex=True,
+                    )
 
-                return str_in.replace(rule.pattern, rule.replacement)
+                    pass
+                else:
+                    raise ValueError(f"invalid state, got flag {flag}")
 
-            return str_in
+                # update modified row series
+                mask_modified_rows |= mask_current_candidate_rows
 
-        return srs_str_in.map(_corrupt_single)
+        return srs_str_out
 
     return _corrupt
 
