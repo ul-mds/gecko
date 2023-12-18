@@ -797,6 +797,13 @@ def with_edit(
     return _corrupt_list
 
 
+def with_noop() -> CorruptorFunc:
+    def _corrupt(srs_in: pd.Series) -> pd.Series:
+        return srs_in
+
+    return _corrupt
+
+
 def with_categorical_values(
     csv_file_path: Union[PathLike, str],
     header: bool = False,
@@ -841,7 +848,9 @@ def with_categorical_values(
 
         # create a new series with which the original one will be updated.
         # for starters all rows will be NaN. dtype is to avoid typecast warning.
-        srs_in_update = pd.Series(np.full(len(srs_in), np.nan), copy=False, dtype=str)
+        srs_in_update = pd.Series(
+            np.full(len(srs_in), np.nan), copy=False, dtype=str, index=srs_in.index
+        )
 
         for unique_val in unique_values:
             # remove current value from list of unique values
@@ -870,3 +879,49 @@ def with_categorical_values(
         return srs_out
 
     return _corrupt_list
+
+
+def corrupt_dataframe(
+    df_in: pd.DataFrame,
+    column_to_corruptor_dict: dict[
+        str,
+        Union[CorruptorFunc, list[CorruptorFunc], list[tuple[float, CorruptorFunc]]],
+    ],
+    rng: Optional[Generator] = None,
+):
+    if rng is None:
+        rng = np.random.default_rng()
+
+    df_out = df_in.copy()
+
+    for column, corruptor_spec in column_to_corruptor_dict.items():
+        # if the column contains only a single corruptor, assign it with a probability of 1.0
+        if type(corruptor_spec) is not list:
+            corruptor_spec = [(1.0, corruptor_spec)]
+
+        # if the list contains functions only, create them into tuples with equal probability
+        if type(corruptor_spec[0]) is not tuple:
+            corruptor_spec = [
+                (1.0 / len(corruptor_spec), corruptor) for corruptor in corruptor_spec
+            ]
+
+        # corruptor_spec is a list of tuples, which contain a float and a corruptor func.
+        # this one-liner collects all floats and corruptor funcs into their own lists.
+        p_values, corruptor_funcs = list(zip(*corruptor_spec))
+        corruptor_count = len(corruptor_funcs)
+        # generate a series where each row gets an index of the corruptor in corruptor_funcs to apply.
+        arr_corruptor_idx = np.arange(corruptor_count)
+        arr_corruptor_per_row = rng.choice(
+            arr_corruptor_idx, p=p_values, size=len(df_out)
+        )
+        srs_corruptor_idx = pd.Series(data=arr_corruptor_per_row, index=df_out.index)
+        srs_column = df_in[column]
+
+        for i in arr_corruptor_idx:
+            corruptor = corruptor_funcs[i]
+            mask_this_corruptor = srs_corruptor_idx == i
+            df_out[column][mask_this_corruptor] = corruptor(
+                srs_column[mask_this_corruptor]
+            )
+
+    return df_out
