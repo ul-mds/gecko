@@ -2,7 +2,7 @@ import string
 from dataclasses import dataclass, field
 from os import PathLike
 from pathlib import Path
-from typing import Callable, Optional, Union, Literal, NamedTuple
+from typing import Callable, Optional, Union, Literal, NamedTuple, NoReturn
 
 import numpy as np
 import pandas as pd
@@ -181,16 +181,38 @@ def with_cldr_keymap_file(
 def with_phonetic_replacement_table(
     csv_file_path: Union[PathLike, str],
     header: bool = False,
-    encoding: str = "utf-8",
-    delimiter: str = ",",
     pattern_column: Union[int, str] = 0,
     replacement_column: Union[int, str] = 1,
     flags_column: Union[int, str] = 2,
+    encoding: str = "utf-8",
+    delimiter: str = ",",
     rng: Optional[Generator] = None,
 ) -> CorruptorFunc:
+    """
+    Corrupt a series of strings by randomly replacing characters with others that sound similar.
+    The rules for similar-sounding character sequences are sourced from a CSV file.
+    This table must have at least three columns: a pattern, target and a flag column.
+    A pattern is mapped to its replacement under the rules imposed by the provided flags.
+    These flags determine where such a replacement can take place within a string.
+    If no flags are defined, it is implied that this replacement can take place anywhere in a string.
+    Conversely, if `^`, `$`, `_`, or any combination of the three are set, it implies that a replacement
+    can only occur at the start, end or in the middle of a string.
+
+    :param csv_file_path: path to CSV file with pattern, replacement and flag column
+    :param header: `True` if the file contains a header, `False` otherwise (default: `False`)
+    :param encoding: character encoding of the CSV file (default: `UTF-8`)
+    :param delimiter: column delimiter (default: `,`)
+    :param pattern_column: name of the pattern column if the file contains a header, otherwise the column index (default: `0`)
+    :param replacement_column: name of the replacement column if the file contains a header, otherwise the column index (default: `1`)
+    :param flags_column: name of the flags column if the file contains a header, otherwise the column index (default: `2`)
+    :param rng: random number generator to use (default: `None`)
+    :return: function returning Pandas series of strings with phonetically similar replacements
+    """
+    # list of all flags. needs to be sorted for rng.
     _all_flags = "".join(sorted("^$_"))
 
     def _validate_flags(flags_str: Optional[str]) -> str:
+        """Check a string for valid flags. Returns all flags if string is empty, `NaN` or `None`."""
         if pd.isna(flags_str) or flags_str == "" or flags_str is None:
             return _all_flags
 
@@ -199,6 +221,9 @@ def with_phonetic_replacement_table(
                 raise ValueError(f"unknown flag: {char}")
 
         return flags_str
+
+    def _raise_unknown_flag(flag: str) -> NoReturn:
+        raise ValueError(f"invalid state: unknown flag `{flag}`")
 
     if rng is None:
         rng = np.random.default_rng()
@@ -213,6 +238,7 @@ def with_phonetic_replacement_table(
         encoding=encoding,
     )
 
+    # parse replacement rules
     phonetic_replacement_rules: list[PhoneticReplacementRule] = []
 
     for _, row in df.iterrows():
@@ -297,11 +323,12 @@ def with_phonetic_replacement_table(
                 elif flag == "$":
                     mask_current_flag = srs_str_out.str.endswith(rule.pattern)
                 elif flag == "_":
+                    # not at the start and not at the end
                     mask_current_flag = ~srs_str_out.str.startswith(rule.pattern) & (
                         ~srs_str_out.str.endswith(rule.pattern)
                     )
                 else:
-                    raise ValueError(f"invalid state: unknown flag {flag}")
+                    _raise_unknown_flag(flag)
 
                 mask_current_candidate_rows = (
                     mask_candidate_rows & mask_current_flag & ~mask_modified_rows
@@ -330,10 +357,8 @@ def with_phonetic_replacement_table(
                         n=1,
                         regex=True,
                     )
-
-                    pass
                 else:
-                    raise ValueError(f"invalid state, got flag {flag}")
+                    _raise_unknown_flag(flag)
 
                 # update modified row series
                 mask_modified_rows |= mask_current_candidate_rows
