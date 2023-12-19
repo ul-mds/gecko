@@ -1,6 +1,4 @@
-import csv
 from os import PathLike
-from pathlib import Path
 from typing import Callable, Optional, Union
 
 import numpy as np
@@ -11,58 +9,99 @@ from typing_extensions import ParamSpec  # required for 3.9 backport
 P = ParamSpec("P")
 NumericType = Union[float, int]
 
-CallableGeneratorFunc = Callable[P, str]
-GeneratorFunc = Callable[[int], list[list[str]]]
+GeneratorFunc = Callable[[int], list[pd.Series]]
 
 
-def from_function(func: CallableGeneratorFunc, *args, **kwargs) -> GeneratorFunc:
-    def _generate(count: int) -> list[list[str]]:
-        return [[func(*args, **kwargs) for _ in np.arange(count)]]
+def from_function(func: Callable[P, str], *args, **kwargs) -> GeneratorFunc:
+    """
+    Generate a series from an arbitrary function that returns a single value at a time.
+    This generator should be used sparingly as it is not vectorized, meaning values have to be generated one by one.
+    Use this generator for testing purposes or if performance is not critical.
+
+    :param func: function that takes in any arguments and returns a single string
+    :return: function returning a Pandas series with values generated from the custom function
+    """
+
+    def _generate(count: int) -> list[pd.Series]:
+        return [pd.Series(data=[func(*args, **kwargs) for _ in np.arange(count)])]
 
     return _generate
 
 
 def _generate_from_uniform_distribution_float(
-    rng: Generator, low: float, high: float
+    low: float,
+    high: float,
+    rng: Generator,
 ) -> GeneratorFunc:
-    def _generate(count: int) -> list[list[str]]:
-        return [np.char.mod("%f", rng.uniform(low, high, count))]
+    """Generate a series of floats and format them as strings."""
+
+    def _generate(count: int) -> list[pd.Series]:
+        return [pd.Series(np.char.mod("%f", rng.uniform(low, high, count)))]
 
     return _generate
 
 
 def _generate_from_uniform_distribution_int(
-    rng: Generator, low: int, high: int
+    low: int,
+    high: int,
+    rng: Generator,
 ) -> GeneratorFunc:
-    def _generate(count: int) -> list[list[str]]:
-        return [np.char.mod("%d", rng.integers(low, high, size=count))]
+    """Generate a series of integers and format them as strings."""
+
+    def _generate(count: int) -> list[pd.Series]:
+        return [pd.Series(np.char.mod("%d", rng.integers(low, high, size=count)))]
 
     return _generate
 
 
 def from_uniform_distribution(
-    rng: Optional[Generator] = None,
     low: NumericType = 0,
     high: NumericType = 1,
     dtype: type[Union[int, float]] = float,
+    rng: Optional[Generator] = None,
 ) -> GeneratorFunc:
+    """
+    Generate a series of numbers drawn from a uniform distribution within the specified bounds.
+    These numbers are formatted into strings.
+
+    :param low: lower (inclusive) bound of the uniform distribution (default: `0`)
+    :param high: upper (exclusive) bound of the uniform distribution (default: `1`)
+    :param dtype: int or float (default: `float`)
+    :param rng: random number generator to use (default: `None`)
+    :return: function returning Pandas series of numbers from uniform distribution with specified parameters
+    """
     if rng is None:
         rng = np.random.default_rng()
 
     if dtype is float:
-        return _generate_from_uniform_distribution_float(rng, low, high)
+        return _generate_from_uniform_distribution_float(low, high, rng)
 
     if dtype is int:
-        return _generate_from_uniform_distribution_int(rng, low, high)
+        return _generate_from_uniform_distribution_int(low, high, rng)
 
     raise NotImplementedError(f"unexpected data type: {dtype}")
 
 
 def from_normal_distribution(
-    rng: Optional[Generator] = None, mean: float = 0, sd: float = 1
+    mean: float = 0,
+    sd: float = 1,
+    rng: Optional[Generator] = None,
 ) -> GeneratorFunc:
-    def _generate(count: int) -> list[list[str]]:
-        return [np.char.mod("%f", rng.normal(mean, sd, count))]
+    """
+    Generate a series of numbers drawn from a normal distribution with the specified parameters.
+    These numbers are formatted into strings.
+
+    :param mean: mean of the normal distribution (default: 0)
+    :param sd: standard deviation of the normal distribution (default: 1)
+    :param rng: random number generator to use (default: None)
+    :return: function returning Pandas series of numbers from normal distribution with specified parameters
+    """
+    # TODO add option to return ints as well
+    if rng is None:
+        rng = np.random.default_rng()
+
+    def _generate(count: int) -> list[pd.Series]:
+        return [pd.Series(np.char.mod("%f", rng.normal(mean, sd, count)))]
 
     return _generate
 
@@ -71,97 +110,118 @@ def from_frequency_table(
     csv_file_path: Union[str, PathLike[str]],
     header: bool = False,
     value_column: Union[str, int] = 0,
-    count_column: Union[str, int] = 1,
+    freq_column: Union[str, int] = 1,
     encoding: str = "utf-8",
     delimiter: str = ",",
     rng: Optional[Generator] = None,
 ) -> GeneratorFunc:
+    """
+    Generate a series of values from a CSV file.
+    This CSV file must contain at least two columns, one holding values and one holding their absolute frequencies.
+    Values are generated using their assigned absolute frequencies.
+    Therefore, the values in the resulting series should have a similar distribution compared to the input file.
+
+    :param csv_file_path: CSV file to read from
+    :param header: `True` if the file contains a header, `False` otherwise (default: `False`)
+    :param value_column: name of the value column if the file contains a header, otherwise the column index (default: `0`)
+    :param freq_column: name of the frequency column if the file contains a header, otherwise the column index (default: `1`)
+    :param encoding: character encoding of the CSV file (default: `utf-8`)
+    :param delimiter: column delimiter (default: `,`)
+    :param rng: random number generator to use (default: `None`)
+    :return: function returning Pandas series of values with a distribution similar to that of the input file
+    """
     if rng is None:
         rng = np.random.default_rng()
 
-    if type(value_column) is not type(count_column):
-        raise ValueError(
-            "type of the value column must either be both strings or both integers"
-        )
+    if type(value_column) is not type(freq_column):
+        raise ValueError("value and frequency column must both be of the same type")
 
     # read csv file
     df = pd.read_csv(
         csv_file_path,
-        header=0 if header else None,
-        usecols=[value_column, count_column],
-        dtype={count_column: "int"},
+        header=0 if header else None,  # header row index (`None` if not present)
+        usecols=[value_column, freq_column],
+        dtype={freq_column: "int"},
         sep=delimiter,
         encoding=encoding,
     )
 
     # convert absolute to relative frequencies
     srs_value = df[value_column]
-    srs_prob = df[count_column] / df[count_column].sum()
+    srs_prob = df[freq_column] / df[freq_column].sum()
 
-    # noinspection PyTypeChecker
-    def _generate(count: int) -> list[list[str]]:
-        return [rng.choice(srs_value, count, p=srs_prob)]
+    def _generate(count: int) -> list[pd.Series]:
+        return [pd.Series(rng.choice(srs_value, count, p=srs_prob))]
 
     return _generate
 
 
 def from_multicolumn_frequency_table(
     csv_file_path: Union[str, PathLike[str]],
+    header: bool = False,
     encoding: str = "utf-8",
     delimiter: str = ",",
+    value_columns: Union[int, str, list[int], list[str]] = 0,
+    freq_column: Union[int, str] = 1,
     rng: Optional[Generator] = None,
-    column_names: Optional[Union[str, list[str]]] = None,
-    count_column_name: str = "count",
 ) -> GeneratorFunc:
-    if column_names is None:
-        raise ValueError("column names must be defined")
-
-    if type(column_names) is list and len(column_names) == 0:
-        raise ValueError("list of column names may not be empty")
-
-    if type(column_names) is str:
-        column_names = [column_names]
-
     if rng is None:
         rng = np.random.default_rng()
 
-    with Path(csv_file_path).open(mode="r", encoding=encoding, newline="") as f:
-        # create reader instance
-        reader = csv.DictReader(f, delimiter=delimiter)
+    # if the value columns are a list, then read the type of its entries from the first one
+    if type(value_columns) is list:
+        if len(value_columns) == 0:
+            raise ValueError("value column list cannot be empty")
 
-        # sanity check
-        for col_name in column_names + [count_column_name]:
-            if col_name not in reader.fieldnames:
-                raise ValueError(f"column `{col_name}` is not present in the CSV file")
+        value_columns_type = type(value_columns[0])
+    else:
+        value_columns_type = type(value_columns)
 
-        column_value_list: list[list] = []
-        abs_freq_list: list[int] = []
+    if value_columns_type is not type(freq_column):
+        raise ValueError("value and frequency column must both be of the same type")
 
-        for row in reader:
-            # rows can be indexed using strings. no idea why the type checker complains here.
-            # noinspection PyTypeChecker
-            row_freq = int(row[count_column_name])
+    # if value_columns is an int or str, wrap it into a list
+    value_columns = [value_columns] if value_columns_type is not list else value_columns
 
-            if row_freq < 0:
-                raise ValueError("absolute frequency must not be negative")
+    df = pd.read_csv(
+        csv_file_path,
+        header=0 if header else None,
+        usecols=value_columns + [freq_column],
+        dtype={freq_column: "int"},
+        sep=delimiter,
+        encoding=encoding,
+    )
 
-            # see above
-            # noinspection PyTypeChecker
-            row_tuple = list(row[col_name] for col_name in column_names)
+    # sum of absolute frequencies
+    freq_total = df[freq_column].sum()
+    # new series to track the relative frequencies
+    rel_freq_lst = np.ones(len(df))
+    # keep reference to original array to skip to_numpy() call later
+    srs_rel_freq = pd.Series(rel_freq_lst, copy=False)
 
-            column_value_list.append(row_tuple)
-            abs_freq_list.append(row_freq)
+    for value_column in value_columns:
+        # for each unique value in this column, sum up its absolute frequencies
+        grouped_column_values_sum = (
+            df[[value_column, freq_column]].groupby(value_column).sum()
+        )
+        # convert absolute into relative frequencies
+        grouped_column_values_sum[freq_column] /= freq_total
+        # create a dict of value to relative frequency
+        value_to_rel_freq_dict = dict(
+            zip(grouped_column_values_sum.index, grouped_column_values_sum[freq_column])
+        )
+        # use this dict to create a new series that replaces each value with its relative frequency
+        srs_rel_freq_per_value = df[value_column].replace(value_to_rel_freq_dict)
+        # multiply this series with the accumulating column for each row's probabilities
+        srs_rel_freq *= srs_rel_freq_per_value
 
-    # this works because abs_freq_list is broadcast to a numpy array
-    # noinspection PyUnresolvedReferences
-    rel_freq_list = abs_freq_list / np.sum(abs_freq_list)
+    # get the list of row tuples from selected value columns
+    value_tuple_list = [tuple(r) for r in df[value_columns].to_numpy()]
 
-    def _generate(count: int) -> list[list[str]]:
-        # choice() can work with lists of tuples
-        # noinspection PyTypeChecker
-        x = rng.choice(column_value_list, count, p=rel_freq_list)
-        # type conversion because zip will return an iterator over tuples, but we need lists instead
-        return list(list(t) for t in zip(*x))
+    # noinspection PyTypeChecker
+    def _generate(count: int) -> list[pd.Series]:
+        x = rng.choice(value_tuple_list, count, p=rel_freq_lst)
+        return [pd.Series(list(t) for t in zip(*x))]  # dark magic
 
     return _generate
 
@@ -172,16 +232,13 @@ def to_dataframe(
     if len(generators) == 0:
         raise ValueError("list of generators may not be empty")
 
-    col_names: list[str] = []
-    col_values: list[list[str]] = []
+    col_to_srs_dict: dict[str, pd.Series] = {}
 
     for gen, gen_col_names in generators:
         # if a single string is provided, concat by wrapping it into a list
         if isinstance(gen_col_names, str):
             gen_col_names = [gen_col_names]
 
-        # append to list of column names
-        col_names += gen_col_names
         # generate values
         gen_col_values = gen(count)
 
@@ -192,6 +249,9 @@ def to_dataframe(
                 f"fill column(s) for: {','.join(gen_col_names)}"
             )
 
-        col_values += gen_col_values
+        # assign name to series
+        for i in range(len(gen_col_values)):
+            col_to_srs_dict[gen_col_names[i]] = gen_col_values[i]
 
-    return pd.DataFrame({col_names[i]: col_values[i] for i in range(len(col_names))})
+    # finally create df from the list of named series
+    return pd.DataFrame(data=col_to_srs_dict)
