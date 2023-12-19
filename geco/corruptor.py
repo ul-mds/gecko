@@ -15,7 +15,7 @@ CorruptorFunc = Callable[[pd.Series], pd.Series]
 _EditOp = Literal["ins", "del", "sub", "trs"]
 
 
-class PhoneticReplacementRule(NamedTuple):
+class _PhoneticReplacementRule(NamedTuple):
     pattern: str
     replacement: str
     flags: str
@@ -239,7 +239,7 @@ def with_phonetic_replacement_table(
     )
 
     # parse replacement rules
-    phonetic_replacement_rules: list[PhoneticReplacementRule] = []
+    phonetic_replacement_rules: list[_PhoneticReplacementRule] = []
 
     for _, row in df.iterrows():
         pattern = row[pattern_column]
@@ -247,7 +247,7 @@ def with_phonetic_replacement_table(
         flags = _validate_flags(row[flags_column])
 
         phonetic_replacement_rules.append(
-            PhoneticReplacementRule(pattern, replacement, flags)
+            _PhoneticReplacementRule(pattern, replacement, flags)
         )
 
     def _corrupt(srs_str_in: pd.Series) -> pd.Series:
@@ -261,7 +261,7 @@ def with_phonetic_replacement_table(
         srs_str_sub_prob = pd.Series(dtype=float, index=srs_str_out.index)
         srs_str_sub_prob[:] = 0
         # track possible replacements for each rule
-        rule_to_flag_dict: dict[PhoneticReplacementRule, pd.Series] = {}
+        rule_to_flag_dict: dict[_PhoneticReplacementRule, pd.Series] = {}
 
         for rule in phonetic_replacement_rules:
             # increment absolute frequency for each string where rule applies
@@ -610,13 +610,22 @@ def with_delete(rng: Optional[Generator] = None) -> CorruptorFunc:
         rng = np.random.default_rng()
 
     def _corrupt(srs_str_in: pd.Series) -> pd.Series:
-        srs_str_out = srs_str_in.copy()
-
         # get series of string lengths
-        srs_str_out_len = srs_str_out.str.len()
+        srs_str_out_len = srs_str_in.str.len()
+        # limit view to strings that have at least one character
+        srs_str_out_min_len = srs_str_in[srs_str_out_len >= 1]
+
+        # check that there are any strings to modify
+        if len(srs_str_out_min_len) == 0:
+            return srs_str_in
+
+        # create copy after length check
+        srs_str_out = srs_str_in.copy()
         # generate random indices
-        arr_rng_vals = rng.random(size=len(srs_str_out))
-        arr_rng_delete_indices = np.floor(srs_str_out_len * arr_rng_vals).astype(int)
+        arr_rng_vals = rng.random(size=len(srs_str_out_min_len))
+        arr_rng_delete_indices = np.floor(
+            srs_str_out_min_len.str.len() * arr_rng_vals
+        ).astype(int)
         # determine unique indices
         arr_uniq_idx = arr_rng_delete_indices.unique()
 
@@ -624,8 +633,8 @@ def with_delete(rng: Optional[Generator] = None) -> CorruptorFunc:
             # select all strings with the same random delete index
             srs_idx_mask = arr_rng_delete_indices == i
             # delete character at selected index
-            srs_str_out[srs_idx_mask] = srs_str_out[srs_idx_mask].str.slice_replace(
-                i, i + 1, ""
+            srs_str_out.update(
+                srs_str_out_min_len[srs_idx_mask].str.slice_replace(i, i + 1, "")
             )
 
         return srs_str_out
@@ -645,15 +654,23 @@ def with_transpose(rng: Optional[Generator] = None) -> CorruptorFunc:
         rng = np.random.default_rng()
 
     def _corrupt(srs_str_in: pd.Series) -> pd.Series:
-        srs_str_out = srs_str_in.copy()
-
         # length of strings
-        srs_str_out_len = srs_str_out.str.len()
+        srs_str_out_len = srs_str_in.str.len()
+        # limit view to strings that have at least two characters
+        srs_str_out_min_len = srs_str_in[srs_str_out_len >= 2]
+
+        # check that there are any strings to modify
+        if len(srs_str_out_min_len) == 0:
+            return srs_str_in
+
+        # create a copy only after running the length check
+        srs_str_out = srs_str_in.copy()
         # generate random numbers
-        arr_rng_vals = rng.random(size=len(srs_str_out))
+        arr_rng_vals = rng.random(size=len(srs_str_out_min_len))
+
         # -1 as neighboring char can be transposed
         arr_rng_transpose_indices = np.floor(
-            (srs_str_out_len - 1) * arr_rng_vals
+            (srs_str_out_min_len.str.len() - 1) * arr_rng_vals
         ).astype(int)
         # unique indices
         arr_uniq_idx = arr_rng_transpose_indices.unique()
@@ -661,11 +678,12 @@ def with_transpose(rng: Optional[Generator] = None) -> CorruptorFunc:
         for i in arr_uniq_idx:
             # select strings that have the same transposition
             srs_idx_mask = arr_rng_transpose_indices == i
-            srs_str_out[srs_idx_mask] = (
-                srs_str_out[srs_idx_mask].str[:i]
-                + srs_str_out[srs_idx_mask].str[i + 1]
-                + srs_str_out[srs_idx_mask].str[i]
-                + srs_str_out[srs_idx_mask].str[i + 2 :]
+            srs_masked = srs_str_out_min_len[srs_idx_mask]
+            srs_str_out.update(
+                srs_masked.str[:i]
+                + srs_masked.str[i + 1]
+                + srs_masked.str[i]
+                + srs_masked.str[i + 2 :]
             )
 
         return srs_str_out
@@ -690,28 +708,39 @@ def with_substitute(
         rng = np.random.default_rng()
 
     def _corrupt(srs_str_in: pd.Series) -> pd.Series:
-        srs_str_out = srs_str_in.copy()
-        str_count = len(srs_str_out)
+        # length of strings
+        srs_str_out_len = srs_str_in.str.len()
+        # limit view to strings that have at least 1 character
+        srs_str_out_min_len = srs_str_in[srs_str_out_len >= 1]
 
-        # string length series
-        srs_str_out_len = srs_str_out.str.len()
+        # check that there are any strings to modify
+        if len(srs_str_out_min_len) == 0:
+            return srs_str_in
+
+        # create copy after length check
+        srs_str_out = srs_str_in.copy()
+        # count strings that may be modified
+        str_count = len(srs_str_out_min_len)
         # random indices
         arr_rng_vals = rng.random(size=str_count)
-        arr_rng_sub_indices = np.floor(srs_str_out_len * arr_rng_vals).astype(int)
+        arr_rng_sub_indices = np.floor(
+            srs_str_out_min_len.str.len() * arr_rng_vals
+        ).astype(int)
         # random substitution chars
         srs_rand_chars = pd.Series(
             rng.choice(list(charset), size=str_count),
             copy=False,  # use np array
-            index=srs_str_out.index,  # align index
+            index=srs_str_out_min_len.index,  # align index
         )
         arr_uniq_idx = arr_rng_sub_indices.unique()
 
         for i in arr_uniq_idx:
             srs_idx_mask = arr_rng_sub_indices == i
-            srs_str_out[srs_idx_mask] = (
-                srs_str_out[srs_idx_mask].str[:i]
+            srs_masked = srs_str_out_min_len[srs_idx_mask]
+            srs_str_out.update(
+                srs_masked.str[:i]
                 + srs_rand_chars[srs_idx_mask]
-                + srs_str_out[srs_idx_mask].str[i + 1 :]
+                + srs_masked.str[i + 1 :]
             )
 
         return srs_str_out
@@ -806,6 +835,7 @@ def with_noop() -> CorruptorFunc:
 
     :return: function returning Pandas series as-is
     """
+
     def _corrupt(srs_in: pd.Series) -> pd.Series:
         return srs_in
 
