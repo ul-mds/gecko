@@ -767,10 +767,11 @@ def with_edit(
     )
 
     def _corrupt_list(srs_in: pd.Series) -> pd.Series:
-        str_in_edit_ops = pd.Series(
-            rng.choice(edit_ops, size=len(srs_in), p=edit_ops_prob)
-        )
         srs_out = srs_in.copy()
+        str_in_edit_ops = pd.Series(
+            rng.choice(edit_ops, size=len(srs_in), p=edit_ops_prob),
+            index=srs_in.index,
+        )
 
         msk_ins = str_in_edit_ops == "ins"
 
@@ -798,6 +799,13 @@ def with_edit(
 
 
 def with_noop() -> CorruptorFunc:
+    """
+    Corrupt a series by not corrupting it at all.
+    This corruptor returns the input series as-is.
+    You might use it to leave a certain percentage of records in a series untouched.
+
+    :return: function returning Pandas series as-is
+    """
     def _corrupt(srs_in: pd.Series) -> pd.Series:
         return srs_in
 
