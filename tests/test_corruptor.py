@@ -201,6 +201,23 @@ def test_with_cldr_keymap_file(rng):
     assert x_corr.iloc[1] in "E3dwr"  # neighboring keys of `e`
 
 
+def test_with_cldr_keymap_file_and_charset(rng):
+    x = pd.Series(["4", "e"])
+    # create a corruptor that only permits modifications to digits
+    corr = with_cldr_keymap_file(
+        get_asset_path("de-t-k0-windows.xml"),
+        charset=string.digits,
+        rng=rng,
+    )
+    x_corr = corr(x)
+
+    assert len(x) == len(x_corr)
+    assert (x.str.len() == x_corr.str.len()).all()
+
+    assert x_corr.iloc[0] in "35"
+    assert x_corr.iloc[1] == "e"
+
+
 def test_with_cldr_keymap_file_no_replacement(rng):
     # this should stay the same since á is not mapped in the keymap
     x = pd.Series(["á"])

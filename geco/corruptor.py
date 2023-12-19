@@ -34,6 +34,7 @@ class KeyMutation:
 
 def with_cldr_keymap_file(
     cldr_path: Union[PathLike, str],
+    charset: Optional[str] = None,
     rng: Optional[Generator] = None,
 ) -> CorruptorFunc:
     """
@@ -44,6 +45,7 @@ def with_cldr_keymap_file(
     It is possible for a string to not be modified if a selected character has no possible replacements.
 
     :param cldr_path: path to CLDR keymap file
+    :param charset: optional string with characters that may be corrupted (default: all characters)
     :param rng: random number generator to use (default: None)
     :return: function returning Pandas series of strings with random typos
     """
@@ -91,6 +93,10 @@ def with_cldr_keymap_file(
         for map_node in key_map_node.iterfind("./map"):
             kb_row, kb_col = decode_iso_kb_pos(map_node.get("iso"))
             kb_char = unescape_kb_char(map_node.get("to"))
+
+            # check that char is listed if charset of permitted chars is provided
+            if charset is not None and kb_char not in charset:
+                continue
 
             kb_char_to_kb_pos_dict[kb_char] = (kb_row, kb_col, kb_mod)
             kb_map[kb_row, kb_col, kb_mod] = kb_char
