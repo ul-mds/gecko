@@ -13,6 +13,7 @@ from geco.corruptor import (
     with_cldr_keymap_file,
     with_phonetic_replacement_table,
     with_replacement_table,
+    corrupt_dataframe,
 )
 from tests.helpers import get_asset_path
 
@@ -67,6 +68,15 @@ def test_with_random_delete(rng):
     assert ((x.str.len() - 1) == x_corr.str.len()).all()
 
 
+def test_with_random_delete_empty_string(rng):
+    x = pd.Series(["", "f"])
+    corr = with_delete(rng=rng)
+    x_corr = corr(x)
+
+    assert len(x) == len(x_corr)
+    assert (x_corr == "").all()
+
+
 def test_with_random_transpose(rng):
     x = pd.Series(["abc", "def", "ghi"])
     corr = with_transpose(rng=rng)
@@ -82,6 +92,17 @@ def test_with_random_transpose(rng):
     # check that the characters are the same in both series
     for i in range(len(x)):
         assert set(x.iloc[i]) == set(x_corr.iloc[i])
+
+
+def test_with_random_transpose_no_neighbor(rng):
+    x = pd.Series(["", "a", "ab"])
+    corr = with_transpose(rng=rng)
+    x_corr = corr(x)
+
+    # same lengths
+    assert len(x) == len(x_corr)
+    # none transposed except last
+    assert (x_corr == ["", "a", "ba"]).all()
 
 
 def test_with_random_substitute(rng):
@@ -100,6 +121,16 @@ def test_with_random_substitute(rng):
     assert (~x.str.contains("x")).all()
     # check that corrupted copy contains x
     assert x_corr.str.contains("x").all()
+
+
+def test_with_random_substitute_empty_string(rng):
+    x = pd.Series(["", "f"])
+    corr = with_substitute(charset="x", rng=rng)
+    x_corr = corr(x)
+
+    # same len
+    assert len(x) == len(x_corr)
+    assert (x_corr == ["", "x"]).all()
 
 
 def test_with_categorical_values(rng):
@@ -200,3 +231,44 @@ def test_with_replacement_table_multiple_options(rng):
     assert len(x) == len(x_corr)
     assert (x != x_corr).all()
     assert len(x_corr.unique()) > 1
+
+
+def test_corrupt_dataframe(rng):
+    df = pd.DataFrame(
+        data={
+            "missing": [""] * 10,
+            "cat_typo": list("mf" * 5),
+            "weighted_typo_edit": list("mf" * 5),
+        }
+    )
+
+    corr_missing = with_missing_value(value="", strategy="all")
+    corr_edit = with_edit(rng=rng)
+    corr_cat = with_categorical_values(
+        get_asset_path("freq_table_gender.csv"),
+        header=True,
+        value_column="gender",
+        rng=rng,
+    )
+    corr_typo = with_cldr_keymap_file(
+        get_asset_path("de-t-k0-windows.xml"),
+        rng=rng,
+    )
+
+    df_corr = corrupt_dataframe(
+        df,
+        {
+            "missing": corr_missing,
+            "cat_typo": [corr_cat, corr_typo],
+            "weighted_typo_edit": [
+                (0.7, corr_typo),
+                (0.3, corr_edit),
+            ],
+        },
+        rng=rng,
+    )
+
+    assert (df_corr["missing"] == "").all()
+    # here it's any because there is a chance some values might go unmodified
+    assert (df_corr["cat_typo"] != df["cat_typo"]).any()
+    assert (df_corr["weighted_typo_edit"] != df["weighted_typo_edit"]).any()
