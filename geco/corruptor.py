@@ -975,6 +975,11 @@ def corrupt_dataframe(
     df_out = df_in.copy()
 
     for column, corruptor_spec in column_to_corruptor_dict.items():
+        if column not in df_in.columns:
+            raise ValueError(
+                f"column `{column}` does not exist, must be one of `{','.join(df_in.columns)}`"
+            )
+
         # if the column contains only a single corruptor, assign it with a probability of 1.0
         if type(corruptor_spec) is not list:
             corruptor_spec = [(1.0, corruptor_spec)]
@@ -988,6 +993,13 @@ def corrupt_dataframe(
         # corruptor_spec is a list of tuples, which contain a float and a corruptor func.
         # this one-liner collects all floats and corruptor funcs into their own lists.
         p_values, corruptor_funcs = list(zip(*corruptor_spec))
+
+        try:
+            # sanity check
+            rng.choice([i for i in range(len(p_values))], p=p_values)
+        except ValueError:
+            raise ValueError(f"probabilities for column `{column}` must sum up to 1.0")
+
         corruptor_count = len(corruptor_funcs)
         # generate a series where each row gets an index of the corruptor in corruptor_funcs to apply.
         arr_corruptor_idx = np.arange(corruptor_count)

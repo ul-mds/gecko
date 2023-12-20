@@ -1,6 +1,7 @@
 import string
 
 import pandas as pd
+import pytest
 
 from geco.corruptor import (
     with_insert,
@@ -14,6 +15,7 @@ from geco.corruptor import (
     with_phonetic_replacement_table,
     with_replacement_table,
     corrupt_dataframe,
+    with_noop,
 )
 from tests.helpers import get_asset_path
 
@@ -177,6 +179,13 @@ def test_with_edit(rng):
     assert ~(x == x_corr).all()
 
 
+def test_with_edit_incorrect_probabilities():
+    with pytest.raises(ValueError) as e:
+        with_edit(p_insert=0.3, p_delete=0.3, p_substitute=0.3, p_transpose=0.3)
+
+    assert str(e.value) == "probabilities must sum up to 1.0"
+
+
 def test_with_phonetic_replacement_table(rng):
     df_phonetic_in_out = pd.read_csv(get_asset_path("phonetic-test.csv"))
     srs_original = df_phonetic_in_out["original"]
@@ -289,3 +298,29 @@ def test_corrupt_dataframe(rng):
     # here it's any because there is a chance some values might go unmodified
     assert (df_corr["cat_typo"] != df["cat_typo"]).any()
     assert (df_corr["weighted_typo_edit"] != df["weighted_typo_edit"]).any()
+
+
+def test_corrupt_dataframe_incorrect_column():
+    df = pd.DataFrame(data={"foo": ["bar", "baz"]})
+
+    with pytest.raises(ValueError) as e:
+        corrupt_dataframe(df, {"foobar": with_noop()})
+
+    assert str(e.value) == "column `foobar` does not exist, must be one of `foo`"
+
+
+def test_corrupt_dataframe_incorrect_probabilities():
+    df = pd.DataFrame(data={"foo": ["bar", "baz"]})
+
+    with pytest.raises(ValueError) as e:
+        corrupt_dataframe(
+            df,
+            {
+                "foo": [
+                    (0.8, with_noop()),
+                    (0.3, with_missing_value()),
+                ],
+            },
+        )
+
+    assert str(e.value) == "probabilities for column `foo` must sum up to 1.0"
