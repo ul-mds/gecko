@@ -70,3 +70,50 @@ def test_from_frequency_table_tsv(rng, foobar_freq_head):
     )
     h = generate_tab(len(foobar_freq_head))[0]
     assert h.equals(pd.Series(foobar_freq_head))
+
+
+def test_from_frequency_table(rng):
+    gen_fruits = generator.from_frequency_table(
+        get_asset_path("freq-fruits.csv"),
+        header=True,
+        value_column="fruit",
+        freq_column="count",
+        rng=rng,
+    )
+
+    list_of_srs = gen_fruits(100)
+    assert len(list_of_srs) == 1
+
+    srs = list_of_srs[0]
+    assert len(srs) == 100
+    assert sorted(srs.unique()) == ["apple", "banana", "orange"]
+
+
+def test_from_multicolumn_frequency_table(rng):
+    gen_fruit_types = generator.from_multicolumn_frequency_table(
+        get_asset_path("freq-fruits-types.csv"),
+        header=True,
+        value_columns=["fruit", "type"],
+        freq_column="count",
+        rng=rng,
+    )
+
+    list_of_srs = gen_fruit_types(100)
+    assert len(list_of_srs) == 2
+
+    srs_fruit, srs_type = list_of_srs
+    assert len(srs_fruit) == 100
+    assert len(srs_type) == 100
+
+    for i in range(100):
+        fruit = srs_fruit.iloc[i]
+        fruit_type = srs_type.iloc[i]
+
+        if fruit == "apple":
+            assert fruit_type in ("braeburn", "elstar")
+        elif fruit == "banana":
+            assert fruit_type in ("cavendish", "plantain")
+        elif fruit == "orange":
+            assert fruit_type in ("clementine", "mandarin")
+        else:
+            raise AssertionError(f"unknown fruit: `{fruit}`")
