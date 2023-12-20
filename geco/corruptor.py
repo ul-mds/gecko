@@ -206,7 +206,7 @@ def with_phonetic_replacement_table(
 
     :param csv_file_path: path to CSV file with pattern, replacement and flag column
     :param header: `True` if the file contains a header, `False` otherwise (default: `False`)
-    :param encoding: character encoding of the CSV file (default: `UTF-8`)
+    :param encoding: character encoding of the CSV file (default: `utf-8`)
     :param delimiter: column delimiter (default: `,`)
     :param pattern_column: name of the pattern column if the file contains a header, otherwise the column index (default: `0`)
     :param replacement_column: name of the replacement column if the file contains a header, otherwise the column index (default: `1`)
@@ -396,7 +396,7 @@ def with_replacement_table(
     :param header: `True` if the file contains a header, `False` otherwise (default: `False`)
     :param source_column: name of the source column if the file contains a header, otherwise the column index (default: `0`)
     :param target_column: name of the target column if the file contains a header, otherwise the column index (default: `1`)
-    :param encoding: character encoding of the CSV file (default: `UTF-8`)
+    :param encoding: character encoding of the CSV file (default: `utf-8`)
     :param delimiter: column delimiter (default: `,`)
     :param rng: random number generator to use (default: `None`)
     :return: function returning Pandas series of strings with inline substitutions according to replacement table
@@ -503,15 +503,32 @@ def with_replacement_table(
 
 
 def _corrupt_all_from_value(value: str) -> CorruptorFunc:
+    """
+    Corrupt a series of strings by replacing all of its values with the same "missing" value.
+
+    :param value: "missing" value to replace entries with
+    :return: function returning Pandas series where all entries are replaced with "missing" value
+    """
+
     def _corrupt_list(str_in_srs: pd.Series) -> pd.Series:
-        str_out_srs = str_in_srs.copy()
-        str_out_srs.loc[:] = value
-        return str_out_srs
+        return pd.Series(
+            data=[value] * len(str_in_srs),
+            index=str_in_srs.index,
+            dtype=str,
+        )
 
     return _corrupt_list
 
 
 def _corrupt_only_empty_from_value(value: str) -> CorruptorFunc:
+    """
+    Corrupt a series of strings by replacing all of its empty values (string length = 0) with the
+    same "missing" value.
+
+    :param value: "missing" value to replace empty entries with
+    :return: function returning Pandas series where all empty entries are replaced with "missing" value
+    """
+
     def _corrupt_list(str_in_srs: pd.Series) -> pd.Series:
         str_out_srs = str_in_srs.copy()
         str_out_srs[str_out_srs == ""] = value
@@ -521,6 +538,14 @@ def _corrupt_only_empty_from_value(value: str) -> CorruptorFunc:
 
 
 def _corrupt_only_blank_from_value(value: str) -> CorruptorFunc:
+    """
+    Corrupt a series of strings by replacing all of its blank values (empty strings after trimming whitespaces)
+    with the same "missing" value.
+
+    :param value: "missing" value to replace blank entries with
+    :return: function returning Pandas series where all blank entries are replaced with "missing" value
+    """
+
     def _corrupt_list(str_in_srs: pd.Series) -> pd.Series:
         str_out_srs = str_in_srs.copy()
         str_out_srs[str_out_srs.str.strip() == ""] = value
@@ -563,7 +588,7 @@ def with_insert(
     The characters are drawn from the provided charset.
 
     :param charset: string to sample random characters from (default: all ASCII letters)
-    :param rng: random number generator to use (default: None)
+    :param rng: random number generator to use (default: `None`)
     :return: function returning Pandas series of strings with randomly inserted characters
     """
     if rng is None:
@@ -609,7 +634,7 @@ def with_delete(rng: Optional[Generator] = None) -> CorruptorFunc:
     """
     Corrupt a series of strings by randomly deleting characters.
 
-    :param rng: random number generator to use (default: None)
+    :param rng: random number generator to use (default: `None`)
     :return: function returning Pandas series of strings with randomly deleted characters
     """
     if rng is None:
@@ -653,7 +678,7 @@ def with_transpose(rng: Optional[Generator] = None) -> CorruptorFunc:
     Corrupt a series of strings by randomly swapping neighboring characters.
     Note that it is possible for the same two neighboring characters to be swapped.
 
-    :param rng: random number generator to use (default: None)
+    :param rng: random number generator to use (default: `None`)
     :return: function returning Pandas series of strings with randomly swapped neighboring characters
     """
     if rng is None:
@@ -707,7 +732,7 @@ def with_substitute(
     Note that it is possible for a character to be replaced by itself.
 
     :param charset: string to sample random characters from (default: all ASCII letters)
-    :param rng: random number generator to use (default: None)
+    :param rng: random number generator to use (default: `None`)
     :return: function returning Pandas series of strings with randomly inserted characters
     """
     if rng is None:
@@ -769,12 +794,12 @@ def with_edit(
     Each corruptor receives its own isolated RNG which is derived from the RNG passed into this function.
     The probabilities of each corruptor must sum up to 1.
 
-    :param p_insert: probability of random character insertion on a string (default: 0.25, 25%)
-    :param p_delete: probability of random character deletion on a string (default: 0.25, 25%)
-    :param p_substitute: probability of random character substitution on a string (default: 0.25, 25%)
-    :param p_transpose: probability of random character transposition on a string (default: 0.25, 25%)
+    :param p_insert: probability of random character insertion on a string (default: `0.25`, 25%)
+    :param p_delete: probability of random character deletion on a string (default: `0.25`, 25%)
+    :param p_substitute: probability of random character substitution on a string (default: `0.25`, 25%)
+    :param p_transpose: probability of random character transposition on a string (default: `0.25`, 25%)
     :param charset: string to sample random characters from for insertion and substitution (default: all ASCII letters)
-    :param rng: random number generator to use (default: None)
+    :param rng: random number generator to use (default: `None`)
     :return: function returning Pandas series of strings with randomly mutated characters
     """
     if rng is None:
@@ -864,7 +889,7 @@ def with_categorical_values(
     :param csv_file_path: CSV file to read from
     :param header: `True` if the file contains a header, `False` otherwise (default: `False`)
     :param value_column: name of column with categorical values if the file contains a header, otherwise the column index (default: `0`)
-    :param encoding: character encoding of the CSV file (default: `UTF-8`)
+    :param encoding: character encoding of the CSV file (default: `utf-8`)
     :param delimiter: column delimiter (default: `,`)
     :param rng: random number generator to use (default: `None`)
     :return: function returning Pandas series of strings that are replaced with a different value from a category
@@ -933,6 +958,17 @@ def corrupt_dataframe(
     ],
     rng: Optional[Generator] = None,
 ):
+    """
+    Corrupt a dataframe by applying several corruptors on select columns.
+    This function takes a dictionary which has column names as keys and corruptors as values.
+    A column may be assigned a single corruptor, a list of corruptors where each is applied with the same
+    probability, and a list of weighted corruptors where each is applied with its assigned probability.
+
+    :param df_in: dataframe to corrupt
+    :param column_to_corruptor_dict: dictionary of columns to corruptors
+    :param rng: random number generator to use (default: `None`)
+    :return: copy of dataframe with corruptors applied as specified
+    """
     if rng is None:
         rng = np.random.default_rng()
 

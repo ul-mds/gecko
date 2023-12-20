@@ -91,9 +91,9 @@ def from_normal_distribution(
     Generate a series of numbers drawn from a normal distribution with the specified parameters.
     These numbers are formatted into strings.
 
-    :param mean: mean of the normal distribution (default: 0)
-    :param sd: standard deviation of the normal distribution (default: 1)
-    :param rng: random number generator to use (default: None)
+    :param mean: mean of the normal distribution (default: `0`)
+    :param sd: standard deviation of the normal distribution (default: `1`)
+    :param rng: random number generator to use (default: `None`)
     :return: function returning Pandas series of numbers from normal distribution with specified parameters
     """
     # TODO add option to return ints as well
@@ -159,12 +159,28 @@ def from_frequency_table(
 def from_multicolumn_frequency_table(
     csv_file_path: Union[str, PathLike[str]],
     header: bool = False,
-    encoding: str = "utf-8",
-    delimiter: str = ",",
     value_columns: Union[int, str, list[int], list[str]] = 0,
     freq_column: Union[int, str] = 1,
+    encoding: str = "utf-8",
+    delimiter: str = ",",
     rng: Optional[Generator] = None,
 ) -> GeneratorFunc:
+    """
+    Generate a series of values from a CSV file where columns are inter-dependent.
+    This CSV file must contain at least two columns, one holding values and one holding their absolute frequencies.
+    This corruptor generates a series for each value column that's passed into it.
+    Values are generated using their assigned absolute frequencies.
+    Therefore, the values in the resulting series should have a similar distribution compared to the input file.
+
+    :param csv_file_path: CSV file to read from
+    :param header: `True` if the file contains a header, `False` otherwise (default: `False`)
+    :param value_columns: name of the volue column(s) if the file contains a header, otherwise the column index/indices (default: `0`)
+    :param freq_column: name of the frequency column(s) if the file contains a header, otherwise the column index/indices (default: `1`)
+    :param encoding: character encoding of the CSV file (default: `utf-8`)
+    :param delimiter: column delimiter (default: `,`)
+    :param rng: random number generator to use (default: `None`)
+    :return: function returning Pandas series of values with a distribution similar to that of the input file
+    """
     if rng is None:
         rng = np.random.default_rng()
 
@@ -229,6 +245,14 @@ def from_multicolumn_frequency_table(
 def to_dataframe(
     generators: list[tuple[GeneratorFunc, Union[str, list[str]]]], count: int
 ):
+    """
+    Generate a dataframe by using multiple generators at once.
+    This function takes a list of generators and the names for each column that a generator will create.
+
+    :param generators: list of generators and assigned column names
+    :param count: number of records to generate
+    :return: dataframe with columns generated as specified
+    """
     if len(generators) == 0:
         raise ValueError("list of generators may not be empty")
 
