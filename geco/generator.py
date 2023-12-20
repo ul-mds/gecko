@@ -197,7 +197,9 @@ def from_multicolumn_frequency_table(
         raise ValueError("value and frequency column must both be of the same type")
 
     # if value_columns is an int or str, wrap it into a list
-    value_columns = [value_columns] if value_columns_type is not list else value_columns
+    value_columns = (
+        [value_columns] if type(value_columns) is not list else value_columns
+    )
 
     df = pd.read_csv(
         csv_file_path,
@@ -211,33 +213,13 @@ def from_multicolumn_frequency_table(
     # sum of absolute frequencies
     freq_total = df[freq_column].sum()
     # new series to track the relative frequencies
-    rel_freq_lst = np.ones(len(df))
-    # keep reference to original array to skip to_numpy() call later
-    srs_rel_freq = pd.Series(rel_freq_lst, copy=False)
-
-    for value_column in value_columns:
-        # for each unique value in this column, sum up its absolute frequencies
-        grouped_column_values_sum = (
-            df[[value_column, freq_column]].groupby(value_column).sum()
-        )
-        # convert absolute into relative frequencies
-        grouped_column_values_sum[freq_column] /= freq_total
-        # create a dict of value to relative frequency
-        value_to_rel_freq_dict = dict(
-            zip(grouped_column_values_sum.index, grouped_column_values_sum[freq_column])
-        )
-        # use this dict to create a new series that replaces each value with its relative frequency
-        srs_rel_freq_per_value = df[value_column].replace(value_to_rel_freq_dict)
-        # multiply this series with the accumulating column for each row's probabilities
-        srs_rel_freq *= srs_rel_freq_per_value
-
-    # get the list of row tuples from selected value columns
-    value_tuple_list = [tuple(r) for r in df[value_columns].to_numpy()]
+    value_tuple_list = list(zip(*[list(df[c]) for c in value_columns]))
+    rel_freq_list = list(df[freq_column] / freq_total)
 
     # noinspection PyTypeChecker
     def _generate(count: int) -> list[pd.Series]:
-        x = rng.choice(value_tuple_list, count, p=rel_freq_lst)
-        return [pd.Series(list(t) for t in zip(*x))]  # dark magic
+        x = rng.choice(value_tuple_list, count, p=rel_freq_list)
+        return [pd.Series(list(t)) for t in zip(*x)]  # dark magic
 
     return _generate
 
