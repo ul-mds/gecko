@@ -7,8 +7,6 @@ from numpy.random import Generator
 from typing_extensions import ParamSpec  # required for 3.9 backport
 
 P = ParamSpec("P")
-NumericType = Union[float, int]
-
 GeneratorFunc = Callable[[int], list[pd.Series]]
 
 
@@ -28,36 +26,10 @@ def from_function(func: Callable[P, str], *args, **kwargs) -> GeneratorFunc:
     return _generate
 
 
-def _generate_from_uniform_distribution_float(
-    low: float,
-    high: float,
-    rng: Generator,
-) -> GeneratorFunc:
-    """Generate a series of floats and format them as strings."""
-
-    def _generate(count: int) -> list[pd.Series]:
-        return [pd.Series(np.char.mod("%f", rng.uniform(low, high, count)))]
-
-    return _generate
-
-
-def _generate_from_uniform_distribution_int(
-    low: int,
-    high: int,
-    rng: Generator,
-) -> GeneratorFunc:
-    """Generate a series of integers and format them as strings."""
-
-    def _generate(count: int) -> list[pd.Series]:
-        return [pd.Series(np.char.mod("%d", rng.integers(low, high, size=count)))]
-
-    return _generate
-
-
 def from_uniform_distribution(
-    low: NumericType = 0,
-    high: NumericType = 1,
-    dtype: type[Union[int, float]] = float,
+    low: Union[int, float] = 0,
+    high: Union[int, float] = 1,
+    precision: int = 6,
     rng: Optional[Generator] = None,
 ) -> GeneratorFunc:
     """
@@ -66,25 +38,25 @@ def from_uniform_distribution(
 
     :param low: lower (inclusive) bound of the uniform distribution (default: `0`)
     :param high: upper (exclusive) bound of the uniform distribution (default: `1`)
-    :param dtype: int or float (default: `float`)
+    :param precision: amount of decimal places to round to (default: `6`)
     :param rng: random number generator to use (default: `None`)
     :return: function returning Pandas series of numbers from uniform distribution with specified parameters
     """
     if rng is None:
         rng = np.random.default_rng()
 
-    if dtype is float:
-        return _generate_from_uniform_distribution_float(low, high, rng)
+    format_str = f"%.{precision}f"
 
-    if dtype is int:
-        return _generate_from_uniform_distribution_int(low, high, rng)
+    def _generate(count: int) -> list[pd.Series]:
+        return [pd.Series(np.char.mod(format_str, rng.uniform(low, high, count)))]
 
-    raise NotImplementedError(f"unexpected data type: {dtype}")
+    return _generate
 
 
 def from_normal_distribution(
     mean: float = 0,
     sd: float = 1,
+    precision: int = 6,
     rng: Optional[Generator] = None,
 ) -> GeneratorFunc:
     """
@@ -93,15 +65,17 @@ def from_normal_distribution(
 
     :param mean: mean of the normal distribution (default: `0`)
     :param sd: standard deviation of the normal distribution (default: `1`)
+    :param precision: amount of decimal places to round to (default: `6`)
     :param rng: random number generator to use (default: `None`)
     :return: function returning Pandas series of numbers from normal distribution with specified parameters
     """
-    # TODO add option to return ints as well
     if rng is None:
         rng = np.random.default_rng()
 
+    format_str = f"%.{precision}f"
+
     def _generate(count: int) -> list[pd.Series]:
-        return [pd.Series(np.char.mod("%f", rng.normal(mean, sd, count)))]
+        return [pd.Series(np.char.mod(format_str, rng.normal(mean, sd, count)))]
 
     return _generate
 
