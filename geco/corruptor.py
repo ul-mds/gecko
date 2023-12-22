@@ -187,8 +187,8 @@ def with_cldr_keymap_file(
 def with_phonetic_replacement_table(
     csv_file_path: Union[PathLike, str],
     header: bool = False,
-    pattern_column: Union[int, str] = 0,
-    replacement_column: Union[int, str] = 1,
+    source_column: Union[int, str] = 0,
+    target_column: Union[int, str] = 1,
     flags_column: Union[int, str] = 2,
     encoding: str = "utf-8",
     delimiter: str = ",",
@@ -197,8 +197,8 @@ def with_phonetic_replacement_table(
     """
     Corrupt a series of strings by randomly replacing characters with others that sound similar.
     The rules for similar-sounding character sequences are sourced from a CSV file.
-    This table must have at least three columns: a pattern, target and a flag column.
-    A pattern is mapped to its replacement under the rules imposed by the provided flags.
+    This table must have at least three columns: a source, target and a flag column.
+    A source pattern is mapped to its target under the rules imposed by the provided flags.
     These flags determine where such a replacement can take place within a string.
     If no flags are defined, it is implied that this replacement can take place anywhere in a string.
     Conversely, if `^`, `$`, `_`, or any combination of the three are set, it implies that a replacement
@@ -208,8 +208,8 @@ def with_phonetic_replacement_table(
     :param header: `True` if the file contains a header, `False` otherwise (default: `False`)
     :param encoding: character encoding of the CSV file (default: `utf-8`)
     :param delimiter: column delimiter (default: `,`)
-    :param pattern_column: name of the pattern column if the file contains a header, otherwise the column index (default: `0`)
-    :param replacement_column: name of the replacement column if the file contains a header, otherwise the column index (default: `1`)
+    :param source_column: name of the source column if the file contains a header, otherwise the column index (default: `0`)
+    :param target_column: name of the target column if the file contains a header, otherwise the column index (default: `1`)
     :param flags_column: name of the flags column if the file contains a header, otherwise the column index (default: `2`)
     :param rng: random number generator to use (default: `None`)
     :return: function returning Pandas series of strings with phonetically similar replacements
@@ -239,7 +239,7 @@ def with_phonetic_replacement_table(
         csv_file_path,
         header=0 if header else None,
         dtype=str,
-        usecols=[pattern_column, replacement_column, flags_column],
+        usecols=[source_column, target_column, flags_column],
         sep=delimiter,
         encoding=encoding,
     )
@@ -248,8 +248,8 @@ def with_phonetic_replacement_table(
     phonetic_replacement_rules: list[_PhoneticReplacementRule] = []
 
     for _, row in df.iterrows():
-        pattern = row[pattern_column]
-        replacement = row[replacement_column]
+        pattern = row[source_column]
+        replacement = row[target_column]
         flags = _validate_flags(row[flags_column])
 
         phonetic_replacement_rules.append(
