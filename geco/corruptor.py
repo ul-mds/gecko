@@ -403,7 +403,7 @@ def with_replacement_table(
     if rng is None:
         rng = np.random.default_rng()
 
-    if header and (type(source_column) is not str or type(target_column) is not str):
+    if header and (isinstance(source_column, str) or isinstance(target_column, str)):
         raise ValueError(
             "header present, but source and target columns must be strings"
         )
@@ -897,7 +897,7 @@ def with_categorical_values(
     if rng is None:
         rng = np.random.default_rng()
 
-    if header and type(value_column) is not str:
+    if header and not isinstance(value_column, str):
         raise ValueError("header present, but value column must be a string")
 
     # read csv file
@@ -982,7 +982,7 @@ def corrupt_dataframe(
             )
 
         # if the column contains only a single corruptor, assign it with a probability of 1.0
-        if type(corruptor_spec) is not list:
+        if not isinstance(corruptor_spec, list):
             corruptor_spec = [(1.0, corruptor_spec)]
 
         # if the list contains functions only, create them into tuples with equal probability
