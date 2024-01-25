@@ -200,9 +200,7 @@ def from_multicolumn_frequency_table(
     return _generate
 
 
-def to_dataframe(
-    generators: list[tuple[Generator, Union[str, list[str]]]], count: int
-):
+def to_dataframe(generators: list[tuple[Generator, Union[str, list[str]]]], count: int):
     """
     Generate a dataframe by using multiple generators at once.
     This function takes a list of generators and the names for each column that a generator will create.
