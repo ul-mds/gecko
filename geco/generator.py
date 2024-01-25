@@ -3,7 +3,6 @@ from typing import Callable, Optional, Union
 
 import numpy as np
 import pandas as pd
-from numpy.random import Generator
 from typing_extensions import ParamSpec  # required for 3.9 backport
 
 P = ParamSpec("P")
@@ -30,7 +29,7 @@ def from_uniform_distribution(
     low: Union[int, float] = 0,
     high: Union[int, float] = 1,
     precision: int = 6,
-    rng: Optional[Generator] = None,
+    rng: Optional[np.random.Generator] = None,
 ) -> GeneratorFunc:
     """
     Generate a series of numbers drawn from a uniform distribution within the specified bounds.
@@ -57,7 +56,7 @@ def from_normal_distribution(
     mean: float = 0,
     sd: float = 1,
     precision: int = 6,
-    rng: Optional[Generator] = None,
+    rng: Optional[np.random.Generator] = None,
 ) -> GeneratorFunc:
     """
     Generate a series of numbers drawn from a normal distribution with the specified parameters.
@@ -87,7 +86,7 @@ def from_frequency_table(
     freq_column: Union[str, int] = 1,
     encoding: str = "utf-8",
     delimiter: str = ",",
-    rng: Optional[Generator] = None,
+    rng: Optional[np.random.Generator] = None,
 ) -> GeneratorFunc:
     """
     Generate a series of values from a CSV file.
@@ -137,7 +136,7 @@ def from_multicolumn_frequency_table(
     freq_column: Union[int, str] = 1,
     encoding: str = "utf-8",
     delimiter: str = ",",
-    rng: Optional[Generator] = None,
+    rng: Optional[np.random.Generator] = None,
 ) -> GeneratorFunc:
     """
     Generate a series of values from a CSV file where columns are inter-dependent.
