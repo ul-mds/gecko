@@ -6,10 +6,10 @@ import pandas as pd
 from typing_extensions import ParamSpec  # required for 3.9 backport
 
 P = ParamSpec("P")
-GeneratorFunc = Callable[[int], list[pd.Series]]
+Generator = Callable[[int], list[pd.Series]]
 
 
-def from_function(func: Callable[P, str], *args, **kwargs) -> GeneratorFunc:
+def from_function(func: Callable[P, str], *args, **kwargs) -> Generator:
     """
     Generate a series from an arbitrary function that returns a single value at a time.
     This generator should be used sparingly as it is not vectorized, meaning values have to be generated one by one.
@@ -30,7 +30,7 @@ def from_uniform_distribution(
     high: Union[int, float] = 1,
     precision: int = 6,
     rng: Optional[np.random.Generator] = None,
-) -> GeneratorFunc:
+) -> Generator:
     """
     Generate a series of numbers drawn from a uniform distribution within the specified bounds.
     These numbers are formatted into strings.
@@ -57,7 +57,7 @@ def from_normal_distribution(
     sd: float = 1,
     precision: int = 6,
     rng: Optional[np.random.Generator] = None,
-) -> GeneratorFunc:
+) -> Generator:
     """
     Generate a series of numbers drawn from a normal distribution with the specified parameters.
     These numbers are formatted into strings.
@@ -87,7 +87,7 @@ def from_frequency_table(
     encoding: str = "utf-8",
     delimiter: str = ",",
     rng: Optional[np.random.Generator] = None,
-) -> GeneratorFunc:
+) -> Generator:
     """
     Generate a series of values from a CSV file.
     This CSV file must contain at least two columns, one holding values and one holding their absolute frequencies.
@@ -137,7 +137,7 @@ def from_multicolumn_frequency_table(
     encoding: str = "utf-8",
     delimiter: str = ",",
     rng: Optional[np.random.Generator] = None,
-) -> GeneratorFunc:
+) -> Generator:
     """
     Generate a series of values from a CSV file where columns are inter-dependent.
     This CSV file must contain at least two columns, one holding values and one holding their absolute frequencies.
@@ -201,7 +201,7 @@ def from_multicolumn_frequency_table(
 
 
 def to_dataframe(
-    generators: list[tuple[GeneratorFunc, Union[str, list[str]]]], count: int
+    generators: list[tuple[Generator, Union[str, list[str]]]], count: int
 ):
     """
     Generate a dataframe by using multiple generators at once.
