@@ -158,7 +158,7 @@ def from_multicolumn_frequency_table(
         rng = np.random.default_rng()
 
     # if the value columns are a list, then read the type of its entries from the first one
-    if type(value_columns) is list:
+    if isinstance(value_columns, list):
         if len(value_columns) == 0:
             raise ValueError("value column list cannot be empty")
 
@@ -171,7 +171,7 @@ def from_multicolumn_frequency_table(
 
     # if value_columns is an int or str, wrap it into a list
     value_columns = (
-        [value_columns] if type(value_columns) is not list else value_columns
+        [value_columns] if not isinstance(value_columns, list) else value_columns
     )
 
     df = pd.read_csv(
