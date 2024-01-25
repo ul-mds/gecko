@@ -7,11 +7,10 @@ from typing import Callable, Optional, Union, Literal, NamedTuple, NoReturn
 import numpy as np
 import pandas as pd
 from lxml import etree
-from numpy.random import Generator
 
 from geco.cldr import decode_iso_kb_pos, unescape_kb_char, get_neighbor_kb_pos_for
 
-CorruptorFunc = Callable[[pd.Series], pd.Series]
+Corruptor = Callable[[pd.Series], pd.Series]
 _EditOp = Literal["ins", "del", "sub", "trs"]
 
 
@@ -35,8 +34,8 @@ class KeyMutation:
 def with_cldr_keymap_file(
     cldr_path: Union[PathLike, str],
     charset: Optional[str] = None,
-    rng: Optional[Generator] = None,
-) -> CorruptorFunc:
+    rng: Optional[np.random.Generator] = None,
+) -> Corruptor:
     """
     Corrupt a series of strings by randomly introducing typos.
     Potential typos are sourced from a Common Locale Data Repository (CLDR) keymap.
@@ -192,8 +191,8 @@ def with_phonetic_replacement_table(
     flags_column: Union[int, str] = 2,
     encoding: str = "utf-8",
     delimiter: str = ",",
-    rng: Optional[Generator] = None,
-) -> CorruptorFunc:
+    rng: Optional[np.random.Generator] = None,
+) -> Corruptor:
     """
     Corrupt a series of strings by randomly replacing characters with others that sound similar.
     The rules for similar-sounding character sequences are sourced from a CSV file.
@@ -381,8 +380,8 @@ def with_replacement_table(
     target_column: Union[str, int] = 1,
     encoding: str = "utf-8",
     delimiter: str = ",",
-    rng: Optional[Generator] = None,
-) -> CorruptorFunc:
+    rng: Optional[np.random.Generator] = None,
+) -> Corruptor:
     """
     Corrupt a series of strings by randomly substituting sequences from a replacement table.
     The table must have at least two columns: a source and a target value column.
@@ -503,7 +502,7 @@ def with_replacement_table(
     return _corrupt
 
 
-def _corrupt_all_from_value(value: str) -> CorruptorFunc:
+def _corrupt_all_from_value(value: str) -> Corruptor:
     """
     Corrupt a series of strings by replacing all of its values with the same "missing" value.
 
@@ -521,7 +520,7 @@ def _corrupt_all_from_value(value: str) -> CorruptorFunc:
     return _corrupt_list
 
 
-def _corrupt_only_empty_from_value(value: str) -> CorruptorFunc:
+def _corrupt_only_empty_from_value(value: str) -> Corruptor:
     """
     Corrupt a series of strings by replacing all of its empty values (string length = 0) with the
     same "missing" value.
@@ -538,7 +537,7 @@ def _corrupt_only_empty_from_value(value: str) -> CorruptorFunc:
     return _corrupt_list
 
 
-def _corrupt_only_blank_from_value(value: str) -> CorruptorFunc:
+def _corrupt_only_blank_from_value(value: str) -> Corruptor:
     """
     Corrupt a series of strings by replacing all of its blank values (empty strings after trimming whitespaces)
     with the same "missing" value.
@@ -558,7 +557,7 @@ def _corrupt_only_blank_from_value(value: str) -> CorruptorFunc:
 def with_missing_value(
     value: str = "",
     strategy: Literal["all", "blank", "empty"] = "blank",
-) -> CorruptorFunc:
+) -> Corruptor:
     """
     Corrupt a series of strings by replacing select entries with a representative "missing" value.
     Strings are selected for replacement depending on the chosen strategy.
@@ -582,8 +581,8 @@ def with_missing_value(
 
 def with_insert(
     charset: str = string.ascii_letters,
-    rng: Optional[Generator] = None,
-) -> CorruptorFunc:
+    rng: Optional[np.random.Generator] = None,
+) -> Corruptor:
     """
     Corrupt a series of strings by inserting random characters.
     The characters are drawn from the provided charset.
@@ -631,7 +630,7 @@ def with_insert(
     return _corrupt
 
 
-def with_delete(rng: Optional[Generator] = None) -> CorruptorFunc:
+def with_delete(rng: Optional[np.random.Generator] = None) -> Corruptor:
     """
     Corrupt a series of strings by randomly deleting characters.
 
@@ -674,7 +673,7 @@ def with_delete(rng: Optional[Generator] = None) -> CorruptorFunc:
     return _corrupt
 
 
-def with_transpose(rng: Optional[Generator] = None) -> CorruptorFunc:
+def with_transpose(rng: Optional[np.random.Generator] = None) -> Corruptor:
     """
     Corrupt a series of strings by randomly swapping neighboring characters.
     Note that it is possible for the same two neighboring characters to be swapped.
@@ -725,8 +724,8 @@ def with_transpose(rng: Optional[Generator] = None) -> CorruptorFunc:
 
 def with_substitute(
     charset: str = string.ascii_letters,
-    rng: Optional[Generator] = None,
-) -> CorruptorFunc:
+    rng: Optional[np.random.Generator] = None,
+) -> Corruptor:
     """
     Corrupt a series of strings by replacing single characters with a new one.
     The characters are drawn from the provided charset.
@@ -786,8 +785,8 @@ def with_edit(
     p_substitute: float = 0.25,
     p_transpose: float = 0.25,
     charset: str = string.ascii_letters,
-    rng: Optional[Generator] = None,
-) -> CorruptorFunc:
+    rng: Optional[np.random.Generator] = None,
+) -> Corruptor:
     """
     Corrupt a series of strings by randomly applying insertion, deletion, substitution or transposition of characters.
     This corruptor works as a wrapper around the respective corruptors for the mentioned individual operations.
@@ -859,7 +858,7 @@ def with_edit(
     return _corrupt_list
 
 
-def with_noop() -> CorruptorFunc:
+def with_noop() -> Corruptor:
     """
     Corrupt a series by not corrupting it at all.
     This corruptor returns the input series as-is.
@@ -880,8 +879,8 @@ def with_categorical_values(
     value_column: Union[str, int] = 0,
     encoding: str = "utf-8",
     delimiter: str = ",",
-    rng: Optional[Generator] = None,
-) -> CorruptorFunc:
+    rng: Optional[np.random.Generator] = None,
+) -> Corruptor:
     """
     Corrupt a series of strings by replacing it with another from a list of categorical values.
     This corruptor reads all unique values from a column within a CSV file.
@@ -956,9 +955,9 @@ def corrupt_dataframe(
     df_in: pd.DataFrame,
     column_to_corruptor_dict: dict[
         str,
-        Union[CorruptorFunc, list[CorruptorFunc], list[tuple[float, CorruptorFunc]]],
+        Union[Corruptor, list[Corruptor], list[tuple[float, Corruptor]]],
     ],
-    rng: Optional[Generator] = None,
+    rng: Optional[np.random.Generator] = None,
 ):
     """
     Corrupt a dataframe by applying several corruptors on select columns.
