@@ -412,6 +412,7 @@ def with_replacement_table(
     df = pd.read_csv(
         csv_file_path,
         header=0 if header else None,
+        dtype=str,
         usecols=[source_column, target_column],
         sep=delimiter,
         encoding=encoding,
@@ -904,6 +905,7 @@ def with_categorical_values(
     df = pd.read_csv(
         csv_file_path,
         header=0 if header else None,
+        dtype=str,
         usecols=[value_column],
         sep=delimiter,
         encoding=encoding,

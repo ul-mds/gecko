@@ -115,7 +115,7 @@ def from_frequency_table(
         csv_file_path,
         header=0 if header else None,  # header row index (`None` if not present)
         usecols=[value_column, freq_column],
-        dtype={freq_column: "int"},
+        dtype={freq_column: "int", value_column: "str"},
         sep=delimiter,
         encoding=encoding,
     )
@@ -179,7 +179,10 @@ def from_multicolumn_frequency_table(
         csv_file_path,
         header=0 if header else None,
         usecols=value_columns + [freq_column],
-        dtype={freq_column: "int"},
+        dtype={
+            freq_column: "int",
+            **{value_column: "str" for value_column in value_columns},
+        },
         sep=delimiter,
         encoding=encoding,
     )
