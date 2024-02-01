@@ -1029,7 +1029,7 @@ def corrupt_dataframe(
         for i in arr_corruptor_idx:
             corruptor = corruptor_funcs[i]
             mask_this_corruptor = srs_corruptor_idx == i
-            df_out[column][mask_this_corruptor] = corruptor(
+            df_out.loc[mask_this_corruptor, column] = corruptor(
                 srs_column[mask_this_corruptor]
             )
 
