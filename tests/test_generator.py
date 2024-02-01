@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 
-from geco import generator
+from gecko import generator
 from tests.helpers import get_asset_path
 
 

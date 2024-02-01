@@ -3,7 +3,7 @@ import string
 import pandas as pd
 import pytest
 
-from geco.corruptor import (
+from gecko.corruptor import (
     with_insert,
     with_delete,
     with_transpose,

@@ -1,3 +1,19 @@
+__all__ = [
+    "Corruptor",
+    "with_cldr_keymap_file",
+    "with_phonetic_replacement_table",
+    "with_replacement_table",
+    "with_missing_value",
+    "with_insert",
+    "with_delete",
+    "with_transpose",
+    "with_substitute",
+    "with_edit",
+    "with_noop",
+    "with_categorical_values",
+    "corrupt_dataframe",
+]
+
 import string
 from dataclasses import dataclass, field
 from os import PathLike
@@ -8,7 +24,7 @@ import numpy as np
 import pandas as pd
 from lxml import etree
 
-from geco.cldr import decode_iso_kb_pos, unescape_kb_char, get_neighbor_kb_pos_for
+from gecko.cldr import decode_iso_kb_pos, unescape_kb_char, get_neighbor_kb_pos_for
 
 Corruptor = Callable[[pd.Series], pd.Series]
 _EditOp = Literal["ins", "del", "sub", "trs"]
@@ -1013,7 +1029,7 @@ def corrupt_dataframe(
         for i in arr_corruptor_idx:
             corruptor = corruptor_funcs[i]
             mask_this_corruptor = srs_corruptor_idx == i
-            df_out[column][mask_this_corruptor] = corruptor(
+            df_out.loc[mask_this_corruptor, column] = corruptor(
                 srs_column[mask_this_corruptor]
             )
 
