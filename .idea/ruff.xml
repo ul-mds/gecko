@@ -1,7 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<project version="4">
-  <component name="RuffConfigService">
-    <option name="projectRuffExecutablePath" value="$USER_HOME$/.cache/pypoetry/virtualenvs/geco-py3-eOHvKTdG-py3.11/bin/ruff" />
-    <option name="runRuffOnSave" value="true" />
-  </component>
-</project>
