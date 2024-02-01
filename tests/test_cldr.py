@@ -1,4 +1,4 @@
-from geco.cldr import (
+from gecko.cldr import (
     uppercase_char_to_index,
     decode_iso_kb_pos,
     unescape_kb_char,
