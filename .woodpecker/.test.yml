@@ -14,7 +14,7 @@ steps:
       - poetry run pytest
     when:
       path:
-        include: [ ".woodpecker/*.yml", "geco/**/*.py", "tests/**/*.py", "tests/assets/**", "pyproject.toml" ]
+        include: [ ".woodpecker/*.yml", "gecko/**/*.py", "tests/**/*.py", "tests/assets/**", "pyproject.toml" ]
 
 depends_on:
   - lint
