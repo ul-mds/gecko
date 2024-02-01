@@ -8,4 +8,4 @@ steps:
       - poetry run ruff format --check .
     when:
       path:
-        include: [ ".woodpecker/*.yml", "geco/**/*.py", "tests/**/*.py", "pyproject.toml" ]
+        include: [ ".woodpecker/*.yml", "gecko/**/*.py", "tests/**/*.py", "pyproject.toml" ]
