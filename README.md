@@ -102,6 +102,11 @@ synthetic but realistic-looking data.
 
 # Disclaimer
 
+Gecko is still very much in a "beta" state.
+As it stands, it satisfies our internal use cases within the Medical Data Science group, but we also seek wider
+adoption.
+If you find any issues or improvements with the library, do not hesitate to contact us.
+
 # License
 
 Gecko is released under the MIT License.
