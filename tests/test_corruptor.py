@@ -16,8 +16,26 @@ from gecko.corruptor import (
     with_replacement_table,
     corrupt_dataframe,
     with_noop,
+    with_function,
 )
 from tests.helpers import get_asset_path
+
+
+def test_with_function(rng):
+    # basic corruptor that simply adds a random number from 0 to 9
+    def _corruptor(value: str, rand) -> str:
+        return value + str(rand.integers(0, 9))
+
+    x = pd.Series(["foo", "bar", "baz"])
+    corrupt_ints = with_function(_corruptor, rand=rng)
+    corr = corrupt_ints(x)
+
+    for i in range(len(x)):
+        x_orig, x_corr = x.iloc[i], corr.iloc[i]
+
+        assert x_orig != x_corr
+        assert len(x_corr) == len(x_orig) + 1
+        assert x_corr[-1:] in string.digits
 
 
 def test_with_value_replace_all():
