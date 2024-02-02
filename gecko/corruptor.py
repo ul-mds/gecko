@@ -11,6 +11,7 @@ __all__ = [
     "with_edit",
     "with_noop",
     "with_categorical_values",
+    "with_function",
     "corrupt_dataframe",
 ]
 
@@ -23,6 +24,7 @@ from typing import Callable, Optional, Union, Literal, NamedTuple, NoReturn
 import numpy as np
 import pandas as pd
 from lxml import etree
+from typing_extensions import ParamSpec, Concatenate
 
 from gecko.cldr import decode_iso_kb_pos, unescape_kb_char, get_neighbor_kb_pos_for
 
@@ -45,6 +47,32 @@ def _check_probability_in_bounds(p: float):
 class KeyMutation:
     row: list[str] = field(default_factory=list)
     col: list[str] = field(default_factory=list)
+
+
+P = ParamSpec("P")
+
+
+def with_function(
+    func: Callable[Concatenate[str, P], str], *args, **kwargs
+) -> Corruptor:
+    """
+    Corrupt a series with an arbitrary function that returns a single value at a time.
+    This corruptor should be used sparingly as it is not vectorized, meaning values have to be corrupted one by one.
+    Use this corruptor for testing purposes or if performance is not critical.
+
+    :param func: function that takes in a string, any arguments passed into this wrapper and returns a single string
+    :return: function returning a Pandas series with values corrupted by the custom function
+    """
+
+    def _corrupt(srs_str_in: pd.Series) -> pd.Series:
+        srs_str_out = srs_str_in.copy()
+
+        for i in range(len(srs_str_in)):
+            srs_str_out.iloc[i] = func(srs_str_out.iloc[i], *args, **kwargs)
+
+        return srs_str_out
+
+    return _corrupt
 
 
 def with_cldr_keymap_file(
