@@ -1038,6 +1038,17 @@ def corrupt_dataframe(
         # corruptor_spec is a list of tuples, which contain a float and a corruptor func.
         # this one-liner collects all floats and corruptor funcs into their own lists.
         p_values, corruptor_funcs = list(zip(*corruptor_spec))
+        p_sum = sum(p_values)
+
+        if p_sum > 1:
+            raise ValueError(
+                f"sum of probabilities may not be higher than 1.0, is {p_sum}"
+            )
+
+        # pad probabilities to sum up to 1.0
+        if p_sum < 1:
+            p_values = (*p_values, 1 - p_sum)
+            corruptor_funcs = (*corruptor_funcs, with_noop())
 
         try:
             # sanity check

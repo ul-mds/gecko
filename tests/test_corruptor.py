@@ -327,7 +327,7 @@ def test_corrupt_dataframe_incorrect_column():
     assert str(e.value) == "column `foobar` does not exist, must be one of `foo`"
 
 
-def test_corrupt_dataframe_incorrect_probabilities():
+def test_corrupt_dataframe_probability_sum_too_high():
     df = pd.DataFrame(data={"foo": ["bar", "baz"]})
 
     with pytest.raises(ValueError) as e:
@@ -341,4 +341,22 @@ def test_corrupt_dataframe_incorrect_probabilities():
             },
         )
 
-    assert str(e.value) == "probabilities for column `foo` must sum up to 1.0"
+    assert str(e.value) == "sum of probabilities may not be higher than 1.0, is 1.1"
+
+
+def test_corrupt_dataframe_pad_probability():
+    df_in = pd.DataFrame(data={"foo": ["a"] * 100})
+    df_out = corrupt_dataframe(
+        df_in,
+        {
+            "foo": [
+                (0.5, with_missing_value("b", "all")),
+            ]
+        },
+    )
+
+    srs_in = df_in["foo"]
+    srs_out = df_out["foo"]
+
+    assert not (srs_in == srs_out).all()
+    assert (srs_in == srs_out).any()
