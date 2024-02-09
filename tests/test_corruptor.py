@@ -17,6 +17,7 @@ from gecko.corruptor import (
     corrupt_dataframe,
     with_noop,
     with_function,
+    with_permute,
 )
 from tests.helpers import get_asset_path
 
@@ -28,7 +29,7 @@ def test_with_function(rng):
 
     srs = pd.Series(["foo", "bar", "baz"])
     corrupt_ints = with_function(_corruptor, rand=rng)
-    srs_corrupted, = corrupt_ints([srs])
+    (srs_corrupted,) = corrupt_ints([srs])
 
     for i in range(len(srs)):
         x_orig, x_corr = srs.iloc[i], srs_corrupted.iloc[i]
@@ -41,7 +42,7 @@ def test_with_function(rng):
 def test_with_value_replace_all():
     srs = pd.Series(["foo", "   ", ""])
     corrupt_missing = with_missing_value("bar", "all")
-    srs_corrupted, = corrupt_missing([srs])
+    (srs_corrupted,) = corrupt_missing([srs])
 
     assert (srs_corrupted == pd.Series(["bar", "bar", "bar"])).all()
 
@@ -49,7 +50,7 @@ def test_with_value_replace_all():
 def test_with_value_replace_empty():
     srs = pd.Series(["foo", "   ", ""])
     corrupt_missing = with_missing_value("bar", "empty")
-    srs_corrupted, = corrupt_missing([srs])
+    (srs_corrupted,) = corrupt_missing([srs])
 
     assert (srs_corrupted == pd.Series(["foo", "   ", "bar"])).all()
 
@@ -57,7 +58,7 @@ def test_with_value_replace_empty():
 def test_with_value_replace_blank():
     srs = pd.Series(["foo", "   ", ""])
     corrupt_missing = with_missing_value("bar", "blank")
-    srs_corrupted, = corrupt_missing([srs])
+    (srs_corrupted,) = corrupt_missing([srs])
 
     assert (srs_corrupted == pd.Series(["foo", "bar", "bar"])).all()
 
@@ -65,7 +66,7 @@ def test_with_value_replace_blank():
 def test_with_random_insert(rng):
     srs = pd.Series(["foo", "bar", "baz"])
     corrupt_insert = with_insert(charset="x", rng=rng)
-    srs_corrupted, = corrupt_insert([srs])
+    (srs_corrupted,) = corrupt_insert([srs])
 
     # check that series are of the same length
     assert len(srs) == len(srs_corrupted)
@@ -83,7 +84,7 @@ def test_with_random_insert(rng):
 def test_with_random_delete(rng):
     srs = pd.Series(["foo", "bar", "baz"])
     corrupt_delete = with_delete(rng=rng)
-    srs_corrupted, = corrupt_delete([srs])
+    (srs_corrupted,) = corrupt_delete([srs])
 
     # check that series are of the same length
     assert len(srs) == len(srs_corrupted)
@@ -96,7 +97,7 @@ def test_with_random_delete(rng):
 def test_with_random_delete_empty_string(rng):
     srs = pd.Series(["", "f"])
     corrupt_delete = with_delete(rng=rng)
-    srs_corrupted, = corrupt_delete([srs])
+    (srs_corrupted,) = corrupt_delete([srs])
 
     assert len(srs) == len(srs_corrupted)
     assert (srs_corrupted == "").all()
@@ -105,7 +106,7 @@ def test_with_random_delete_empty_string(rng):
 def test_with_random_transpose(rng):
     srs = pd.Series(["abc", "def", "ghi"])
     corrupt_transpose = with_transpose(rng=rng)
-    srs_corrupted, = corrupt_transpose([srs])
+    (srs_corrupted,) = corrupt_transpose([srs])
 
     # same lengths
     assert len(srs) == len(srs_corrupted)
@@ -122,7 +123,7 @@ def test_with_random_transpose(rng):
 def test_with_random_transpose_no_neighbor(rng):
     srs = pd.Series(["", "a", "ab"])
     corrupt_transpose = with_transpose(rng=rng)
-    srs_corrupted, = corrupt_transpose([srs])
+    (srs_corrupted,) = corrupt_transpose([srs])
 
     # same lengths
     assert len(srs) == len(srs_corrupted)
@@ -133,7 +134,7 @@ def test_with_random_transpose_no_neighbor(rng):
 def test_with_random_substitute(rng):
     srs = pd.Series(["foo", "bar", "baz"])
     corrupt_substitute = with_substitute(charset="x", rng=rng)
-    srs_corrupted, = corrupt_substitute([srs])
+    (srs_corrupted,) = corrupt_substitute([srs])
 
     # same len
     assert len(srs) == len(srs_corrupted)
@@ -151,7 +152,7 @@ def test_with_random_substitute(rng):
 def test_with_random_substitute_empty_string(rng):
     srs = pd.Series(["", "f"])
     corrupt_substitute = with_substitute(charset="x", rng=rng)
-    srs_corrupted, = corrupt_substitute([srs])
+    (srs_corrupted,) = corrupt_substitute([srs])
 
     # same len
     assert len(srs) == len(srs_corrupted)
@@ -168,7 +169,7 @@ def test_with_categorical_values(rng):
     )
 
     srs = pd.Series(_generate_gender_list())
-    srs_corrupted, = corrupt_categorical([srs])
+    (srs_corrupted,) = corrupt_categorical([srs])
 
     # same length
     assert len(srs) == len(srs_corrupted)
@@ -196,7 +197,7 @@ def test_with_edit(rng):
         charset=string.ascii_letters,
         rng=rng,
     )
-    srs_corrupted, = corrupt_edit([srs])
+    (srs_corrupted,) = corrupt_edit([srs])
 
     assert len(srs) == len(srs_corrupted)
     assert ~(srs == srs_corrupted).all()
@@ -214,8 +215,10 @@ def test_with_phonetic_replacement_table(rng):
     srs_original = df_phonetic_in_out["original"]
     srs_corrupted_expected = df_phonetic_in_out["corrupt"]
 
-    corrupt_phonetic = with_phonetic_replacement_table(get_asset_path("homophone-de.csv"), rng=rng)
-    srs_corrupted_actual, = corrupt_phonetic([srs_original])
+    corrupt_phonetic = with_phonetic_replacement_table(
+        get_asset_path("homophone-de.csv"), rng=rng
+    )
+    (srs_corrupted_actual,) = corrupt_phonetic([srs_original])
 
     assert (srs_corrupted_actual == srs_corrupted_expected).all()
 
@@ -223,7 +226,7 @@ def test_with_phonetic_replacement_table(rng):
 def test_with_cldr_keymap_file(rng):
     srs = pd.Series(["d", "e"])
     corrupt_cldr = with_cldr_keymap_file(get_asset_path("de-t-k0-windows.xml"), rng=rng)
-    srs_corrupted, = corrupt_cldr([srs])
+    (srs_corrupted,) = corrupt_cldr([srs])
 
     assert len(srs) == len(srs_corrupted)
     assert (srs.str.len() == srs_corrupted.str.len()).all()
@@ -241,7 +244,7 @@ def test_with_cldr_keymap_file_and_charset(rng):
         charset=string.digits,
         rng=rng,
     )
-    srs_corrupted, = corrupt_cldr([srs])
+    (srs_corrupted,) = corrupt_cldr([srs])
 
     assert len(srs) == len(srs_corrupted)
     assert (srs.str.len() == srs_corrupted.str.len()).all()
@@ -254,7 +257,7 @@ def test_with_cldr_keymap_file_no_replacement(rng):
     # this should stay the same since á is not mapped in the keymap
     srs = pd.Series(["á"])
     corrupt_cldr = with_cldr_keymap_file(get_asset_path("de-t-k0-windows.xml"))
-    srs_corrupted, = corrupt_cldr([srs])
+    (srs_corrupted,) = corrupt_cldr([srs])
 
     assert len(srs) == len(srs_corrupted)
     assert (srs.str.len() == srs_corrupted.str.len()).all()
@@ -264,7 +267,7 @@ def test_with_cldr_keymap_file_no_replacement(rng):
 def test_with_replacement_table(rng):
     srs = pd.Series(["k", "5", "2", "1", "g", "q", "l", "i"])
     corrupt_replacement = with_replacement_table(get_asset_path("ocr.csv"))
-    srs_corrupted, = corrupt_replacement([srs])
+    (srs_corrupted,) = corrupt_replacement([srs])
 
     assert len(srs) == len(srs_corrupted)
     assert (srs != srs_corrupted).all()
@@ -275,11 +278,22 @@ def test_with_replacement_table_multiple_options(rng):
     # 100 q's through the corruptor should yield different results
     srs = pd.Series(["q"] * 100)
     corrupt_replacement = with_replacement_table(get_asset_path("ocr.csv"), rng=rng)
-    srs_corrupted, = corrupt_replacement([srs])
+    (srs_corrupted,) = corrupt_replacement([srs])
 
     assert len(srs) == len(srs_corrupted)
     assert (srs != srs_corrupted).all()
     assert len(srs_corrupted.unique()) > 1
+
+
+def test_permute():
+    srs_1, srs_2 = pd.Series(["foo"] * 3), pd.Series(["bar"] * 3)
+    corrupt_permute = with_permute()
+    srs_1_corrupted, srs_2_corrupted = corrupt_permute([srs_1, srs_2])
+
+    assert (srs_1 != srs_1_corrupted).all()
+    assert (srs_1 == srs_2_corrupted).all()
+    assert (srs_2 != srs_2_corrupted).all()
+    assert (srs_2 == srs_1_corrupted).all()
 
 
 @pytest.mark.skip(reason="corrupt_dataframe() is not rewritten yet")

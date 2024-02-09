@@ -58,7 +58,7 @@ P = ParamSpec("P")
 
 
 def with_function(
-        func: Callable[Concatenate[str, P], str], *args, **kwargs
+    func: Callable[Concatenate[str, P], str], *args, **kwargs
 ) -> Corruptor:
     """
     Corrupt a series with an arbitrary function that returns a single value at a time.
@@ -82,9 +82,9 @@ def with_function(
 
 
 def with_cldr_keymap_file(
-        cldr_path: Union[PathLike, str],
-        charset: Optional[str] = None,
-        rng: Optional[np.random.Generator] = None,
+    cldr_path: Union[PathLike, str],
+    charset: Optional[str] = None,
+    rng: Optional[np.random.Generator] = None,
 ) -> Corruptor:
     """
     Corrupt a series of strings by randomly introducing typos.
@@ -225,9 +225,9 @@ def with_cldr_keymap_file(
             # act as an extra filter to not modify strings that have no replacement
             idx_mask = (arr_rng_typo_indices == i) & pd.notna(srs_repl_chars)
             srs_out[idx_mask] = (
-                    srs_out[idx_mask].str[:i]
-                    + srs_repl_chars[idx_mask]
-                    + srs_out[idx_mask].str[i + 1:]
+                srs_out[idx_mask].str[:i]
+                + srs_repl_chars[idx_mask]
+                + srs_out[idx_mask].str[i + 1 :]
             )
 
         return [srs_out]
@@ -236,14 +236,14 @@ def with_cldr_keymap_file(
 
 
 def with_phonetic_replacement_table(
-        csv_file_path: Union[PathLike, str],
-        header: bool = False,
-        source_column: Union[int, str] = 0,
-        target_column: Union[int, str] = 1,
-        flags_column: Union[int, str] = 2,
-        encoding: str = "utf-8",
-        delimiter: str = ",",
-        rng: Optional[np.random.Generator] = None,
+    csv_file_path: Union[PathLike, str],
+    header: bool = False,
+    source_column: Union[int, str] = 0,
+    target_column: Union[int, str] = 1,
+    flags_column: Union[int, str] = 2,
+    encoding: str = "utf-8",
+    delimiter: str = ",",
+    rng: Optional[np.random.Generator] = None,
 ) -> Corruptor:
     """
     Corrupt a series of strings by randomly replacing characters with others that sound similar.
@@ -338,14 +338,14 @@ def with_phonetic_replacement_table(
             if "$" in rule.flags:
                 # increment counter for all strings where pattern is found at end of string
                 mask_pattern_at_end = (
-                        srs_pattern_idx + len(rule.pattern) == srs_str_out_len
+                    srs_pattern_idx + len(rule.pattern) == srs_str_out_len
                 )
                 srs_str_flags[mask_pattern_at_end] += "$"
 
             if "_" in rule.flags:
                 # increment counter for all strings where pattern is not at the start and at the end
                 mask_pattern_in_middle = (srs_pattern_idx > 0) & (
-                        srs_pattern_idx + len(rule.pattern) < srs_str_out_len
+                    srs_pattern_idx + len(rule.pattern) < srs_str_out_len
                 )
                 srs_str_flags[mask_pattern_in_middle] += "_"
 
@@ -367,7 +367,7 @@ def with_phonetic_replacement_table(
             srs_str_flags = rule_to_flag_dict[rule]
             # get candidate row mask
             mask_candidate_rows = (arr_rand_vals < srs_str_sub_prob) & (
-                    srs_str_flags != ""
+                srs_str_flags != ""
             )
 
             # create copy of rule flags and shuffle it in-place
@@ -390,7 +390,7 @@ def with_phonetic_replacement_table(
                     _raise_unknown_flag(flag)
 
                 mask_current_candidate_rows = (
-                        mask_candidate_rows & mask_current_flag & ~mask_modified_rows
+                    mask_candidate_rows & mask_current_flag & ~mask_modified_rows
                 )
 
                 # skip if there are no replacements to be made
@@ -428,13 +428,13 @@ def with_phonetic_replacement_table(
 
 
 def with_replacement_table(
-        csv_file_path: Union[PathLike, str],
-        header: bool = False,
-        source_column: Union[str, int] = 0,
-        target_column: Union[str, int] = 1,
-        encoding: str = "utf-8",
-        delimiter: str = ",",
-        rng: Optional[np.random.Generator] = None,
+    csv_file_path: Union[PathLike, str],
+    header: bool = False,
+    source_column: Union[str, int] = 0,
+    target_column: Union[str, int] = 1,
+    encoding: str = "utf-8",
+    delimiter: str = ",",
+    rng: Optional[np.random.Generator] = None,
 ) -> Corruptor:
     """
     Corrupt a series of strings by randomly substituting sequences from a replacement table.
@@ -505,9 +505,9 @@ def with_replacement_table(
             # select only rows that contain the source string, have a random number drawn that's
             # in range of its probability to be modified, and hasn't been marked for replacement yet
             mask_strings_to_replace = (
-                    srs_str_contains_source
-                    & (arr_rand_vals < srs_str_sub_prob)
-                    & pd.isna(df_replacement["source"])
+                srs_str_contains_source
+                & (arr_rand_vals < srs_str_sub_prob)
+                & pd.isna(df_replacement["source"])
             )
             # count all strings that meet the conditions above
             replacement_count = mask_strings_to_replace.sum()
@@ -547,7 +547,7 @@ def with_replacement_table(
             ].unique():
                 # select all rows that have this specific source -> target replacement going
                 mask = (df_replacement["source"] == source) & (
-                        df_replacement["target"] == target
+                    df_replacement["target"] == target
                 )
 
                 # perform replacement of source -> target
@@ -570,11 +570,13 @@ def _corrupt_all_from_value(value: str) -> Corruptor:
         __assert_srs_lst_len(srs_lst, 1)
         srs = srs_lst[0]
 
-        return [pd.Series(
-            data=[value] * len(srs),
-            index=srs.index,
-            dtype=str,
-        )]
+        return [
+            pd.Series(
+                data=[value] * len(srs),
+                index=srs.index,
+                dtype=str,
+            )
+        ]
 
     return _corrupt_list
 
@@ -618,8 +620,8 @@ def _corrupt_only_blank_from_value(value: str) -> Corruptor:
 
 
 def with_missing_value(
-        value: str = "",
-        strategy: Literal["all", "blank", "empty"] = "blank",
+    value: str = "",
+    strategy: Literal["all", "blank", "empty"] = "blank",
 ) -> Corruptor:
     """
     Corrupt a series of strings by replacing select entries with a representative "missing" value.
@@ -643,8 +645,8 @@ def with_missing_value(
 
 
 def with_insert(
-        charset: str = string.ascii_letters,
-        rng: Optional[np.random.Generator] = None,
+    charset: str = string.ascii_letters,
+    rng: Optional[np.random.Generator] = None,
 ) -> Corruptor:
     """
     Corrupt a series of strings by inserting random characters.
@@ -685,9 +687,9 @@ def with_insert(
             srs_idx_mask = arr_rng_insert_indices == i
             # insert character at current index
             srs_out[srs_idx_mask] = (
-                    srs_out[srs_idx_mask].str[:i]
-                    + srs_rand_chars[srs_idx_mask]
-                    + srs_out[srs_idx_mask].str[i:]
+                srs_out[srs_idx_mask].str[:i]
+                + srs_rand_chars[srs_idx_mask]
+                + srs_out[srs_idx_mask].str[i:]
             )
 
         return [srs_out]
@@ -785,7 +787,7 @@ def with_transpose(rng: Optional[np.random.Generator] = None) -> Corruptor:
                 srs_masked.str[:i]
                 + srs_masked.str[i + 1]
                 + srs_masked.str[i]
-                + srs_masked.str[i + 2:]
+                + srs_masked.str[i + 2 :]
             )
 
         return [srs_str_out]
@@ -794,8 +796,8 @@ def with_transpose(rng: Optional[np.random.Generator] = None) -> Corruptor:
 
 
 def with_substitute(
-        charset: str = string.ascii_letters,
-        rng: Optional[np.random.Generator] = None,
+    charset: str = string.ascii_letters,
+    rng: Optional[np.random.Generator] = None,
 ) -> Corruptor:
     """
     Corrupt a series of strings by replacing single characters with a new one.
@@ -845,7 +847,7 @@ def with_substitute(
             srs_str_out.update(
                 srs_masked.str[:i]
                 + srs_rand_chars[srs_idx_mask]
-                + srs_masked.str[i + 1:]
+                + srs_masked.str[i + 1 :]
             )
 
         return [srs_str_out]
@@ -854,12 +856,12 @@ def with_substitute(
 
 
 def with_edit(
-        p_insert: float = 0.25,
-        p_delete: float = 0.25,
-        p_substitute: float = 0.25,
-        p_transpose: float = 0.25,
-        charset: str = string.ascii_letters,
-        rng: Optional[np.random.Generator] = None,
+    p_insert: float = 0.25,
+    p_delete: float = 0.25,
+    p_substitute: float = 0.25,
+    p_transpose: float = 0.25,
+    charset: str = string.ascii_letters,
+    rng: Optional[np.random.Generator] = None,
 ) -> Corruptor:
     """
     Corrupt a series of strings by randomly applying insertion, deletion, substitution or transposition of characters.
@@ -913,22 +915,22 @@ def with_edit(
         msk_ins = str_in_edit_ops == "ins"
 
         if msk_ins.sum() != 0:
-            srs_out[msk_ins], = corr_ins([srs_out[msk_ins]])
+            (srs_out[msk_ins],) = corr_ins([srs_out[msk_ins]])
 
         msk_del = str_in_edit_ops == "del"
 
         if msk_del.sum() != 0:
-            srs_out[msk_del], = corr_del([srs_out[msk_del]])
+            (srs_out[msk_del],) = corr_del([srs_out[msk_del]])
 
         msk_sub = str_in_edit_ops == "sub"
 
         if msk_sub.sum() != 0:
-            srs_out[msk_sub], = corr_sub([srs_out[msk_sub]])
+            (srs_out[msk_sub],) = corr_sub([srs_out[msk_sub]])
 
         msk_trs = str_in_edit_ops == "trs"
 
         if msk_trs.sum() != 0:
-            srs_out[msk_trs], = corr_trs([srs_out[msk_trs]])
+            (srs_out[msk_trs],) = corr_trs([srs_out[msk_trs]])
 
         return [srs_out]
 
@@ -951,12 +953,12 @@ def with_noop() -> Corruptor:
 
 
 def with_categorical_values(
-        csv_file_path: Union[PathLike, str],
-        header: bool = False,
-        value_column: Union[str, int] = 0,
-        encoding: str = "utf-8",
-        delimiter: str = ",",
-        rng: Optional[np.random.Generator] = None,
+    csv_file_path: Union[PathLike, str],
+    header: bool = False,
+    value_column: Union[str, int] = 0,
+    encoding: str = "utf-8",
+    delimiter: str = ",",
+    rng: Optional[np.random.Generator] = None,
 ) -> Corruptor:
     """
     Corrupt a series of strings by replacing it with another from a list of categorical values.
@@ -1031,13 +1033,23 @@ def with_categorical_values(
     return _corrupt_list
 
 
+def with_permute() -> Corruptor:
+    def __corrupt(srs_lst: list[pd.Series]) -> list[pd.Series]:
+        __assert_srs_lst_len(srs_lst, 2)
+
+        srs, srs_other = srs_lst
+        return [srs_other.copy(), srs.copy()]
+
+    return __corrupt
+
+
 def corrupt_dataframe(
-        df_in: pd.DataFrame,
-        column_to_corruptor_dict: dict[
-            str,
-            Union[Corruptor, list[Corruptor], list[tuple[float, Corruptor]]],
-        ],
-        rng: Optional[np.random.Generator] = None,
+    df_in: pd.DataFrame,
+    column_to_corruptor_dict: dict[
+        str,
+        Union[Corruptor, list[Corruptor], list[tuple[float, Corruptor]]],
+    ],
+    rng: Optional[np.random.Generator] = None,
 ):
     """
     Corrupt a dataframe by applying several corruptors on select columns.
