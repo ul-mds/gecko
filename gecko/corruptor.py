@@ -1046,7 +1046,7 @@ def with_permute() -> Corruptor:
 def corrupt_dataframe(
     df_in: pd.DataFrame,
     column_to_corruptor_dict: dict[
-        Union[str, list[str]],
+        Union[str, tuple[str]],
         Union[Corruptor, list[Corruptor], list[tuple[float, Corruptor]]],
     ],
     rng: Optional[np.random.Generator] = None,
@@ -1070,7 +1070,7 @@ def corrupt_dataframe(
     for column_spec, corruptor_spec in column_to_corruptor_dict.items():
         # convert to list if there is only one column specified
         if isinstance(column_spec, str):
-            column_spec = [column_spec]
+            column_spec = (column_spec,)
 
         # check that each column name is valid
         for column_name in column_spec:
