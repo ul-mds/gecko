@@ -15,11 +15,6 @@ def rng():
 
 
 @pytest.fixture(scope="session")
-def foobar_freq_head():
-    return ["foo", "bar", "foo", "foo", "foo", "bar", "bar", "foo", "foo", "foo"]
-
-
-@pytest.fixture(scope="session")
 def benchmark():
     bench_output_directory = os.path.join(os.path.dirname(__file__), "benchmark-report")
     bench_output_filename = f"output-{int(datetime.now().timestamp())}.jsonl"

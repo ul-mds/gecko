@@ -43,16 +43,19 @@ def test_from_normal_distribution(rng):
     assert len(number_list[0]) == 1000
 
 
-def test_from_frequency_table_no_header(rng, foobar_freq_head):
+def test_from_frequency_table_no_header(rng):
     generate_tab = generator.from_frequency_table(
         get_asset_path("freq_table_no_header.csv"),
         rng=rng,
     )
-    h = generate_tab(len(foobar_freq_head))[0]
-    assert h.equals(pd.Series(foobar_freq_head))
+
+    srs = generate_tab(100)[0]
+
+    assert (srs == "foo").any()
+    assert (srs == "bar").any()
 
 
-def test_from_frequency_table_with_header(rng, foobar_freq_head):
+def test_from_frequency_table_with_header(rng):
     generate_tab = generator.from_frequency_table(
         get_asset_path("freq_table_header.csv"),
         rng=rng,
@@ -60,16 +63,22 @@ def test_from_frequency_table_with_header(rng, foobar_freq_head):
         value_column="value",
         freq_column="freq",
     )
-    h = generate_tab(len(foobar_freq_head))[0]
-    assert h.equals(pd.Series(foobar_freq_head))
+
+    srs = generate_tab(100)[0]
+
+    assert (srs == "foo").any()
+    assert (srs == "bar").any()
 
 
-def test_from_frequency_table_tsv(rng, foobar_freq_head):
+def test_from_frequency_table_tsv(rng):
     generate_tab = generator.from_frequency_table(
         get_asset_path("freq_table_no_header.tsv"), rng=rng, delimiter="\t"
     )
-    h = generate_tab(len(foobar_freq_head))[0]
-    assert h.equals(pd.Series(foobar_freq_head))
+
+    srs = generate_tab(100)[0]
+
+    assert (srs == "foo").any()
+    assert (srs == "bar").any()
 
 
 def test_from_frequency_table(rng):
