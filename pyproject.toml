@@ -22,10 +22,10 @@ classifiers = [
 
 [tool.poetry.dependencies]
 python = ">=3.9,<3.13"
-numpy = "^1.26.3"
-lxml = "^5.1.0"
-pandas = "^2.2.0"
-typing-extensions = "^4.9.0"
+numpy = ">=1.20.3,<2"
+lxml = ">=4.9.0,<6"
+pandas = "^2.0.0"
+typing-extensions = "^4.0.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.4.2"
