@@ -1046,7 +1046,7 @@ def with_permute() -> Corruptor:
 def corrupt_dataframe(
     df_in: pd.DataFrame,
     column_to_corruptor_dict: dict[
-        str,
+        Union[str, list[str]],
         Union[Corruptor, list[Corruptor], list[tuple[float, Corruptor]]],
     ],
     rng: Optional[np.random.Generator] = None,
@@ -1067,11 +1067,17 @@ def corrupt_dataframe(
 
     df_out = df_in.copy()
 
-    for column, corruptor_spec in column_to_corruptor_dict.items():
-        if column not in df_in.columns:
-            raise ValueError(
-                f"column `{column}` does not exist, must be one of `{','.join(df_in.columns)}`"
-            )
+    for column_spec, corruptor_spec in column_to_corruptor_dict.items():
+        # convert to list if there is only one column specified
+        if isinstance(column_spec, str):
+            column_spec = [column_spec]
+
+        # check that each column name is valid
+        for column_name in column_spec:
+            if column_name not in df_out.columns:
+                raise ValueError(
+                    f"column `{column_name}` does not exist, must be one of `{','.join(df_in.columns)}`"
+                )
 
         # if the column contains only a single corruptor, assign it with a probability of 1.0
         if not isinstance(corruptor_spec, list):
@@ -1102,7 +1108,8 @@ def corrupt_dataframe(
             # sanity check
             rng.choice([i for i in range(len(p_values))], p=p_values)
         except ValueError:
-            raise ValueError(f"probabilities for column `{column}` must sum up to 1.0")
+            column_str = f"column{'s' if len(column_spec) > 1 else ''} `{', '.join(column_spec)}`"
+            raise ValueError(f"probabilities for {column_str} must sum up to 1.0")
 
         corruptor_count = len(corruptor_funcs)
         # generate a series where each row gets an index of the corruptor in corruptor_funcs to apply.
@@ -1111,13 +1118,22 @@ def corrupt_dataframe(
             arr_corruptor_idx, p=p_values, size=len(df_out)
         )
         srs_corruptor_idx = pd.Series(data=arr_corruptor_per_row, index=df_out.index)
-        srs_column = df_in[column]
+        srs_columns = [df_in[column_name] for column_name in column_spec]
 
         for i in arr_corruptor_idx:
             corruptor = corruptor_funcs[i]
             mask_this_corruptor = srs_corruptor_idx == i
-            df_out.loc[mask_this_corruptor, column] = corruptor(
-                srs_column[mask_this_corruptor]
+            srs_corrupted_lst = corruptor(
+                [srs[mask_this_corruptor] for srs in srs_columns]
             )
+
+            # i would've liked to use .loc[mask_this_corruptor, column_spec] = corruptor(...) here
+            # but there is apparently a shape mismatch that happens here. so instead i'm manually
+            # iterating over each corrupted series until i find a better solution.
+            for j in range(len(column_spec)):
+                column_name = column_spec[j]
+                srs_corrupted = srs_corrupted_lst[j]
+
+                df_in.loc[mask_this_corruptor, column_name] = srs_corrupted
 
     return df_out

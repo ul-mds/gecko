@@ -296,7 +296,6 @@ def test_permute():
     assert (srs_2 == srs_1_corrupted).all()
 
 
-@pytest.mark.skip(reason="corrupt_dataframe() is not rewritten yet")
 def test_corrupt_dataframe(rng):
     df = pd.DataFrame(
         data={
@@ -338,7 +337,6 @@ def test_corrupt_dataframe(rng):
     assert (df_corr["weighted_typo_edit"] != df["weighted_typo_edit"]).any()
 
 
-@pytest.mark.skip(reason="corrupt_dataframe() is not rewritten yet")
 def test_corrupt_dataframe_incorrect_column():
     df = pd.DataFrame(data={"foo": ["bar", "baz"]})
 
@@ -348,7 +346,6 @@ def test_corrupt_dataframe_incorrect_column():
     assert str(e.value) == "column `foobar` does not exist, must be one of `foo`"
 
 
-@pytest.mark.skip(reason="corrupt_dataframe() is not rewritten yet")
 def test_corrupt_dataframe_probability_sum_too_high():
     df = pd.DataFrame(data={"foo": ["bar", "baz"]})
 
@@ -366,7 +363,6 @@ def test_corrupt_dataframe_probability_sum_too_high():
     assert str(e.value) == "sum of probabilities may not be higher than 1.0, is 1.1"
 
 
-@pytest.mark.skip(reason="corrupt_dataframe() is not rewritten yet")
 def test_corrupt_dataframe_pad_probability():
     df_in = pd.DataFrame(data={"foo": ["a"] * 100})
     df_out = corrupt_dataframe(
