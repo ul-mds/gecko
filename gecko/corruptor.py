@@ -1046,7 +1046,7 @@ def with_permute() -> Corruptor:
 def corrupt_dataframe(
     df_in: pd.DataFrame,
     column_to_corruptor_dict: dict[
-        Union[str, tuple[str]],
+        Union[str, tuple[str, ...]],
         Union[Corruptor, list[Corruptor], list[tuple[float, Corruptor]]],
     ],
     rng: Optional[np.random.Generator] = None,
@@ -1134,6 +1134,6 @@ def corrupt_dataframe(
                 column_name = column_spec[j]
                 srs_corrupted = srs_corrupted_lst[j]
 
-                df_in.loc[mask_this_corruptor, column_name] = srs_corrupted
+                df_out.loc[mask_this_corruptor, column_name] = srs_corrupted
 
     return df_out

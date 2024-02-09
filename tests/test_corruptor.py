@@ -379,3 +379,47 @@ def test_corrupt_dataframe_pad_probability():
 
     assert not (srs_in == srs_out).all()
     assert (srs_in == srs_out).any()
+
+
+def test_corrupt_dataframe_multicolumn():
+    df_in = pd.DataFrame(
+        data={
+            "foo": list("abc"),
+            "bar": list("def"),
+            "baz": list("ghi"),
+        }
+    )
+
+    srs_foo = df_in["foo"]
+    srs_bar = df_in["bar"]
+
+    df_out = corrupt_dataframe(
+        df_in,
+        {
+            ("foo", "bar"): with_permute(),
+            "baz": with_missing_value(strategy="all"),
+        },
+    )
+
+    srs_foo_corrupted = df_out["foo"]
+    srs_bar_corrupted = df_out["bar"]
+
+    assert (srs_foo == srs_bar_corrupted).all()
+    assert (srs_bar == srs_foo_corrupted).all()
+    assert (df_out["baz"] == "").all()
+
+
+def test_corrupt_dataframe_multicolumn_noop():
+    df_in = pd.DataFrame(
+        {
+            "foo": ["a"] * 100,
+            "bar": ["b"] * 100,
+        }
+    )
+
+    df_out = corrupt_dataframe(df_in, {("foo", "bar"): [(0.5, with_permute())]})
+
+    assert not (df_out["foo"] == "b").all()
+    assert (df_out["foo"] == "b").any()
+    assert not (df_out["bar"] == "a").all()
+    assert (df_out["bar"] == "a").any()
