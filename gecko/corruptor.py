@@ -12,6 +12,7 @@ __all__ = [
     "with_noop",
     "with_categorical_values",
     "with_function",
+    "with_permute",
     "corrupt_dataframe",
 ]
 
@@ -1034,6 +1035,13 @@ def with_categorical_values(
 
 
 def with_permute() -> Corruptor:
+    """
+    Corrupt two series by permuting their contents.
+    This effectively swaps one series with another.
+
+    :return: function swapping the contents of two Pandas series
+    """
+
     def __corrupt(srs_lst: list[pd.Series]) -> list[pd.Series]:
         __assert_srs_lst_len(srs_lst, 2)
 
