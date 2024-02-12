@@ -1084,12 +1084,6 @@ def corrupt_dataframe(
             and isinstance(x[1], Callable)
         )
 
-    def __invalid_type_for_column(x: Any, columns: tuple[str, ...]):
-        return ValueError(
-            f"invalid type `{type(x)}` for corruptor definition "
-            f"of column `{', '.join(columns)}`"
-        )
-
     if rng is None:
         rng = np.random.default_rng()
 
