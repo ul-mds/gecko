@@ -20,7 +20,7 @@ import string
 from dataclasses import dataclass, field
 from os import PathLike
 from pathlib import Path
-from typing import Callable, Optional, Union, Literal, NamedTuple, NoReturn
+from typing import Callable, Optional, Union, Literal, NamedTuple, NoReturn, Any
 
 import numpy as np
 import pandas as pd
@@ -1075,6 +1075,21 @@ def corrupt_dataframe(
     :param rng: random number generator to use (default: `None`)
     :return: copy of dataframe with corruptors applied as specified
     """
+
+    def __is_weighted_corruptor_tuple(x: Any):
+        return (
+            isinstance(x, tuple)
+            and len(x) == 2
+            and isinstance(x[0], float)
+            and isinstance(x[1], Callable)
+        )
+
+    def __invalid_type_for_column(x: Any, columns: tuple[str, ...]):
+        return ValueError(
+            f"invalid type `{type(x)}` for corruptor definition "
+            f"of column `{', '.join(columns)}`"
+        )
+
     if rng is None:
         rng = np.random.default_rng()
 
@@ -1097,10 +1112,11 @@ def corrupt_dataframe(
             corruptor_spec = [(1.0, corruptor_spec)]
 
         # if the column is assigned a tuple, wrap it into a list
-        # (no deep type checking whether tuple[0] == float and tuple[1] == Callable here...)
-        if isinstance(corruptor_spec, tuple):
+        if __is_weighted_corruptor_tuple(corruptor_spec):
             corruptor_spec = [corruptor_spec]
 
+        # next step is to check the entries of the list. so if the spec has not been converted
+        # to a list yet, then something went wrong.
         if not isinstance(corruptor_spec, list):
             raise ValueError(
                 f"invalid type `{type(corruptor_spec)}` for corruptor definition "
@@ -1112,6 +1128,10 @@ def corrupt_dataframe(
             corruptor_spec = [
                 (1.0 / len(corruptor_spec), corruptor) for corruptor in corruptor_spec
             ]
+
+        # if the end result is not a list of weighted corruptors for each column, abort
+        if not all(__is_weighted_corruptor_tuple(c) for c in corruptor_spec):
+            raise ValueError("malformed corrupter definition")
 
         # corruptor_spec is a list of tuples, which contain a float and a corruptor func.
         # this one-liner collects all floats and corruptor funcs into their own lists.
