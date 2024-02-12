@@ -1,5 +1,6 @@
 import string
 
+import numpy as np
 import pandas as pd
 import pytest
 
@@ -18,6 +19,7 @@ from gecko.corruptor import (
     with_noop,
     with_function,
     with_permute,
+    Corruptor,
 )
 from tests.helpers import get_asset_path
 
@@ -165,7 +167,10 @@ def test_with_categorical_values(rng):
         return rng.choice(["m", "f", "d", "x"], size=1000)
 
     corrupt_categorical = with_categorical_values(
-        get_asset_path("freq_table_gender.csv"), header=True, value_column="gender"
+        get_asset_path("freq_table_gender.csv"),
+        header=True,
+        value_column="gender",
+        rng=rng,
     )
 
     srs = pd.Series(_generate_gender_list())
@@ -266,7 +271,7 @@ def test_with_cldr_keymap_file_no_replacement(rng):
 
 def test_with_replacement_table(rng):
     srs = pd.Series(["k", "5", "2", "1", "g", "q", "l", "i"])
-    corrupt_replacement = with_replacement_table(get_asset_path("ocr.csv"))
+    corrupt_replacement = with_replacement_table(get_asset_path("ocr.csv"), rng=rng)
     (srs_corrupted,) = corrupt_replacement([srs])
 
     assert len(srs) == len(srs_corrupted)
@@ -423,3 +428,84 @@ def test_corrupt_dataframe_multicolumn_noop():
     assert (df_out["foo"] == "b").any()
     assert not (df_out["bar"] == "a").all()
     assert (df_out["bar"] == "a").any()
+
+
+# dummy rng (shouldn't be used for testing corruptor outputs)
+__dummy_rng = np.random.default_rng(5432)
+
+
+@pytest.mark.parametrize(
+    "num_srs,func",
+    [
+        (1, with_noop()),
+        (1, with_missing_value("", "all")),
+        (1, with_missing_value("", "blank")),
+        (1, with_missing_value("", "empty")),
+        (1, with_function(lambda s: s.upper())),
+        (1, with_insert(rng=__dummy_rng)),
+        (1, with_delete(rng=__dummy_rng)),
+        (1, with_transpose(rng=__dummy_rng)),
+        (1, with_substitute(rng=__dummy_rng)),
+        (1, with_edit(rng=__dummy_rng)),
+        (
+            1,
+            with_categorical_values(
+                get_asset_path("freq_table_gender.csv"),
+                header=True,
+                value_column="gender",
+                rng=__dummy_rng,
+            ),
+        ),
+        (
+            1,
+            with_phonetic_replacement_table(
+                get_asset_path("homophone-de.csv"), rng=__dummy_rng
+            ),
+        ),
+        (
+            1,
+            with_cldr_keymap_file(
+                get_asset_path("de-t-k0-windows.xml"), rng=__dummy_rng
+            ),
+        ),
+        (1, with_replacement_table(get_asset_path("ocr.csv"), rng=__dummy_rng)),
+        (2, with_permute()),
+    ],
+)
+def test_corruptor_no_modify(num_srs: int, func: Corruptor, rng):
+    # ensure that the original series are NEVER modified in the corruptors
+    def __random_str():
+        return "".join(rng.choice(list(string.printable), size=20))
+
+    # create random series and a copy of it
+    srs_list_orig = [
+        pd.Series([__random_str() for _ in range(100)]) for _ in range(num_srs)
+    ]
+
+    srs_list_copy = [srs.copy() for srs in srs_list_orig]
+
+    _ = func(srs_list_orig)
+
+    for i in range(num_srs):
+        assert (srs_list_orig[i] == srs_list_copy[i]).all()
+
+
+def test_corrupt_dataframe_no_modify(rng):
+    df_orig = pd.DataFrame(
+        {
+            "upper": list(string.ascii_uppercase),
+            "lower": list(string.ascii_lowercase),
+        }
+    )
+
+    df_copy = df_orig.copy()
+
+    _ = corrupt_dataframe(
+        df_orig,
+        {
+            "upper": with_delete(rng=rng),
+            "lower": with_insert(rng=rng),
+        },
+    )
+
+    assert df_orig.equals(df_copy)
