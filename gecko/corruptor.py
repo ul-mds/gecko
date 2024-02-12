@@ -1055,14 +1055,19 @@ def corrupt_dataframe(
     df_in: pd.DataFrame,
     column_to_corruptor_dict: dict[
         Union[str, tuple[str, ...]],
-        Union[Corruptor, list[Corruptor], list[tuple[float, Corruptor]]],
+        Union[
+            Corruptor,
+            tuple[float, Corruptor],
+            list[Corruptor],
+            list[tuple[float, Corruptor]],
+        ],
     ],
     rng: Optional[np.random.Generator] = None,
 ):
     """
     Corrupt a dataframe by applying several corruptors on select columns.
     This function takes a dictionary which has column names as keys and corruptors as values.
-    A column may be assigned a single corruptor, a list of corruptors where each is applied with the same
+    A column may be assigned a single corruptor, a corruptor with a probability, a list of corruptors where each is applied with the same
     probability, and a list of weighted corruptors where each is applied with its assigned probability.
 
     :param df_in: dataframe to corrupt
@@ -1087,12 +1092,23 @@ def corrupt_dataframe(
                     f"column `{column_name}` does not exist, must be one of `{','.join(df_in.columns)}`"
                 )
 
-        # if the column contains only a single corruptor, assign it with a probability of 1.0
-        if not isinstance(corruptor_spec, list):
+        # if the column is assigned a corruptor, assign it a 100% weight and wrap it into a list
+        if isinstance(corruptor_spec, Callable):
             corruptor_spec = [(1.0, corruptor_spec)]
 
+        # if the column is assigned a tuple, wrap it into a list
+        # (no deep type checking whether tuple[0] == float and tuple[1] == Callable here...)
+        if isinstance(corruptor_spec, tuple):
+            corruptor_spec = [corruptor_spec]
+
+        if not isinstance(corruptor_spec, list):
+            raise ValueError(
+                f"invalid type `{type(corruptor_spec)}` for corruptor definition "
+                f"of column `{', '.join(column_spec)}`"
+            )
+
         # if the list contains functions only, create them into tuples with equal probability
-        if type(corruptor_spec[0]) is not tuple:
+        if all(isinstance(c, Callable) for c in corruptor_spec):
             corruptor_spec = [
                 (1.0 / len(corruptor_spec), corruptor) for corruptor in corruptor_spec
             ]

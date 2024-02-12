@@ -301,45 +301,57 @@ def test_permute():
     assert (srs_2 == srs_1_corrupted).all()
 
 
-def test_corrupt_dataframe(rng):
-    df = pd.DataFrame(
-        data={
-            "missing": [""] * 10,
-            "cat_typo": list("mf" * 5),
-            "weighted_typo_edit": list("mf" * 5),
-        }
-    )
-
-    corr_missing = with_missing_value(value="", strategy="all")
-    corr_edit = with_edit(rng=rng)
-    corr_cat = with_categorical_values(
-        get_asset_path("freq_table_gender.csv"),
-        header=True,
-        value_column="gender",
-        rng=rng,
-    )
-    corr_typo = with_cldr_keymap_file(
-        get_asset_path("de-t-k0-windows.xml"),
-        rng=rng,
-    )
-
+def test_corrupt_dataframe_single(rng):
+    df = pd.DataFrame({"foo": list(string.ascii_letters)})
     df_corr = corrupt_dataframe(
         df,
         {
-            "missing": corr_missing,
-            "cat_typo": [corr_cat, corr_typo],
-            "weighted_typo_edit": [
-                (0.7, corr_typo),
-                (0.3, corr_edit),
-            ],
+            "foo": with_missing_value(strategy="all"),
         },
-        rng=rng,
     )
 
-    assert (df_corr["missing"] == "").all()
-    # here it's any because there is a chance some values might go unmodified
-    assert (df_corr["cat_typo"] != df["cat_typo"]).any()
-    assert (df_corr["weighted_typo_edit"] != df["weighted_typo_edit"]).any()
+    assert (df_corr["foo"] == "").all()
+
+
+def test_corrupt_dataframe_multiple(rng):
+    df = pd.DataFrame({"foo": list(string.ascii_letters)})
+    df_corr = corrupt_dataframe(
+        df,
+        {
+            "foo": [
+                with_missing_value(strategy="all"),
+                with_missing_value(value="bar", strategy="all"),
+            ]
+        },
+    )
+
+    assert (df_corr["foo"] == "").any()
+    assert (df_corr["foo"] == "bar").any()
+
+
+def test_corrupt_dataframe_single_weighted(rng):
+    df = pd.DataFrame({"foo": list(string.ascii_letters)})
+    df_corr = corrupt_dataframe(df, {"foo": (0.5, with_missing_value(strategy="all"))})
+
+    assert (df_corr["foo"] == "").any()
+    assert not (df_corr["foo"] == "").all()
+
+
+def test_corrupt_dataframe_multiple_weighted(rng):
+    df = pd.DataFrame({"foo": list(string.ascii_letters)})
+    df_corr = corrupt_dataframe(
+        df,
+        {
+            "foo": [
+                (0.2, with_missing_value(strategy="all")),
+                (0.8, with_missing_value("bar", strategy="all")),
+            ]
+        },
+    )
+
+    assert (df_corr["foo"] == "").any()
+    assert (df_corr["foo"] == "bar").any()
+    assert (df_corr["foo"] == "").sum() < (df_corr["foo"] == "bar").sum()
 
 
 def test_corrupt_dataframe_incorrect_column():
