@@ -20,7 +20,7 @@ import string
 from dataclasses import dataclass, field
 from os import PathLike
 from pathlib import Path
-from typing import Callable, Optional, Union, Literal, NamedTuple, NoReturn, Any
+from typing import Callable, Optional, Union, Literal, NamedTuple, Any
 
 import numpy as np
 import pandas as pd
@@ -280,8 +280,8 @@ def with_phonetic_replacement_table(
 
         return flags_str
 
-    def _raise_unknown_flag(flag: str) -> NoReturn:
-        raise ValueError(f"invalid state: unknown flag `{flag}`")
+    def __new_unknown_flag_error(flag: str):
+        return ValueError(f"invalid state: unknown flag `{flag}`")
 
     if rng is None:
         rng = np.random.default_rng()
@@ -388,7 +388,7 @@ def with_phonetic_replacement_table(
                         ~srs_out.str.endswith(rule.pattern)
                     )
                 else:
-                    _raise_unknown_flag(flag)
+                    raise __new_unknown_flag_error(flag)
 
                 mask_current_candidate_rows = (
                     mask_candidate_rows & mask_current_flag & ~mask_modified_rows
@@ -418,7 +418,7 @@ def with_phonetic_replacement_table(
                         regex=True,
                     )
                 else:
-                    _raise_unknown_flag(flag)
+                    raise __new_unknown_flag_error(flag)
 
                 # update modified row series
                 mask_modified_rows |= mask_current_candidate_rows
