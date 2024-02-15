@@ -67,10 +67,10 @@ rng = np.random.default_rng(727)
 corrupt_fruits = corruptor.with_delete(rng=rng)
 
 srs_fruits = pd.Series(["apple", "banana", "clementine"])
-srs_corrupted = corrupt_fruits(srs_fruits)
+srs_corrupted = corrupt_fruits([srs_fruits])
 
 print(srs_corrupted)
-# => ["aple", "banaa", "cementine"]
+# => [["aple", "banaa", "cementine"]]
 ```
 
 The above example creates a corruptor that randomly deletes a single character from each value within a series.
