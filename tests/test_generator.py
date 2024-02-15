@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import pytest
 
 from gecko import generator
 from tests.helpers import get_asset_path
@@ -126,3 +127,50 @@ def test_from_multicolumn_frequency_table(rng):
             assert fruit_type in ("clementine", "mandarin")
         else:
             raise AssertionError(f"unknown fruit: `{fruit}`")
+
+
+def test_to_dataframe_error_empty_dict():
+    with pytest.raises(ValueError) as e:
+        generator.to_dataframe({}, 1000)
+
+    assert str(e.value) == "generator dict may not be empty"
+
+
+def test_to_dataframe_error_count_not_positive():
+    with pytest.raises(ValueError) as e:
+        generator.to_dataframe(
+            {
+                "foo": generator.from_uniform_distribution(),
+            },
+            0,
+        )
+
+    assert str(e.value) == "amount of rows must be positive, is 0"
+
+
+def test_to_dataframe(rng):
+    gen_fruit_types = generator.from_multicolumn_frequency_table(
+        get_asset_path("freq-fruits-types.csv"),
+        header=True,
+        value_columns=["fruit", "type"],
+        freq_column="count",
+        rng=rng,
+    )
+
+    gen_numbers = generator.from_uniform_distribution(
+        rng=rng,
+    )
+
+    df_row_count = 1000
+    df = generator.to_dataframe(
+        {
+            ("fruit", "type"): gen_fruit_types,
+            "num": gen_numbers,
+        },
+        df_row_count,
+    )
+
+    assert len(df) == df_row_count
+
+    for col in ["fruit", "type", "num"]:
+        assert col in df.columns
