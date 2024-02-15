@@ -210,24 +210,30 @@ def from_multicolumn_frequency_table(
     return _generate
 
 
-def to_dataframe(generators: list[tuple[Generator, Union[str, list[str]]]], count: int):
+def to_dataframe(
+    column_to_generator_dict: dict[Union[str, tuple[str, ...]], Generator],
+    count: int,
+):
     """
     Generate a dataframe by using multiple generators at once.
     This function takes a list of generators and the names for each column that a generator will create.
 
-    :param generators: list of generators and assigned column names
+    :param column_to_generator_dict: dict that maps column names to generators
     :param count: number of records to generate
     :return: dataframe with columns generated as specified
     """
-    if len(generators) == 0:
-        raise ValueError("list of generators may not be empty")
+    if len(column_to_generator_dict) == 0:
+        raise ValueError("generator dict may not be empty")
+
+    if count <= 0:
+        raise ValueError(f"amount of rows must be positive, is {count}")
 
     col_to_srs_dict: dict[str, pd.Series] = {}
 
-    for gen, gen_col_names in generators:
+    for gen_col_names, gen in column_to_generator_dict.items():
         # if a single string is provided, concat by wrapping it into a list
         if isinstance(gen_col_names, str):
-            gen_col_names = [gen_col_names]
+            gen_col_names = (gen_col_names,)
 
         # generate values
         gen_col_values = gen(count)

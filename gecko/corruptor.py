@@ -12,6 +12,7 @@ __all__ = [
     "with_noop",
     "with_categorical_values",
     "with_function",
+    "with_permute",
     "corrupt_dataframe",
 ]
 
@@ -19,7 +20,7 @@ import string
 from dataclasses import dataclass, field
 from os import PathLike
 from pathlib import Path
-from typing import Callable, Optional, Union, Literal, NamedTuple, NoReturn
+from typing import Callable, Optional, Union, Literal, NamedTuple, Any
 
 import numpy as np
 import pandas as pd
@@ -28,8 +29,13 @@ from typing_extensions import ParamSpec, Concatenate
 
 from gecko.cldr import decode_iso_kb_pos, unescape_kb_char, get_neighbor_kb_pos_for
 
-Corruptor = Callable[[pd.Series], pd.Series]
+Corruptor = Callable[[list[pd.Series]], list[pd.Series]]
 _EditOp = Literal["ins", "del", "sub", "trs"]
+
+
+def __assert_srs_lst_len(srs_lst: list[pd.Series], expected: int):
+    if len(srs_lst) != expected:
+        raise ValueError(f"corruptor expects {expected} series, got {len(srs_lst)}")
 
 
 class _PhoneticReplacementRule(NamedTuple):
@@ -64,13 +70,14 @@ def with_function(
     :return: function returning a Pandas series with values corrupted by the custom function
     """
 
-    def _corrupt(srs_str_in: pd.Series) -> pd.Series:
-        srs_str_out = srs_str_in.copy()
+    def _corrupt(srs_lst: list[pd.Series]) -> list[pd.Series]:
+        __assert_srs_lst_len(srs_lst, 1)
+        srs_out = srs_lst[0].copy()
 
-        for i in range(len(srs_str_in)):
-            srs_str_out.iloc[i] = func(srs_str_out.iloc[i], *args, **kwargs)
+        for i in range(len(srs_out)):
+            srs_out.iloc[i] = func(srs_out.iloc[i], *args, **kwargs)
 
-        return srs_str_out
+        return [srs_out]
 
     return _corrupt
 
@@ -177,26 +184,28 @@ def with_cldr_keymap_file(
                     )  # needs to be sorted to ensure reproducibility
                 )
 
-    def _corrupt(srs_str_in: pd.Series) -> pd.Series:
-        srs_str_out = srs_str_in.copy()
-        str_count = len(srs_str_out)
+    def _corrupt(srs_lst: list[pd.Series]) -> list[pd.Series]:
+        __assert_srs_lst_len(srs_lst, 1)
+
+        srs_out = srs_lst[0].copy()
+        str_count = len(srs_out)
 
         # string length series
-        srs_str_out_len = srs_str_out.str.len()
+        srs_str_out_len = srs_out.str.len()
         # random indices
         arr_rng_vals = rng.random(size=str_count)
         arr_rng_typo_indices = np.floor(srs_str_out_len * arr_rng_vals).astype(int)
 
         # create a new series containing the chars that have been randomly selected for replacement
-        srs_typo_chars = pd.Series(dtype=str, index=srs_str_out.index)
+        srs_typo_chars = pd.Series(dtype=str, index=srs_out.index)
         arr_uniq_idx = arr_rng_typo_indices.unique()
 
         for i in arr_uniq_idx:
             idx_mask = arr_rng_typo_indices == i
-            srs_typo_chars[idx_mask] = srs_str_out[idx_mask].str[i]
+            srs_typo_chars[idx_mask] = srs_out[idx_mask].str[i]
 
         # create a new series that will track the replacement chars for the selected chars
-        srs_repl_chars = pd.Series(dtype=str, index=srs_str_out.index)
+        srs_repl_chars = pd.Series(dtype=str, index=srs_out.index)
         arr_uniq_chars = srs_typo_chars.unique()
 
         for char in arr_uniq_chars:
@@ -216,13 +225,13 @@ def with_cldr_keymap_file(
             # there is a possibility that a char might not have a replacement, so pd.notna() will have to
             # act as an extra filter to not modify strings that have no replacement
             idx_mask = (arr_rng_typo_indices == i) & pd.notna(srs_repl_chars)
-            srs_str_out[idx_mask] = (
-                srs_str_out[idx_mask].str[:i]
+            srs_out[idx_mask] = (
+                srs_out[idx_mask].str[:i]
                 + srs_repl_chars[idx_mask]
-                + srs_str_out[idx_mask].str[i + 1 :]
+                + srs_out[idx_mask].str[i + 1 :]
             )
 
-        return srs_str_out
+        return [srs_out]
 
     return _corrupt
 
@@ -271,8 +280,8 @@ def with_phonetic_replacement_table(
 
         return flags_str
 
-    def _raise_unknown_flag(flag: str) -> NoReturn:
-        raise ValueError(f"invalid state: unknown flag `{flag}`")
+    def __new_unknown_flag_error(flag: str):
+        return ValueError(f"invalid state: unknown flag `{flag}`")
 
     if rng is None:
         rng = np.random.default_rng()
@@ -299,26 +308,28 @@ def with_phonetic_replacement_table(
             _PhoneticReplacementRule(pattern, replacement, flags)
         )
 
-    def _corrupt(srs_str_in: pd.Series) -> pd.Series:
+    def _corrupt(srs_lst: list[pd.Series]) -> list[pd.Series]:
+        __assert_srs_lst_len(srs_lst, 1)
+
         # create a copy of input series
-        srs_str_out = srs_str_in.copy()
+        srs_out = srs_lst[0].copy()
         # get series of string lengths
-        srs_str_out_len = srs_str_out.str.len()
+        srs_str_out_len = srs_out.str.len()
         # get series length
-        str_count = len(srs_str_out)
+        str_count = len(srs_out)
         # create series to compute substitution probability
-        srs_str_sub_prob = pd.Series(dtype=float, index=srs_str_out.index)
+        srs_str_sub_prob = pd.Series(dtype=float, index=srs_out.index)
         srs_str_sub_prob[:] = 0
         # track possible replacements for each rule
         rule_to_flag_dict: dict[_PhoneticReplacementRule, pd.Series] = {}
 
         for rule in phonetic_replacement_rules:
             # increment absolute frequency for each string where rule applies
-            srs_str_flags = pd.Series(dtype=str, index=srs_str_out.index)
+            srs_str_flags = pd.Series(dtype=str, index=srs_out.index)
             srs_str_flags[:] = ""
 
             # find pattern in series
-            srs_pattern_idx = srs_str_out.str.find(rule.pattern)
+            srs_pattern_idx = srs_out.str.find(rule.pattern)
 
             if "^" in rule.flags:
                 # increment counter for all strings where pattern is found at start of string
@@ -347,7 +358,7 @@ def with_phonetic_replacement_table(
         # absolute -> relative frequency
         srs_str_sub_prob[mask_eligible_strs] = 1 / srs_str_sub_prob[mask_eligible_strs]
         # keep track of modified rows
-        mask_modified_rows = pd.Series(dtype=bool, index=srs_str_out.index)
+        mask_modified_rows = pd.Series(dtype=bool, index=srs_out.index)
         mask_modified_rows[:] = False
 
         for rule in phonetic_replacement_rules:
@@ -368,16 +379,16 @@ def with_phonetic_replacement_table(
                 # select rows that can have the current rule applied to them, fit into the correct flag
                 # and haven't been modified yet
                 if flag == "^":
-                    mask_current_flag = srs_str_out.str.startswith(rule.pattern)
+                    mask_current_flag = srs_out.str.startswith(rule.pattern)
                 elif flag == "$":
-                    mask_current_flag = srs_str_out.str.endswith(rule.pattern)
+                    mask_current_flag = srs_out.str.endswith(rule.pattern)
                 elif flag == "_":
                     # not at the start and not at the end
-                    mask_current_flag = ~srs_str_out.str.startswith(rule.pattern) & (
-                        ~srs_str_out.str.endswith(rule.pattern)
+                    mask_current_flag = ~srs_out.str.startswith(rule.pattern) & (
+                        ~srs_out.str.endswith(rule.pattern)
                     )
                 else:
-                    _raise_unknown_flag(flag)
+                    raise __new_unknown_flag_error(flag)
 
                 mask_current_candidate_rows = (
                     mask_candidate_rows & mask_current_flag & ~mask_modified_rows
@@ -388,17 +399,17 @@ def with_phonetic_replacement_table(
                     continue
 
                 if flag == "^":
-                    srs_str_out[mask_current_candidate_rows] = srs_str_out[
+                    srs_out[mask_current_candidate_rows] = srs_out[
                         mask_current_candidate_rows
                     ].str.replace(f"^{rule.pattern}", rule.replacement, n=1, regex=True)
                 elif flag == "$":
-                    srs_str_out[mask_current_candidate_rows] = srs_str_out[
+                    srs_out[mask_current_candidate_rows] = srs_out[
                         mask_current_candidate_rows
                     ].str.replace(f"{rule.pattern}$", rule.replacement, n=1, regex=True)
                 elif flag == "_":
                     # matching groups are the parts that are supposed to be preserved
                     # (anything but the string to replace).
-                    srs_str_out[mask_current_candidate_rows] = srs_str_out[
+                    srs_out[mask_current_candidate_rows] = srs_out[
                         mask_current_candidate_rows
                     ].str.replace(
                         f"^(.+){rule.pattern}(.+)$",
@@ -407,12 +418,12 @@ def with_phonetic_replacement_table(
                         regex=True,
                     )
                 else:
-                    _raise_unknown_flag(flag)
+                    raise __new_unknown_flag_error(flag)
 
                 # update modified row series
                 mask_modified_rows |= mask_current_candidate_rows
 
-        return srs_str_out
+        return [srs_out]
 
     return _corrupt
 
@@ -463,17 +474,19 @@ def with_replacement_table(
 
     srs_unique_source_values = df[source_column].unique()
 
-    def _corrupt(srs_str_in: pd.Series) -> pd.Series:
+    def _corrupt(srs_lst: list[pd.Series]) -> list[pd.Series]:
+        __assert_srs_lst_len(srs_lst, 1)
+
         # create copy of input series
-        srs_str_out = srs_str_in.copy()
-        str_count = len(srs_str_out)
+        srs_out = srs_lst[0].copy()
+        str_count = len(srs_out)
         # create series to compute probability of substitution for each row
-        srs_str_sub_prob = pd.Series(dtype=float, index=srs_str_out.index)
+        srs_str_sub_prob = pd.Series(dtype=float, index=srs_out.index)
         srs_str_sub_prob[:] = 0
 
         for source in srs_unique_source_values:
             # increment absolute frequency for each string containing source value by one
-            srs_str_sub_prob[srs_str_out.str.contains(source)] += 1
+            srs_str_sub_prob[srs_out.str.contains(source)] += 1
 
         # prevent division by zero
         mask_eligible_strs = srs_str_sub_prob != 0
@@ -482,12 +495,12 @@ def with_replacement_table(
 
         # create dataframe to track source and target for each row
         df_replacement = pd.DataFrame(
-            index=srs_str_out.index, columns=["source", "target"], dtype=str
+            index=srs_out.index, columns=["source", "target"], dtype=str
         )
 
         for source in srs_unique_source_values:
             # select all rows that contain the source value
-            srs_str_contains_source = srs_str_out.str.contains(source)
+            srs_str_contains_source = srs_out.str.contains(source)
             # draw random numbers for each row
             arr_rand_vals = rng.random(size=str_count)
             # select only rows that contain the source string, have a random number drawn that's
@@ -539,9 +552,9 @@ def with_replacement_table(
                 )
 
                 # perform replacement of source -> target
-                srs_str_out[mask] = srs_str_out[mask].str.replace(source, target, n=1)
+                srs_out[mask] = srs_out[mask].str.replace(source, target, n=1)
 
-        return srs_str_out
+        return [srs_out]
 
     return _corrupt
 
@@ -554,12 +567,17 @@ def _corrupt_all_from_value(value: str) -> Corruptor:
     :return: function returning Pandas series where all entries are replaced with "missing" value
     """
 
-    def _corrupt_list(str_in_srs: pd.Series) -> pd.Series:
-        return pd.Series(
-            data=[value] * len(str_in_srs),
-            index=str_in_srs.index,
-            dtype=str,
-        )
+    def _corrupt_list(srs_lst: list[pd.Series]) -> list[pd.Series]:
+        __assert_srs_lst_len(srs_lst, 1)
+        srs = srs_lst[0]
+
+        return [
+            pd.Series(
+                data=[value] * len(srs),
+                index=srs.index,
+                dtype=str,
+            )
+        ]
 
     return _corrupt_list
 
@@ -573,10 +591,12 @@ def _corrupt_only_empty_from_value(value: str) -> Corruptor:
     :return: function returning Pandas series where all empty entries are replaced with "missing" value
     """
 
-    def _corrupt_list(str_in_srs: pd.Series) -> pd.Series:
-        str_out_srs = str_in_srs.copy()
-        str_out_srs[str_out_srs == ""] = value
-        return str_out_srs
+    def _corrupt_list(srs_lst: list[pd.Series]) -> list[pd.Series]:
+        __assert_srs_lst_len(srs_lst, 1)
+
+        srs_out = srs_lst[0].copy()
+        srs_out[srs_out == ""] = value
+        return [srs_out]
 
     return _corrupt_list
 
@@ -590,10 +610,12 @@ def _corrupt_only_blank_from_value(value: str) -> Corruptor:
     :return: function returning Pandas series where all blank entries are replaced with "missing" value
     """
 
-    def _corrupt_list(str_in_srs: pd.Series) -> pd.Series:
-        str_out_srs = str_in_srs.copy()
-        str_out_srs[str_out_srs.str.strip() == ""] = value
-        return str_out_srs
+    def _corrupt_list(srs_lst: list[pd.Series]) -> list[pd.Series]:
+        __assert_srs_lst_len(srs_lst, 1)
+
+        srs_out = srs_lst[0].copy()
+        srs_out[srs_out.str.strip() == ""] = value
+        return [srs_out]
 
     return _corrupt_list
 
@@ -638,12 +660,14 @@ def with_insert(
     if rng is None:
         rng = np.random.default_rng()
 
-    def _corrupt(srs_str_in: pd.Series) -> pd.Series:
-        srs_str_out = srs_str_in.copy()
-        str_count = len(srs_str_out)
+    def _corrupt(srs_lst: list[pd.Series]) -> list[pd.Series]:
+        __assert_srs_lst_len(srs_lst, 1)
+
+        srs_out = srs_lst[0].copy()
+        str_count = len(srs_out)
 
         # get series of lengths of all strings in series
-        srs_str_out_len = srs_str_out.str.len()
+        srs_str_out_len = srs_out.str.len()
         # draw random values
         arr_rng_vals = rng.random(size=str_count)
         # compute indices from random values (+1 because letters can be inserted at the ned)
@@ -654,7 +678,7 @@ def with_insert(
         srs_rand_chars = pd.Series(
             rng.choice(list(charset), size=str_count),
             copy=False,  # use np array
-            index=srs_str_out.index,  # align index
+            index=srs_out.index,  # align index
         )
         # determine all unique random indices
         arr_uniq_idx = arr_rng_insert_indices.unique()
@@ -663,13 +687,13 @@ def with_insert(
             # select all strings with the same random insert index
             srs_idx_mask = arr_rng_insert_indices == i
             # insert character at current index
-            srs_str_out[srs_idx_mask] = (
-                srs_str_out[srs_idx_mask].str[:i]
+            srs_out[srs_idx_mask] = (
+                srs_out[srs_idx_mask].str[:i]
                 + srs_rand_chars[srs_idx_mask]
-                + srs_str_out[srs_idx_mask].str[i:]
+                + srs_out[srs_idx_mask].str[i:]
             )
 
-        return srs_str_out
+        return [srs_out]
 
     return _corrupt
 
@@ -684,18 +708,21 @@ def with_delete(rng: Optional[np.random.Generator] = None) -> Corruptor:
     if rng is None:
         rng = np.random.default_rng()
 
-    def _corrupt(srs_str_in: pd.Series) -> pd.Series:
+    def _corrupt(srs_lst: list[pd.Series]) -> list[pd.Series]:
+        __assert_srs_lst_len(srs_lst, 1)
+
+        srs_orig = srs_lst[0]
         # get series of string lengths
-        srs_str_out_len = srs_str_in.str.len()
+        srs_str_out_len = srs_orig.str.len()
         # limit view to strings that have at least one character
-        srs_str_out_min_len = srs_str_in[srs_str_out_len >= 1]
+        srs_str_out_min_len = srs_orig[srs_str_out_len >= 1]
 
         # check that there are any strings to modify
         if len(srs_str_out_min_len) == 0:
-            return srs_str_in
+            return srs_lst
 
         # create copy after length check
-        srs_str_out = srs_str_in.copy()
+        srs_out = srs_orig.copy()
         # generate random indices
         arr_rng_vals = rng.random(size=len(srs_str_out_min_len))
         arr_rng_delete_indices = np.floor(
@@ -708,11 +735,11 @@ def with_delete(rng: Optional[np.random.Generator] = None) -> Corruptor:
             # select all strings with the same random delete index
             srs_idx_mask = arr_rng_delete_indices == i
             # delete character at selected index
-            srs_str_out.update(
+            srs_out.update(
                 srs_str_out_min_len[srs_idx_mask].str.slice_replace(i, i + 1, "")
             )
 
-        return srs_str_out
+        return [srs_out]
 
     return _corrupt
 
@@ -728,18 +755,21 @@ def with_transpose(rng: Optional[np.random.Generator] = None) -> Corruptor:
     if rng is None:
         rng = np.random.default_rng()
 
-    def _corrupt(srs_str_in: pd.Series) -> pd.Series:
+    def _corrupt(srs_lst: list[pd.Series]) -> list[pd.Series]:
+        __assert_srs_lst_len(srs_lst, 1)
+
+        srs_orig = srs_lst[0]
         # length of strings
-        srs_str_out_len = srs_str_in.str.len()
+        srs_str_out_len = srs_orig.str.len()
         # limit view to strings that have at least two characters
-        srs_str_out_min_len = srs_str_in[srs_str_out_len >= 2]
+        srs_str_out_min_len = srs_orig[srs_str_out_len >= 2]
 
         # check that there are any strings to modify
         if len(srs_str_out_min_len) == 0:
-            return srs_str_in
+            return srs_lst
 
         # create a copy only after running the length check
-        srs_str_out = srs_str_in.copy()
+        srs_str_out = srs_orig.copy()
         # generate random numbers
         arr_rng_vals = rng.random(size=len(srs_str_out_min_len))
 
@@ -761,7 +791,7 @@ def with_transpose(rng: Optional[np.random.Generator] = None) -> Corruptor:
                 + srs_masked.str[i + 2 :]
             )
 
-        return srs_str_out
+        return [srs_str_out]
 
     return _corrupt
 
@@ -782,18 +812,21 @@ def with_substitute(
     if rng is None:
         rng = np.random.default_rng()
 
-    def _corrupt(srs_str_in: pd.Series) -> pd.Series:
+    def _corrupt(srs_lst: list[pd.Series]) -> list[pd.Series]:
+        __assert_srs_lst_len(srs_lst, 1)
+
+        srs_orig = srs_lst[0]
         # length of strings
-        srs_str_out_len = srs_str_in.str.len()
+        srs_str_out_len = srs_orig.str.len()
         # limit view to strings that have at least 1 character
-        srs_str_out_min_len = srs_str_in[srs_str_out_len >= 1]
+        srs_str_out_min_len = srs_orig[srs_str_out_len >= 1]
 
         # check that there are any strings to modify
         if len(srs_str_out_min_len) == 0:
-            return srs_str_in
+            return srs_lst
 
         # create copy after length check
-        srs_str_out = srs_str_in.copy()
+        srs_str_out = srs_orig.copy()
         # count strings that may be modified
         str_count = len(srs_str_out_min_len)
         # random indices
@@ -818,7 +851,7 @@ def with_substitute(
                 + srs_masked.str[i + 1 :]
             )
 
-        return srs_str_out
+        return [srs_str_out]
 
     return _corrupt
 
@@ -870,34 +903,37 @@ def with_edit(
         with_transpose(rng_trs),
     )
 
-    def _corrupt_list(srs_in: pd.Series) -> pd.Series:
-        srs_out = srs_in.copy()
+    # noinspection PyUnresolvedReferences
+    def _corrupt_list(srs_lst: list[pd.Series]) -> list[pd.Series]:
+        __assert_srs_lst_len(srs_lst, 1)
+
+        srs_out = srs_lst[0].copy()
         str_in_edit_ops = pd.Series(
-            rng.choice(edit_ops, size=len(srs_in), p=edit_ops_prob),
-            index=srs_in.index,
+            rng.choice(edit_ops, size=len(srs_out), p=edit_ops_prob),
+            index=srs_out.index,
         )
 
         msk_ins = str_in_edit_ops == "ins"
 
         if msk_ins.sum() != 0:
-            srs_out[msk_ins] = corr_ins(srs_out[msk_ins])
+            (srs_out[msk_ins],) = corr_ins([srs_out[msk_ins]])
 
         msk_del = str_in_edit_ops == "del"
 
         if msk_del.sum() != 0:
-            srs_out[msk_del] = corr_del(srs_out[msk_del])
+            (srs_out[msk_del],) = corr_del([srs_out[msk_del]])
 
         msk_sub = str_in_edit_ops == "sub"
 
         if msk_sub.sum() != 0:
-            srs_out[msk_sub] = corr_sub(srs_out[msk_sub])
+            (srs_out[msk_sub],) = corr_sub([srs_out[msk_sub]])
 
         msk_trs = str_in_edit_ops == "trs"
 
         if msk_trs.sum() != 0:
-            srs_out[msk_trs] = corr_trs(srs_out[msk_trs])
+            (srs_out[msk_trs],) = corr_trs([srs_out[msk_trs]])
 
-        return srs_out
+        return [srs_out]
 
     return _corrupt_list
 
@@ -911,8 +947,8 @@ def with_noop() -> Corruptor:
     :return: function returning Pandas series as-is
     """
 
-    def _corrupt(srs_in: pd.Series) -> pd.Series:
-        return srs_in
+    def _corrupt(srs_lst: list[pd.Series]) -> list[pd.Series]:
+        return srs_lst
 
     return _corrupt
 
@@ -957,20 +993,23 @@ def with_categorical_values(
     # fetch unique values
     unique_values = pd.Series(df[value_column].dropna().unique())
 
-    def _corrupt_list(srs_in: pd.Series) -> pd.Series:
+    def _corrupt_list(srs_lst: list[pd.Series]) -> list[pd.Series]:
+        __assert_srs_lst_len(srs_lst, 1)
         nonlocal unique_values
+
+        srs_orig = srs_lst[0]
 
         # create a new series with which the original one will be updated.
         # for starters all rows will be NaN. dtype is to avoid typecast warning.
         srs_in_update = pd.Series(
-            np.full(len(srs_in), np.nan), copy=False, dtype=str, index=srs_in.index
+            np.full(len(srs_orig), np.nan), copy=False, dtype=str, index=srs_orig.index
         )
 
         for unique_val in unique_values:
             # remove current value from list of unique values
             unique_vals_without_current = np.setdiff1d(unique_values, unique_val)
             # select all rows that equal the current value
-            srs_in_matching_val = srs_in.str.fullmatch(unique_val)
+            srs_in_matching_val = srs_orig.str.fullmatch(unique_val)
             # count the rows that contain the current value
             unique_val_total = srs_in_matching_val.sum()
 
@@ -987,26 +1026,48 @@ def with_categorical_values(
             srs_in_update[srs_in_matching_val] = new_unique_vals
 
         # update() is performed in-place, so create a copy of the initial series first.
-        srs_out = srs_in.copy()
+        srs_out = srs_orig.copy()
         srs_out.update(srs_in_update)
 
-        return srs_out
+        return [srs_out]
 
     return _corrupt_list
+
+
+def with_permute() -> Corruptor:
+    """
+    Corrupt two series by permuting their contents.
+    This effectively swaps one series with another.
+
+    :return: function swapping the contents of two Pandas series
+    """
+
+    def __corrupt(srs_lst: list[pd.Series]) -> list[pd.Series]:
+        __assert_srs_lst_len(srs_lst, 2)
+
+        srs, srs_other = srs_lst
+        return [srs_other.copy(), srs.copy()]
+
+    return __corrupt
 
 
 def corrupt_dataframe(
     df_in: pd.DataFrame,
     column_to_corruptor_dict: dict[
-        str,
-        Union[Corruptor, list[Corruptor], list[tuple[float, Corruptor]]],
+        Union[str, tuple[str, ...]],
+        Union[
+            Corruptor,
+            tuple[float, Corruptor],
+            list[Corruptor],
+            list[tuple[float, Corruptor]],
+        ],
     ],
     rng: Optional[np.random.Generator] = None,
 ):
     """
     Corrupt a dataframe by applying several corruptors on select columns.
     This function takes a dictionary which has column names as keys and corruptors as values.
-    A column may be assigned a single corruptor, a list of corruptors where each is applied with the same
+    A column may be assigned a single corruptor, a corruptor with a probability, a list of corruptors where each is applied with the same
     probability, and a list of weighted corruptors where each is applied with its assigned probability.
 
     :param df_in: dataframe to corrupt
@@ -1014,26 +1075,57 @@ def corrupt_dataframe(
     :param rng: random number generator to use (default: `None`)
     :return: copy of dataframe with corruptors applied as specified
     """
+
+    def __is_weighted_corruptor_tuple(x: Any):
+        return (
+            isinstance(x, tuple)
+            and len(x) == 2
+            and isinstance(x[0], float)
+            and isinstance(x[1], Callable)
+        )
+
     if rng is None:
         rng = np.random.default_rng()
 
     df_out = df_in.copy()
 
-    for column, corruptor_spec in column_to_corruptor_dict.items():
-        if column not in df_in.columns:
-            raise ValueError(
-                f"column `{column}` does not exist, must be one of `{','.join(df_in.columns)}`"
-            )
+    for column_spec, corruptor_spec in column_to_corruptor_dict.items():
+        # convert to list if there is only one column specified
+        if isinstance(column_spec, str):
+            column_spec = (column_spec,)
 
-        # if the column contains only a single corruptor, assign it with a probability of 1.0
-        if not isinstance(corruptor_spec, list):
+        # check that each column name is valid
+        for column_name in column_spec:
+            if column_name not in df_out.columns:
+                raise ValueError(
+                    f"column `{column_name}` does not exist, must be one of `{','.join(df_in.columns)}`"
+                )
+
+        # if the column is assigned a corruptor, assign it a 100% weight and wrap it into a list
+        if isinstance(corruptor_spec, Callable):
             corruptor_spec = [(1.0, corruptor_spec)]
 
+        # if the column is assigned a tuple, wrap it into a list
+        if __is_weighted_corruptor_tuple(corruptor_spec):
+            corruptor_spec = [corruptor_spec]
+
+        # next step is to check the entries of the list. so if the spec has not been converted
+        # to a list yet, then something went wrong.
+        if not isinstance(corruptor_spec, list):
+            raise ValueError(
+                f"invalid type `{type(corruptor_spec)}` for corruptor definition "
+                f"of column `{', '.join(column_spec)}`"
+            )
+
         # if the list contains functions only, create them into tuples with equal probability
-        if type(corruptor_spec[0]) is not tuple:
+        if all(isinstance(c, Callable) for c in corruptor_spec):
             corruptor_spec = [
                 (1.0 / len(corruptor_spec), corruptor) for corruptor in corruptor_spec
             ]
+
+        # if the end result is not a list of weighted corruptors for each column, abort
+        if not all(__is_weighted_corruptor_tuple(c) for c in corruptor_spec):
+            raise ValueError("malformed corrupter definition")
 
         # corruptor_spec is a list of tuples, which contain a float and a corruptor func.
         # this one-liner collects all floats and corruptor funcs into their own lists.
@@ -1054,7 +1146,8 @@ def corrupt_dataframe(
             # sanity check
             rng.choice([i for i in range(len(p_values))], p=p_values)
         except ValueError:
-            raise ValueError(f"probabilities for column `{column}` must sum up to 1.0")
+            column_str = f"column{'s' if len(column_spec) > 1 else ''} `{', '.join(column_spec)}`"
+            raise ValueError(f"probabilities for {column_str} must sum up to 1.0")
 
         corruptor_count = len(corruptor_funcs)
         # generate a series where each row gets an index of the corruptor in corruptor_funcs to apply.
@@ -1063,13 +1156,22 @@ def corrupt_dataframe(
             arr_corruptor_idx, p=p_values, size=len(df_out)
         )
         srs_corruptor_idx = pd.Series(data=arr_corruptor_per_row, index=df_out.index)
-        srs_column = df_in[column]
+        srs_columns = [df_in[column_name] for column_name in column_spec]
 
         for i in arr_corruptor_idx:
             corruptor = corruptor_funcs[i]
             mask_this_corruptor = srs_corruptor_idx == i
-            df_out.loc[mask_this_corruptor, column] = corruptor(
-                srs_column[mask_this_corruptor]
+            srs_corrupted_lst = corruptor(
+                [srs[mask_this_corruptor] for srs in srs_columns]
             )
+
+            # i would've liked to use .loc[mask_this_corruptor, column_spec] = corruptor(...) here
+            # but there is apparently a shape mismatch that happens here. so instead i'm manually
+            # iterating over each corrupted series until i find a better solution.
+            for j in range(len(column_spec)):
+                column_name = column_spec[j]
+                srs_corrupted = srs_corrupted_lst[j]
+
+                df_out.loc[mask_this_corruptor, column_name] = srs_corrupted
 
     return df_out

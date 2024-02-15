@@ -11,7 +11,7 @@ steps:
     commands:
       - python -m pip install poetry
       - poetry install
-      - poetry run pytest
+      - poetry run pytest -rs
     when:
       path:
         include: [ ".woodpecker/*.yml", "gecko/**/*.py", "tests/**/*.py", "tests/assets/**", "pyproject.toml" ]
