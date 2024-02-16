@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "gecko-syndata"
-version = "0.1.0"
+version = "0.2.0"
 description = "Mass generation and corruption of realistic synthetic data."
 authors = ["Maximilian Jugl <Maximilian.Jugl@medizin.uni-leipzig.de>"]
 readme = "README.md"
