@@ -21,7 +21,11 @@ def benchmark():
     bench_output_file = os.path.join(bench_output_directory, bench_output_filename)
 
     def __write_to_benchmark_file(
-        func: Callable, result: list[float], calls: int, iterations: int
+        func: Callable,
+        result: list[float],
+        calls: int,
+        iterations: int,
+        name: str | None = None,
     ):
         os.makedirs(bench_output_directory, exist_ok=True)
 
@@ -29,7 +33,7 @@ def benchmark():
             f.write(
                 json.dumps(
                     {
-                        "name": func.__name__,
+                        "name": func.__name__ if name is None else name,
                         "iterations": iterations,
                         "calls": calls,
                         "timings": result,
@@ -38,10 +42,12 @@ def benchmark():
                 + os.linesep
             )
 
-    def __benchmark_fn(func: Callable, calls: int = 1000, iterations: int = 5):
+    def __benchmark_fn(
+        func: Callable, calls: int = 1000, iterations: int = 5, name: str | None = None
+    ):
         result = timeit.repeat(
             func, number=calls, repeat=iterations, timer=time.perf_counter_ns
         )
-        __write_to_benchmark_file(func, result, calls, iterations)
+        __write_to_benchmark_file(func, result, calls, iterations, name)
 
     return __benchmark_fn
