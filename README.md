@@ -25,7 +25,7 @@ Gecko exposes a `generator` and a `corruptor` module.
 Both modules contain functions that create generators and corruptors respectively.
 Generators are functions that take in a number of values to create and return a list of series, where each series
 contains the desired amount of generated values.
-Corruptors are functions that take in a series and return a mutated copy of it.
+Corruptors are functions that take in a list of series and return mutated copies of them.
 
 Create a new generator by importing the `generator` module from the Gecko library.
 Pick one of its built-in functions to create a new generator.
@@ -74,6 +74,7 @@ print(srs_corrupted)
 ```
 
 The above example creates a corruptor that randomly deletes a single character from each value within a series.
+Similar to generators, a corruptor operates on a list of series.
 
 Gecko provides utility functions to use multiple generators at once to generate a data frame, as well as to apply
 multiple corruptors on a data frame.
