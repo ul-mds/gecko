@@ -8,6 +8,14 @@ pytestmark = pytest.mark.benchmark
 record_counts = (100, 500, 1000)
 
 
+def __extra(fn_name: str, n: int):
+    return {
+        "suite": "fruits",
+        "function_name": fn_name,
+        "n_records": n,
+    }
+
+
 def __create_fruit_type_multicolumn_generator(rng: np.random.Generator):
     return generator.from_multicolumn_frequency_table(
         get_asset_path("freq-fruits-types.csv"),
@@ -54,7 +62,9 @@ def test_bench_multicolumn_generator(benchmark, rng):
 
     for count in record_counts:
         benchmark(
-            __gen_multicolumn_fruits(count), name=f"gen_multicolumn_fruits({count})"
+            __gen_multicolumn_fruits(count),
+            name=f"gen_multicolumn_fruits({count})",
+            extra=__extra("generator.from_multicolumn_frequency_table", count),
         )
 
 
@@ -66,7 +76,9 @@ def test_bench_single_column_generator(benchmark, rng):
 
     for count in record_counts:
         benchmark(
-            __gen_single_column_origin(count), name=f"gen_single_column_fruits({count})"
+            __gen_single_column_origin(count),
+            name=f"gen_single_column_fruits({count})",
+            extra=__extra("generator.from_frequency_table", count),
         )
 
 
@@ -78,7 +90,9 @@ def test_bench_normal_distribution(benchmark, rng):
 
     for count in record_counts:
         benchmark(
-            __gen_normal_dist_fruits(count), name=f"gen_normal_dist_fruits({count})"
+            __gen_normal_dist_fruits(count),
+            name=f"gen_normal_dist_fruits({count})",
+            extra=__extra("generator.from_normal_distribution", count),
         )
 
 
@@ -90,7 +104,9 @@ def test_bench_uniform_distribution(benchmark, rng):
 
     for count in record_counts:
         benchmark(
-            __gen_uniform_dist_fruits(count), name=f"gen_uniform_dist_fruits({count})"
+            __gen_uniform_dist_fruits(count),
+            name=f"gen_uniform_dist_fruits({count})",
+            extra=__extra("generator.from_uniform_distribution", count),
         )
 
 
@@ -112,7 +128,11 @@ def test_bench_to_dataframe(benchmark, rng):
         )
 
     for count in record_counts:
-        benchmark(__gen_dataframe(count), name=f"gen_dataframe_fruits({count})")
+        benchmark(
+            __gen_dataframe(count),
+            name=f"gen_dataframe_fruits({count})",
+            extra=__extra("generator.to_dataframe", count),
+        )
 
 
 def test_bench_corrupt_edit(benchmark, rng):
@@ -122,7 +142,10 @@ def test_bench_corrupt_edit(benchmark, rng):
     for count in record_counts:
         srs_lst = gen_origin(count)
         benchmark(
-            lambda: corr_edit(srs_lst), name=f"corr_edit_fruits({count})", calls=100
+            lambda: corr_edit(srs_lst),
+            name=f"corr_edit_fruits({count})",
+            calls=100,
+            extra=__extra("corruptor.with_edit", count),
         )
 
 
@@ -136,6 +159,7 @@ def test_bench_corrupt_missing(benchmark, rng):
             lambda: corr_missing(srs_lst),
             name=f"corr_missing_fruits({count})",
             calls=100,
+            extra=__extra("corruptor.with_missing_value", count),
         )
 
 
@@ -152,6 +176,7 @@ def test_bench_corrupt_replacement_table(benchmark, rng):
             lambda: corr_replacement(srs_lst),
             name=f"corr_replacement_fruits({count})",
             calls=100,
+            extra=__extra("corruptor.with_replacement_table", count),
         )
 
 
@@ -165,7 +190,10 @@ def test_bench_corrupt_cldr(benchmark, rng):
     for count in record_counts:
         srs_lst = gen_origin(count)
         benchmark(
-            lambda: corr_cldr(srs_lst), name=f"corr_cldr_fruits({count})", calls=100
+            lambda: corr_cldr(srs_lst),
+            name=f"corr_cldr_fruits({count})",
+            calls=100,
+            extra=__extra("corruptor.with_cldr_keymap_file", count),
         )
 
 
@@ -179,6 +207,7 @@ def test_bench_permute(benchmark, rng):
             lambda: corr_permute(srs_lst),
             name=f"corr_permute_fruits({count})",
             calls=100,
+            extra=__extra("corruptor.with_permute", count),
         )
 
 
@@ -197,4 +226,5 @@ def test_bench_categorical(benchmark, rng):
             lambda: corr_categorical(srs_lst),
             name=f"corr_categorical_fruits({count})",
             calls=100,
+            extra=__extra("corruptor.with_categorical_values", count),
         )
