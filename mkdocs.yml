@@ -1,0 +1,61 @@
+# yaml-language-server: $schema=https://squidfunk.github.io/mkdocs-material/schema.json
+site_name: Gecko Docs
+plugins:
+  - search
+theme:
+  name: material
+  features:
+    - content.code.copy
+    - content.code.annotate
+    - search.highlight
+    - search.share
+    - navigation.expand
+    - navigation.footer
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - footnotes
+  - md_in_html
+  - pymdownx.details
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - pymdownx.keys
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+
+nav:
+  - Intro to Gecko: index.md
+  - Generating data: data-generation.md
+  - Corrupting data: data-corruption.md
+  - Examples with Gecko:
+      - German population dataset: examples/german.md
+  - Release notes: release-notes.md
+
+extra:
+  social:
+    - icon: fontawesome/brands/gitlab
+      link: https://gitlab.com/ul-mds/record-linkage/gecko/gecko/
+    - icon: fontawesome/solid/globe
+      link: https://www.uniklinikum-leipzig.de/einrichtungen/medical-data-science/en
+    - icon: fontawesome/solid/envelope
+      link: mailto:Maximilian.Jugl@medizin.uni-leipzig.de
