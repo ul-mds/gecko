@@ -53,8 +53,8 @@ nav:
 
 extra:
   social:
-    - icon: fontawesome/brands/gitlab
-      link: https://gitlab.com/ul-mds/record-linkage/gecko/gecko/
+    - icon: fontawesome/brands/github
+      link: https://ul-mds.github.io/gecko/
     - icon: fontawesome/solid/globe
       link: https://www.uniklinikum-leipzig.de/einrichtungen/medical-data-science/en
     - icon: fontawesome/solid/envelope
