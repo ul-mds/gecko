@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from gecko.corruptor import (
+from gecko.mutator import (
     with_insert,
     with_delete,
     with_transpose,
@@ -15,11 +15,11 @@ from gecko.corruptor import (
     with_cldr_keymap_file,
     with_phonetic_replacement_table,
     with_replacement_table,
-    corrupt_dataframe,
+    mutate_data_frame,
     with_noop,
     with_function,
     with_permute,
-    Corruptor,
+    Mutator,
 )
 from tests.helpers import get_asset_path
 
@@ -303,7 +303,7 @@ def test_permute():
 
 def test_corrupt_dataframe_single(rng):
     df = pd.DataFrame({"foo": list(string.ascii_letters)})
-    df_corr = corrupt_dataframe(
+    df_corr = mutate_data_frame(
         df,
         {
             "foo": with_missing_value(strategy="all"),
@@ -315,7 +315,7 @@ def test_corrupt_dataframe_single(rng):
 
 def test_corrupt_dataframe_multiple(rng):
     df = pd.DataFrame({"foo": list(string.ascii_letters)})
-    df_corr = corrupt_dataframe(
+    df_corr = mutate_data_frame(
         df,
         {
             "foo": [
@@ -331,7 +331,7 @@ def test_corrupt_dataframe_multiple(rng):
 
 def test_corrupt_dataframe_single_weighted(rng):
     df = pd.DataFrame({"foo": list(string.ascii_letters)})
-    df_corr = corrupt_dataframe(df, {"foo": (0.5, with_missing_value(strategy="all"))})
+    df_corr = mutate_data_frame(df, {"foo": (0.5, with_missing_value(strategy="all"))})
 
     assert (df_corr["foo"] == "").any()
     assert not (df_corr["foo"] == "").all()
@@ -339,7 +339,7 @@ def test_corrupt_dataframe_single_weighted(rng):
 
 def test_corrupt_dataframe_multiple_weighted(rng):
     df = pd.DataFrame({"foo": list(string.ascii_letters)})
-    df_corr = corrupt_dataframe(
+    df_corr = mutate_data_frame(
         df,
         {
             "foo": [
@@ -358,7 +358,7 @@ def test_corrupt_dataframe_incorrect_column():
     df = pd.DataFrame(data={"foo": ["bar", "baz"]})
 
     with pytest.raises(ValueError) as e:
-        corrupt_dataframe(df, {"foobar": with_noop()})
+        mutate_data_frame(df, {"foobar": with_noop()})
 
     assert str(e.value) == "column `foobar` does not exist, must be one of `foo`"
 
@@ -367,7 +367,7 @@ def test_corrupt_dataframe_probability_sum_too_high():
     df = pd.DataFrame(data={"foo": ["bar", "baz"]})
 
     with pytest.raises(ValueError) as e:
-        corrupt_dataframe(
+        mutate_data_frame(
             df,
             {
                 "foo": [
@@ -382,7 +382,7 @@ def test_corrupt_dataframe_probability_sum_too_high():
 
 def test_corrupt_dataframe_pad_probability():
     df_in = pd.DataFrame(data={"foo": ["a"] * 100})
-    df_out = corrupt_dataframe(
+    df_out = mutate_data_frame(
         df_in,
         {
             "foo": [
@@ -410,7 +410,7 @@ def test_corrupt_dataframe_multicolumn():
     srs_foo = df_in["foo"]
     srs_bar = df_in["bar"]
 
-    df_out = corrupt_dataframe(
+    df_out = mutate_data_frame(
         df_in,
         {
             ("foo", "bar"): with_permute(),
@@ -434,7 +434,7 @@ def test_corrupt_dataframe_multicolumn_noop():
         }
     )
 
-    df_out = corrupt_dataframe(df_in, {("foo", "bar"): [(0.5, with_permute())]})
+    df_out = mutate_data_frame(df_in, {("foo", "bar"): [(0.5, with_permute())]})
 
     assert not (df_out["foo"] == "b").all()
     assert (df_out["foo"] == "b").any()
@@ -484,7 +484,7 @@ __dummy_rng = np.random.default_rng(5432)
         (2, with_permute()),
     ],
 )
-def test_corruptor_no_modify(num_srs: int, func: Corruptor, rng):
+def test_corruptor_no_modify(num_srs: int, func: Mutator, rng):
     # ensure that the original series are NEVER modified in the corruptors
     def __random_str():
         return "".join(rng.choice(list(string.printable), size=20))
@@ -512,7 +512,7 @@ def test_corrupt_dataframe_no_modify(rng):
 
     df_copy = df_orig.copy()
 
-    _ = corrupt_dataframe(
+    _ = mutate_data_frame(
         df_orig,
         {
             "upper": with_delete(rng=rng),

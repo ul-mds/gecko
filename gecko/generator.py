@@ -5,7 +5,7 @@ __all__ = [
     "from_normal_distribution",
     "from_frequency_table",
     "from_multicolumn_frequency_table",
-    "to_dataframe",
+    "to_data_frame",
 ]
 
 from os import PathLike
@@ -210,7 +210,7 @@ def from_multicolumn_frequency_table(
     return _generate
 
 
-def to_dataframe(
+def to_data_frame(
     column_to_generator_dict: dict[Union[str, tuple[str, ...]], Generator],
     count: int,
 ):

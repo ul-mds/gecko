@@ -131,14 +131,14 @@ def test_from_multicolumn_frequency_table(rng):
 
 def test_to_dataframe_error_empty_dict():
     with pytest.raises(ValueError) as e:
-        generator.to_dataframe({}, 1000)
+        generator.to_data_frame({}, 1000)
 
     assert str(e.value) == "generator dict may not be empty"
 
 
 def test_to_dataframe_error_count_not_positive():
     with pytest.raises(ValueError) as e:
-        generator.to_dataframe(
+        generator.to_data_frame(
             {
                 "foo": generator.from_uniform_distribution(),
             },
@@ -162,7 +162,7 @@ def test_to_dataframe(rng):
     )
 
     df_row_count = 1000
-    df = generator.to_dataframe(
+    df = generator.to_data_frame(
         {
             ("fruit", "type"): gen_fruit_types,
             "num": gen_numbers,
