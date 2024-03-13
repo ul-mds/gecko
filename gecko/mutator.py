@@ -35,7 +35,7 @@ _EditOp = Literal["ins", "del", "sub", "trs"]
 
 def __assert_srs_lst_len(srs_lst: list[pd.Series], expected: int):
     if len(srs_lst) != expected:
-        raise ValueError(f"corruptor expects {expected} series, got {len(srs_lst)}")
+        raise ValueError(f"mutator expects {expected} series, got {len(srs_lst)}")
 
 
 class _PhoneticReplacementRule(NamedTuple):
@@ -60,15 +60,16 @@ P = ParamSpec("P")
 
 def with_function(func: Callable[Concatenate[str, P], str], *args, **kwargs) -> Mutator:
     """
-    Corrupt a series with an arbitrary function that returns a single value at a time.
-    This corruptor should be used sparingly as it is not vectorized, meaning values have to be corrupted one by one.
-    Use this corruptor for testing purposes or if performance is not critical.
+    Mutate data with an arbitrary function that returns a single value at a time.
+    This mutator should be used sparingly as it is not vectorized, meaning values have to be mutated one by one.
+    Use this mutator for testing purposes or if performance is not critical.
+    This mutator only accepts single series.
 
     :param func: function that takes in a string, any arguments passed into this wrapper and returns a single string
-    :return: function returning a Pandas series with values corrupted by the custom function
+    :return: function returning a Pandas series with values mutated by the custom function
     """
 
-    def _corrupt(srs_lst: list[pd.Series]) -> list[pd.Series]:
+    def _mutate(srs_lst: list[pd.Series]) -> list[pd.Series]:
         __assert_srs_lst_len(srs_lst, 1)
         srs_out = srs_lst[0].copy()
 
@@ -77,7 +78,7 @@ def with_function(func: Callable[Concatenate[str, P], str], *args, **kwargs) -> 
 
         return [srs_out]
 
-    return _corrupt
+    return _mutate
 
 
 def with_cldr_keymap_file(
@@ -86,14 +87,15 @@ def with_cldr_keymap_file(
     rng: Optional[np.random.Generator] = None,
 ) -> Mutator:
     """
-    Corrupt a series of strings by randomly introducing typos.
+    Mutate data by randomly introducing typos.
     Potential typos are sourced from a Common Locale Data Repository (CLDR) keymap.
     Any character may be replaced with one of its horizontal or vertical neighbors on a keyboard.
     They may also be replaced with its upper- or lowercase variant.
     It is possible for a string to not be modified if a selected character has no possible replacements.
+    This mutator only accepts single series.
 
     :param cldr_path: path to CLDR keymap file
-    :param charset: optional string with characters that may be corrupted (default: all characters)
+    :param charset: optional string with characters that may be mutated (default: all characters)
     :param rng: random number generator to use (default: None)
     :return: function returning Pandas series of strings with random typos
     """
@@ -182,7 +184,7 @@ def with_cldr_keymap_file(
                     )  # needs to be sorted to ensure reproducibility
                 )
 
-    def _corrupt(srs_lst: list[pd.Series]) -> list[pd.Series]:
+    def _mutate(srs_lst: list[pd.Series]) -> list[pd.Series]:
         __assert_srs_lst_len(srs_lst, 1)
 
         srs_out = srs_lst[0].copy()
@@ -231,7 +233,7 @@ def with_cldr_keymap_file(
 
         return [srs_out]
 
-    return _corrupt
+    return _mutate
 
 
 def with_phonetic_replacement_table(
@@ -245,7 +247,7 @@ def with_phonetic_replacement_table(
     rng: Optional[np.random.Generator] = None,
 ) -> Mutator:
     """
-    Corrupt a series of strings by randomly replacing characters with others that sound similar.
+    Mutate data by randomly replacing characters with others that sound similar.
     The rules for similar-sounding character sequences are sourced from a CSV file.
     This table must have at least three columns: a source, target and a flag column.
     A source pattern is mapped to its target under the rules imposed by the provided flags.
@@ -253,6 +255,7 @@ def with_phonetic_replacement_table(
     If no flags are defined, it is implied that this replacement can take place anywhere in a string.
     Conversely, if `^`, `$`, `_`, or any combination of the three are set, it implies that a replacement
     can only occur at the start, end or in the middle of a string.
+    This mutator only accepts single series.
 
     :param csv_file_path: path to CSV file with pattern, replacement and flag column
     :param header: `True` if the file contains a header, `False` otherwise (default: `False`)
@@ -306,7 +309,7 @@ def with_phonetic_replacement_table(
             _PhoneticReplacementRule(pattern, replacement, flags)
         )
 
-    def _corrupt(srs_lst: list[pd.Series]) -> list[pd.Series]:
+    def _mutate(srs_lst: list[pd.Series]) -> list[pd.Series]:
         __assert_srs_lst_len(srs_lst, 1)
 
         # create a copy of input series
@@ -423,7 +426,7 @@ def with_phonetic_replacement_table(
 
         return [srs_out]
 
-    return _corrupt
+    return _mutate
 
 
 def with_replacement_table(
@@ -436,13 +439,14 @@ def with_replacement_table(
     rng: Optional[np.random.Generator] = None,
 ) -> Mutator:
     """
-    Corrupt a series of strings by randomly substituting sequences from a replacement table.
+    Mutate data by randomly substituting sequences from a replacement table.
     The table must have at least two columns: a source and a target value column.
     A source value may have multiple target values that it can map to.
-    Strings that do not contain any possible source values are not corrupted.
+    Strings that do not contain any possible source values are not mutated.
     It is possible for a string to not be modified if no target value could be picked for its assigned source value.
     This can only happen if a source value is mapped to multiple target values.
     In this case, each target value will be independently selected or not.
+    This mutator only accepts single series.
 
     :param csv_file_path: path to CSV file with source and target column
     :param header: `True` if the file contains a header, `False` otherwise (default: `False`)
@@ -472,7 +476,7 @@ def with_replacement_table(
 
     srs_unique_source_values = df[source_column].unique()
 
-    def _corrupt(srs_lst: list[pd.Series]) -> list[pd.Series]:
+    def _mutate(srs_lst: list[pd.Series]) -> list[pd.Series]:
         __assert_srs_lst_len(srs_lst, 1)
 
         # create copy of input series
@@ -554,18 +558,19 @@ def with_replacement_table(
 
         return [srs_out]
 
-    return _corrupt
+    return _mutate
 
 
-def _corrupt_all_from_value(value: str) -> Mutator:
+def _mutate_all_from_value(value: str) -> Mutator:
     """
-    Corrupt a series of strings by replacing all of its values with the same "missing" value.
+    Mutate data by replacing all of its values with the same "missing" value.
+    This mutator only accepts single series.
 
     :param value: "missing" value to replace entries with
     :return: function returning Pandas series where all entries are replaced with "missing" value
     """
 
-    def _corrupt_list(srs_lst: list[pd.Series]) -> list[pd.Series]:
+    def _mutate_list(srs_lst: list[pd.Series]) -> list[pd.Series]:
         __assert_srs_lst_len(srs_lst, 1)
         srs = srs_lst[0]
 
@@ -577,45 +582,47 @@ def _corrupt_all_from_value(value: str) -> Mutator:
             )
         ]
 
-    return _corrupt_list
+    return _mutate_list
 
 
-def _corrupt_only_empty_from_value(value: str) -> Mutator:
+def _mutate_only_empty_from_value(value: str) -> Mutator:
     """
-    Corrupt a series of strings by replacing all of its empty values (string length = 0) with the
+    Mutate data by replacing all of its empty values (string length = 0) with the
     same "missing" value.
+    This mutator only accepts single series.
 
     :param value: "missing" value to replace empty entries with
     :return: function returning Pandas series where all empty entries are replaced with "missing" value
     """
 
-    def _corrupt_list(srs_lst: list[pd.Series]) -> list[pd.Series]:
+    def _mutate_list(srs_lst: list[pd.Series]) -> list[pd.Series]:
         __assert_srs_lst_len(srs_lst, 1)
 
         srs_out = srs_lst[0].copy()
         srs_out[srs_out == ""] = value
         return [srs_out]
 
-    return _corrupt_list
+    return _mutate_list
 
 
-def _corrupt_only_blank_from_value(value: str) -> Mutator:
+def _mutate_only_blank_from_value(value: str) -> Mutator:
     """
-    Corrupt a series of strings by replacing all of its blank values (empty strings after trimming whitespaces)
+    Mutate data by replacing all of its blank values (empty strings after trimming whitespaces)
     with the same "missing" value.
+    This mutator only accepts single series.
 
     :param value: "missing" value to replace blank entries with
     :return: function returning Pandas series where all blank entries are replaced with "missing" value
     """
 
-    def _corrupt_list(srs_lst: list[pd.Series]) -> list[pd.Series]:
+    def _mutate_list(srs_lst: list[pd.Series]) -> list[pd.Series]:
         __assert_srs_lst_len(srs_lst, 1)
 
         srs_out = srs_lst[0].copy()
         srs_out[srs_out.str.strip() == ""] = value
         return [srs_out]
 
-    return _corrupt_list
+    return _mutate_list
 
 
 def with_missing_value(
@@ -623,22 +630,23 @@ def with_missing_value(
     strategy: Literal["all", "blank", "empty"] = "blank",
 ) -> Mutator:
     """
-    Corrupt a series of strings by replacing select entries with a representative "missing" value.
+    Mutate data by replacing select entries with a representative "missing" value.
     Strings are selected for replacement depending on the chosen strategy.
     If `all`, then all strings in the series will be replaced with the missing value.
     If `blank`, then all strings that are either empty or consist of whitespace characters only will be replaced with the missing value.
     If `empty`, then all strings that are empty will be replaced with the missing value.
+    This mutator only accepts single series.
 
     :param value: "missing" value to replace select entries with (default: empty string)
     :param strategy: `all`, `blank` or `empty` to select values to replace (default: `blank`)
     :return: function returning Pandas series of strings where select entries are replaced with a "missing" value
     """
     if strategy == "all":
-        return _corrupt_all_from_value(value)
+        return _mutate_all_from_value(value)
     elif strategy == "blank":
-        return _corrupt_only_blank_from_value(value)
+        return _mutate_only_blank_from_value(value)
     elif strategy == "empty":
-        return _corrupt_only_empty_from_value(value)
+        return _mutate_only_empty_from_value(value)
     else:
         raise ValueError(f"unrecognized replacement strategy: {strategy}")
 
@@ -648,8 +656,9 @@ def with_insert(
     rng: Optional[np.random.Generator] = None,
 ) -> Mutator:
     """
-    Corrupt a series of strings by inserting random characters.
+    Mutate data by inserting random characters.
     The characters are drawn from the provided charset.
+    This mutator only accepts single series.
 
     :param charset: string to sample random characters from (default: all ASCII letters)
     :param rng: random number generator to use (default: `None`)
@@ -658,7 +667,7 @@ def with_insert(
     if rng is None:
         rng = np.random.default_rng()
 
-    def _corrupt(srs_lst: list[pd.Series]) -> list[pd.Series]:
+    def _mutate(srs_lst: list[pd.Series]) -> list[pd.Series]:
         __assert_srs_lst_len(srs_lst, 1)
 
         srs_out = srs_lst[0].copy()
@@ -693,12 +702,13 @@ def with_insert(
 
         return [srs_out]
 
-    return _corrupt
+    return _mutate
 
 
 def with_delete(rng: Optional[np.random.Generator] = None) -> Mutator:
     """
-    Corrupt a series of strings by randomly deleting characters.
+    Mutate data by randomly deleting characters.
+    This mutator only accepts single series.
 
     :param rng: random number generator to use (default: `None`)
     :return: function returning Pandas series of strings with randomly deleted characters
@@ -706,7 +716,7 @@ def with_delete(rng: Optional[np.random.Generator] = None) -> Mutator:
     if rng is None:
         rng = np.random.default_rng()
 
-    def _corrupt(srs_lst: list[pd.Series]) -> list[pd.Series]:
+    def _mutate(srs_lst: list[pd.Series]) -> list[pd.Series]:
         __assert_srs_lst_len(srs_lst, 1)
 
         srs_orig = srs_lst[0]
@@ -739,13 +749,14 @@ def with_delete(rng: Optional[np.random.Generator] = None) -> Mutator:
 
         return [srs_out]
 
-    return _corrupt
+    return _mutate
 
 
 def with_transpose(rng: Optional[np.random.Generator] = None) -> Mutator:
     """
-    Corrupt a series of strings by randomly swapping neighboring characters.
+    Mutate data by randomly swapping neighboring characters.
     Note that it is possible for the same two neighboring characters to be swapped.
+    This mutator only accepts single series.
 
     :param rng: random number generator to use (default: `None`)
     :return: function returning Pandas series of strings with randomly swapped neighboring characters
@@ -753,7 +764,7 @@ def with_transpose(rng: Optional[np.random.Generator] = None) -> Mutator:
     if rng is None:
         rng = np.random.default_rng()
 
-    def _corrupt(srs_lst: list[pd.Series]) -> list[pd.Series]:
+    def _mutate(srs_lst: list[pd.Series]) -> list[pd.Series]:
         __assert_srs_lst_len(srs_lst, 1)
 
         srs_orig = srs_lst[0]
@@ -791,7 +802,7 @@ def with_transpose(rng: Optional[np.random.Generator] = None) -> Mutator:
 
         return [srs_str_out]
 
-    return _corrupt
+    return _mutate
 
 
 def with_substitute(
@@ -799,9 +810,10 @@ def with_substitute(
     rng: Optional[np.random.Generator] = None,
 ) -> Mutator:
     """
-    Corrupt a series of strings by replacing single characters with a new one.
+    Mutate data by replacing single characters with a new one.
     The characters are drawn from the provided charset.
     Note that it is possible for a character to be replaced by itself.
+    This mutator only accepts single series.
 
     :param charset: string to sample random characters from (default: all ASCII letters)
     :param rng: random number generator to use (default: `None`)
@@ -810,7 +822,7 @@ def with_substitute(
     if rng is None:
         rng = np.random.default_rng()
 
-    def _corrupt(srs_lst: list[pd.Series]) -> list[pd.Series]:
+    def _mutate(srs_lst: list[pd.Series]) -> list[pd.Series]:
         __assert_srs_lst_len(srs_lst, 1)
 
         srs_orig = srs_lst[0]
@@ -851,7 +863,7 @@ def with_substitute(
 
         return [srs_str_out]
 
-    return _corrupt
+    return _mutate
 
 
 def with_edit(
@@ -863,11 +875,12 @@ def with_edit(
     rng: Optional[np.random.Generator] = None,
 ) -> Mutator:
     """
-    Corrupt a series of strings by randomly applying insertion, deletion, substitution or transposition of characters.
-    This corruptor works as a wrapper around the respective corruptors for the mentioned individual operations.
-    The charset of allowed characters is passed on to the insertion and substitution corruptors.
-    Each corruptor receives its own isolated RNG which is derived from the RNG passed into this function.
-    The probabilities of each corruptor must sum up to 1.
+    Mutate data by randomly applying insertion, deletion, substitution or transposition of characters.
+    This mutator works as a wrapper around the respective mutators for the mentioned individual operations.
+    The charset of allowed characters is passed on to the insertion and substitution mutators.
+    Each mutator receives its own isolated RNG which is derived from the RNG passed into this function.
+    The probabilities of each mutator must sum up to 1.
+    This mutator only accepts single series.
 
     :param p_insert: probability of random character insertion on a string (default: `0.25`, 25%)
     :param p_delete: probability of random character deletion on a string (default: `0.25`, 25%)
@@ -892,9 +905,9 @@ def with_edit(
     except ValueError:
         raise ValueError("probabilities must sum up to 1.0")
 
-    # equip every corruptor with its own independent rng derived from this corruptor's rng
+    # equip every mutator with its own independent rng derived from this mutator's rng
     rng_ins, rng_del, rng_sub, rng_trs = rng.spawn(4)
-    corr_ins, corr_del, corr_sub, corr_trs = (
+    mut_ins, mut_del, mut_sub, mut_trs = (
         with_insert(charset, rng_ins),
         with_delete(rng_del),
         with_substitute(charset, rng_sub),
@@ -902,7 +915,7 @@ def with_edit(
     )
 
     # noinspection PyUnresolvedReferences
-    def _corrupt_list(srs_lst: list[pd.Series]) -> list[pd.Series]:
+    def _mutate_list(srs_lst: list[pd.Series]) -> list[pd.Series]:
         __assert_srs_lst_len(srs_lst, 1)
 
         srs_out = srs_lst[0].copy()
@@ -914,41 +927,42 @@ def with_edit(
         msk_ins = str_in_edit_ops == "ins"
 
         if msk_ins.sum() != 0:
-            (srs_out[msk_ins],) = corr_ins([srs_out[msk_ins]])
+            (srs_out[msk_ins],) = mut_ins([srs_out[msk_ins]])
 
         msk_del = str_in_edit_ops == "del"
 
         if msk_del.sum() != 0:
-            (srs_out[msk_del],) = corr_del([srs_out[msk_del]])
+            (srs_out[msk_del],) = mut_del([srs_out[msk_del]])
 
         msk_sub = str_in_edit_ops == "sub"
 
         if msk_sub.sum() != 0:
-            (srs_out[msk_sub],) = corr_sub([srs_out[msk_sub]])
+            (srs_out[msk_sub],) = mut_sub([srs_out[msk_sub]])
 
         msk_trs = str_in_edit_ops == "trs"
 
         if msk_trs.sum() != 0:
-            (srs_out[msk_trs],) = corr_trs([srs_out[msk_trs]])
+            (srs_out[msk_trs],) = mut_trs([srs_out[msk_trs]])
 
         return [srs_out]
 
-    return _corrupt_list
+    return _mutate_list
 
 
 def with_noop() -> Mutator:
     """
-    Corrupt a series by not corrupting it at all.
-    This corruptor returns the input series as-is.
+    Mutate data by not mutating it at all.
+    This mutator returns the input series as-is.
     You might use it to leave a certain percentage of records in a series untouched.
+    This mutator only accepts single series.
 
     :return: function returning Pandas series as-is
     """
 
-    def _corrupt(srs_lst: list[pd.Series]) -> list[pd.Series]:
+    def _mutate(srs_lst: list[pd.Series]) -> list[pd.Series]:
         return srs_lst
 
-    return _corrupt
+    return _mutate
 
 
 def with_categorical_values(
@@ -960,9 +974,10 @@ def with_categorical_values(
     rng: Optional[np.random.Generator] = None,
 ) -> Mutator:
     """
-    Corrupt a series of strings by replacing it with another from a list of categorical values.
-    This corruptor reads all unique values from a column within a CSV file.
+    Mutate data by replacing it with another from a list of categorical values.
+    This mutator reads all unique values from a column within a CSV file.
     All strings within a series will be replaced with a different random value from this column.
+    This mutator only accepts single series.
 
     :param csv_file_path: CSV file to read from
     :param header: `True` if the file contains a header, `False` otherwise (default: `False`)
@@ -991,7 +1006,7 @@ def with_categorical_values(
     # fetch unique values
     unique_values = pd.Series(df[value_column].dropna().unique())
 
-    def _corrupt_list(srs_lst: list[pd.Series]) -> list[pd.Series]:
+    def _mutate_list(srs_lst: list[pd.Series]) -> list[pd.Series]:
         __assert_srs_lst_len(srs_lst, 1)
         nonlocal unique_values
 
@@ -1029,29 +1044,30 @@ def with_categorical_values(
 
         return [srs_out]
 
-    return _corrupt_list
+    return _mutate_list
 
 
 def with_permute() -> Mutator:
     """
-    Corrupt two series by permuting their contents.
+    Mutate two series with data by permuting their contents.
     This effectively swaps one series with another.
+    This mutator only accepts two series.
 
     :return: function swapping the contents of two Pandas series
     """
 
-    def __corrupt(srs_lst: list[pd.Series]) -> list[pd.Series]:
+    def __mutate(srs_lst: list[pd.Series]) -> list[pd.Series]:
         __assert_srs_lst_len(srs_lst, 2)
 
         srs, srs_other = srs_lst
         return [srs_other.copy(), srs.copy()]
 
-    return __corrupt
+    return __mutate
 
 
 def mutate_data_frame(
     df_in: pd.DataFrame,
-    column_to_corruptor_dict: dict[
+    column_to_mutator_dict: dict[
         Union[str, tuple[str, ...]],
         Union[
             Mutator,
@@ -1063,18 +1079,18 @@ def mutate_data_frame(
     rng: Optional[np.random.Generator] = None,
 ):
     """
-    Corrupt a dataframe by applying several corruptors on select columns.
-    This function takes a dictionary which has column names as keys and corruptors as values.
-    A column may be assigned a single corruptor, a corruptor with a probability, a list of corruptors where each is applied with the same
-    probability, and a list of weighted corruptors where each is applied with its assigned probability.
+    Mutate a dataframe by applying several mutators on select columns.
+    This function takes a dictionary which has column names as keys and mutators as values.
+    A column may be assigned a single mutator, a mutator with a probability, a list of mutators where each is applied
+    with the same probability, and a list of weighted mutators where each is applied with its assigned probability.
 
-    :param df_in: dataframe to corrupt
-    :param column_to_corruptor_dict: dictionary of columns to corruptors
+    :param df_in: dataframe to mutate
+    :param column_to_mutator_dict: dictionary of columns to mutators
     :param rng: random number generator to use (default: `None`)
-    :return: copy of dataframe with corruptors applied as specified
+    :return: copy of dataframe with mutators applied as specified
     """
 
-    def __is_weighted_corruptor_tuple(x: Any):
+    def __is_weighted_mutator_tuple(x: Any):
         return (
             isinstance(x, tuple)
             and len(x) == 2
@@ -1087,7 +1103,7 @@ def mutate_data_frame(
 
     df_out = df_in.copy()
 
-    for column_spec, corruptor_spec in column_to_corruptor_dict.items():
+    for column_spec, mutator_spec in column_to_mutator_dict.items():
         # convert to list if there is only one column specified
         if isinstance(column_spec, str):
             column_spec = (column_spec,)
@@ -1099,35 +1115,35 @@ def mutate_data_frame(
                     f"column `{column_name}` does not exist, must be one of `{','.join(df_in.columns)}`"
                 )
 
-        # if the column is assigned a corruptor, assign it a 100% weight and wrap it into a list
-        if isinstance(corruptor_spec, Callable):
-            corruptor_spec = [(1.0, corruptor_spec)]
+        # if the column is assigned a mutator, assign it a 100% weight and wrap it into a list
+        if isinstance(mutator_spec, Callable):
+            mutator_spec = [(1.0, mutator_spec)]
 
         # if the column is assigned a tuple, wrap it into a list
-        if __is_weighted_corruptor_tuple(corruptor_spec):
-            corruptor_spec = [corruptor_spec]
+        if __is_weighted_mutator_tuple(mutator_spec):
+            mutator_spec = [mutator_spec]
 
         # next step is to check the entries of the list. so if the spec has not been converted
         # to a list yet, then something went wrong.
-        if not isinstance(corruptor_spec, list):
+        if not isinstance(mutator_spec, list):
             raise ValueError(
-                f"invalid type `{type(corruptor_spec)}` for corruptor definition "
+                f"invalid type `{type(mutator_spec)}` for mutator definition "
                 f"of column `{', '.join(column_spec)}`"
             )
 
         # if the list contains functions only, create them into tuples with equal probability
-        if all(isinstance(c, Callable) for c in corruptor_spec):
-            corruptor_spec = [
-                (1.0 / len(corruptor_spec), corruptor) for corruptor in corruptor_spec
+        if all(isinstance(c, Callable) for c in mutator_spec):
+            mutator_spec = [
+                (1.0 / len(mutator_spec), mutator) for mutator in mutator_spec
             ]
 
-        # if the end result is not a list of weighted corruptors for each column, abort
-        if not all(__is_weighted_corruptor_tuple(c) for c in corruptor_spec):
-            raise ValueError("malformed corrupter definition")
+        # if the end result is not a list of weighted mutators for each column, abort
+        if not all(__is_weighted_mutator_tuple(c) for c in mutator_spec):
+            raise ValueError("malformed mutator definition")
 
-        # corruptor_spec is a list of tuples, which contain a float and a corruptor func.
-        # this one-liner collects all floats and corruptor funcs into their own lists.
-        p_values, corruptor_funcs = list(zip(*corruptor_spec))
+        # mutator_spec is a list of tuples, which contain a float and a mutator func.
+        # this one-liner collects all floats and mutator funcs into their own lists.
+        p_values, mutator_funcs = list(zip(*mutator_spec))
         p_sum = sum(p_values)
 
         if p_sum > 1:
@@ -1138,7 +1154,7 @@ def mutate_data_frame(
         # pad probabilities to sum up to 1.0
         if p_sum < 1:
             p_values = (*p_values, 1 - p_sum)
-            corruptor_funcs = (*corruptor_funcs, with_noop())
+            mutator_funcs = (*mutator_funcs, with_noop())
 
         try:
             # sanity check
@@ -1147,29 +1163,25 @@ def mutate_data_frame(
             column_str = f"column{'s' if len(column_spec) > 1 else ''} `{', '.join(column_spec)}`"
             raise ValueError(f"probabilities for {column_str} must sum up to 1.0")
 
-        corruptor_count = len(corruptor_funcs)
-        # generate a series where each row gets an index of the corruptor in corruptor_funcs to apply.
-        arr_corruptor_idx = np.arange(corruptor_count)
-        arr_corruptor_per_row = rng.choice(
-            arr_corruptor_idx, p=p_values, size=len(df_out)
-        )
-        srs_corruptor_idx = pd.Series(data=arr_corruptor_per_row, index=df_out.index)
+        mutator_count = len(mutator_funcs)
+        # generate a series where each row gets an index of the mutator in mutator_funcs to apply.
+        arr_mutator_idx = np.arange(mutator_count)
+        arr_mutator_per_row = rng.choice(arr_mutator_idx, p=p_values, size=len(df_out))
+        srs_mutator_idx = pd.Series(data=arr_mutator_per_row, index=df_out.index)
         srs_columns = [df_in[column_name] for column_name in column_spec]
 
-        for i in arr_corruptor_idx:
-            corruptor = corruptor_funcs[i]
-            mask_this_corruptor = srs_corruptor_idx == i
-            srs_corrupted_lst = corruptor(
-                [srs[mask_this_corruptor] for srs in srs_columns]
-            )
+        for i in arr_mutator_idx:
+            mutator = mutator_funcs[i]
+            mask_this_mutator = srs_mutator_idx == i
+            srs_mutated_lst = mutator([srs[mask_this_mutator] for srs in srs_columns])
 
-            # i would've liked to use .loc[mask_this_corruptor, column_spec] = corruptor(...) here
+            # i would've liked to use .loc[mask_this_mutator, column_spec] = mutator(...) here
             # but there is apparently a shape mismatch that happens here. so instead i'm manually
-            # iterating over each corrupted series until i find a better solution.
+            # iterating over each mutated series until i find a better solution.
             for j in range(len(column_spec)):
                 column_name = column_spec[j]
-                srs_corrupted = srs_corrupted_lst[j]
+                srs_mutated = srs_mutated_lst[j]
 
-                df_out.loc[mask_this_corruptor, column_name] = srs_corrupted
+                df_out.loc[mask_this_mutator, column_name] = srs_mutated
 
     return df_out

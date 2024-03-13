@@ -21,9 +21,10 @@ Generator = Callable[[int], list[pd.Series]]
 
 def from_function(func: Callable[P, str], *args, **kwargs) -> Generator:
     """
-    Generate a series from an arbitrary function that returns a single value at a time.
+    Generate data from an arbitrary function that returns a single value at a time.
     This generator should be used sparingly as it is not vectorized, meaning values have to be generated one by one.
     Use this generator for testing purposes or if performance is not critical.
+    This generator returns a single series with values generated from the supplied function.
 
     :param func: function that takes in any arguments and returns a single string
     :return: function returning a Pandas series with values generated from the custom function
@@ -42,8 +43,9 @@ def from_uniform_distribution(
     rng: Optional[np.random.Generator] = None,
 ) -> Generator:
     """
-    Generate a series of numbers drawn from a uniform distribution within the specified bounds.
+    Generate data from numbers drawn from a uniform distribution within the specified bounds.
     These numbers are formatted into strings.
+    This generator returns a single series with values generated from the uniform distribution.
 
     :param low: lower (inclusive) bound of the uniform distribution (default: `0`)
     :param high: upper (exclusive) bound of the uniform distribution (default: `1`)
@@ -69,8 +71,9 @@ def from_normal_distribution(
     rng: Optional[np.random.Generator] = None,
 ) -> Generator:
     """
-    Generate a series of numbers drawn from a normal distribution with the specified parameters.
+    Generate data from numbers drawn from a normal distribution with the specified parameters.
     These numbers are formatted into strings.
+    This generator returns a single series with values generated from the normal distribution.
 
     :param mean: mean of the normal distribution (default: `0`)
     :param sd: standard deviation of the normal distribution (default: `1`)
@@ -99,10 +102,11 @@ def from_frequency_table(
     rng: Optional[np.random.Generator] = None,
 ) -> Generator:
     """
-    Generate a series of values from a CSV file.
+    Generate data from values in a CSV file.
     This CSV file must contain at least two columns, one holding values and one holding their absolute frequencies.
     Values are generated using their assigned absolute frequencies.
     Therefore, the values in the resulting series should have a similar distribution compared to the input file.
+    This generator returns a single series with values generated from the value column of the CSV file.
 
     :param csv_file_path: CSV file to read from
     :param header: `True` if the file contains a header, `False` otherwise (default: `False`)
@@ -149,11 +153,11 @@ def from_multicolumn_frequency_table(
     rng: Optional[np.random.Generator] = None,
 ) -> Generator:
     """
-    Generate a series of values from a CSV file where columns are inter-dependent.
+    Generate data from values in a CSV file where columns depend on each other.
     This CSV file must contain at least two columns, one holding values and one holding their absolute frequencies.
-    This corruptor generates a series for each value column that's passed into it.
     Values are generated using their assigned absolute frequencies.
     Therefore, the values in the resulting series should have a similar distribution compared to the input file.
+    This generator returns as many series as there are value columns.
 
     :param csv_file_path: CSV file to read from
     :param header: `True` if the file contains a header, `False` otherwise (default: `False`)
@@ -215,8 +219,8 @@ def to_data_frame(
     count: int,
 ):
     """
-    Generate a dataframe by using multiple generators at once.
-    This function takes a list of generators and the names for each column that a generator will create.
+    Generate a data frame by using multiple generators at once.
+    This function takes a dictionary where columns are mapped to their respective generators.
 
     :param column_to_generator_dict: dict that maps column names to generators
     :param count: number of records to generate
