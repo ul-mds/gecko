@@ -2,12 +2,10 @@ from types import ModuleType
 from typing import Any, Callable
 
 import numpy as np
-import pytest
 
 from gecko import generator, mutator
 from tests.helpers import get_asset_path
 
-pytestmark = pytest.mark.benchmark
 record_counts = (100, 250, 500, 1_000, 2_500, 5_000, 10_000, 25_000, 50_000, 100_000)
 
 
@@ -168,6 +166,70 @@ def test_bench_mutate_edit(benchmark, rng):
             extra=__extra(
                 mutator,
                 mutator.with_edit,
+                count,
+            ),
+        )
+
+
+def test_bench_mutate_insert(benchmark, rng):
+    gen_origin = __create_origin_single_column_generator(rng)
+    mut_insert = mutator.with_insert(rng=rng)
+
+    for count in record_counts:
+        srs_lst = gen_origin(count)
+        benchmark(
+            lambda: mut_insert(srs_lst),
+            extra=__extra(
+                mutator,
+                mutator.with_insert,
+                count,
+            ),
+        )
+
+
+def test_bench_mutate_delete(benchmark, rng):
+    gen_origin = __create_origin_single_column_generator(rng)
+    mut_delete = mutator.with_delete(rng=rng)
+
+    for count in record_counts:
+        srs_lst = gen_origin(count)
+        benchmark(
+            lambda: mut_delete(srs_lst),
+            extra=__extra(
+                mutator,
+                mutator.with_delete,
+                count,
+            ),
+        )
+
+
+def test_bench_mutate_substitute(benchmark, rng):
+    gen_origin = __create_origin_single_column_generator(rng)
+    mut_substitute = mutator.with_substitute(rng=rng)
+
+    for count in record_counts:
+        srs_lst = gen_origin(count)
+        benchmark(
+            lambda: mut_substitute(srs_lst),
+            extra=__extra(
+                mutator,
+                mutator.with_substitute,
+                count,
+            ),
+        )
+
+
+def test_bench_mutate_transpose(benchmark, rng):
+    gen_origin = __create_origin_single_column_generator(rng)
+    mut_transpose = mutator.with_transpose(rng=rng)
+
+    for count in record_counts:
+        srs_lst = gen_origin(count)
+        benchmark(
+            lambda: mut_transpose(srs_lst),
+            extra=__extra(
+                mutator,
+                mutator.with_transpose,
                 count,
             ),
         )
