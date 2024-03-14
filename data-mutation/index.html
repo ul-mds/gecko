@@ -20,7 +20,7 @@
     
     
       
-        <title>Corrupting data - Gecko Docs</title>
+        <title>Mutating data - Gecko Docs</title>
       
     
     
@@ -45,6 +45,8 @@
         <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
       
     
+    
+      <link rel="stylesheet" href="../assets/_mkdocstrings.css">
     
     <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
@@ -72,7 +74,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#corrupting-data" class="md-skip">
+        <a href="#mutating-data" class="md-skip">
           Skip to content
         </a>
       
@@ -108,7 +110,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Corrupting data
+              Mutating data
             
           </span>
         </div>
@@ -285,7 +287,7 @@
           
   
   <span class="md-ellipsis">
-    Corrupting data
+    Mutating data
   </span>
   
 
@@ -296,7 +298,7 @@
         
   
   <span class="md-ellipsis">
-    Corrupting data
+    Mutating data
   </span>
   
 
@@ -318,13 +320,13 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#available-corruptors" class="md-nav__link">
+  <a href="#available-mutators" class="md-nav__link">
     <span class="md-ellipsis">
-      Available corruptors
+      Available mutators
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Available corruptors">
+    <nav class="md-nav" aria-label="Available mutators">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -396,9 +398,9 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#multiple-corruptors" class="md-nav__link">
+  <a href="#multiple-mutators" class="md-nav__link">
     <span class="md-ellipsis">
-      Multiple corruptors
+      Multiple mutators
     </span>
   </a>
   
@@ -497,6 +499,26 @@
   
 
     
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api-reference/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    API reference
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
   </ul>
 </nav>
                   </div>
@@ -524,13 +546,13 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#available-corruptors" class="md-nav__link">
+  <a href="#available-mutators" class="md-nav__link">
     <span class="md-ellipsis">
-      Available corruptors
+      Available mutators
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Available corruptors">
+    <nav class="md-nav" aria-label="Available mutators">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -602,9 +624,9 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#multiple-corruptors" class="md-nav__link">
+  <a href="#multiple-mutators" class="md-nav__link">
     <span class="md-ellipsis">
-      Multiple corruptors
+      Multiple mutators
     </span>
   </a>
   
@@ -625,25 +647,27 @@
                   
 
 
-<h1 id="corrupting-data">Corrupting data</h1>
-<p>Gecko comes with a lot of built-in functions that corrupt data by applying errors that one might find in the real world.
-Any function that takes in and returns a list of <a href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.Series.html">Pandas series</a> is considered a corruptor function in Gecko.</p>
+<h1 id="mutating-data">Mutating data</h1>
+<p>A mutator is a function that takes in a list
+of <a href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.Series.html">Pandas series</a> where each series
+represents a column and returns a mutated copy of it.
+For example, a mutator that converts all strings in a series into uppercase could look like this.</p>
 <div class="language-py highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="k">def</span> <span class="nf">corruptor_func</span><span class="p">(</span><span class="n">srs_lst</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">]:</span>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">srs_lst</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span>  <span class="c1"># check amount of columns</span>
-</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="n">srs_out</span> <span class="o">=</span> <span class="n">srs_lst</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
-</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="c1"># ... perform mutations on the copy ...</span>
-</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="k">return</span> <span class="p">[</span><span class="n">srs_out</span><span class="p">]</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="k">def</span> <span class="nf">mutate_to_all_uppercase</span><span class="p">(</span><span class="n">srs_lst</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">]:</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="k">return</span> <span class="p">[</span><span class="n">srs</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="k">for</span> <span class="n">srs</span> <span class="ow">in</span> <span class="n">srs_lst</span><span class="p">]</span>
 </span></code></pre></div>
-<p>Gecko provides functions for introducing typographic, phonetic and other errors.
-These functions are exposed in Gecko's <code>corruptor</code> module.</p>
-<h2 id="available-corruptors">Available corruptors</h2>
+<p>Gecko comes with a bunch of built-in mutators which are described on this page.
+They are exposed in Gecko's <code>mutator</code> module.</p>
+<h2 id="available-mutators">Available mutators</h2>
 <h3 id="keyboard-typos">Keyboard typos</h3>
 <p>One of the most common sources for typos are adjacent keys on a keyboard.
 Gecko supports loading of keyboard layouts and applying typos based on them.
-Currently, keyboard layouts must be provided as an XML file from the <a href="https://github.com/unicode-org/cldr">Unicode CLDR repository</a>.
-Gecko parses these files and determines all neighboring keys of each key, as well as their variants with and without <span class="keys"><kbd class="key-shift">Shift</kbd></span> pressed.</p>
+Currently, keyboard layouts must be provided as an XML file from
+the <a href="https://github.com/unicode-org/cldr">Unicode CLDR repository</a>.
+Gecko parses these files and determines all neighboring keys of each key, as well as their variants with and without
+<span class="keys"><kbd class="key-shift">Shift</kbd></span> pressed.</p>
 <div class="admonition warning">
 <p class="admonition-title">Warning</p>
 <p>As of Unicode CLDR keyboard specification is under a major redesign as of release 44.
@@ -652,41 +676,44 @@ For now, please retrieve CLDR keyboard files from a release tagged 43 or earlier
 The examples in this documentation use files from the CLDR release 43.</p>
 </div>
 <p><a href="https://github.com/unicode-org/cldr/blob/release-43/keyboards/windows/de-t-k0-windows.xml">Download the German keyboard layout from the CLDR repository</a>.
-The corresponding corruptor function is called <code>with_cldr_keymap_file</code>.
-Point the corruptor to the file you just downloaded.
-In the following example, one character in each word is substituted by another neighboring character on the German keyboard.</p>
+The corresponding mutator is called <code>with_cldr_keymap_file</code>.
+Point the mutator to the file you just downloaded.
+In the following example, one character in each word is substituted by another neighboring character on the German
+keyboard.</p>
 <div class="language-py highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
 </span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 </span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>
-</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="kn">from</span> <span class="nn">gecko</span> <span class="kn">import</span> <span class="n">corruptor</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="kn">from</span> <span class="nn">gecko</span> <span class="kn">import</span> <span class="n">mutator</span>
 </span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>
 </span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="n">rng</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="mi">3141</span><span class="p">)</span>
-</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="n">kb_corruptor</span> <span class="o">=</span> <span class="n">corruptor</span><span class="o">.</span><span class="n">with_cldr_keymap_file</span><span class="p">(</span>
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="n">kb_mutator</span> <span class="o">=</span> <span class="n">mutator</span><span class="o">.</span><span class="n">with_cldr_keymap_file</span><span class="p">(</span>
 </span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>    <span class="s2">&quot;./de-t-k0-windows.xml&quot;</span><span class="p">,</span>
 </span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>    <span class="n">rng</span><span class="o">=</span><span class="n">rng</span>
 </span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="p">)</span>
 </span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="n">srs</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">([</span><span class="s2">&quot;apple&quot;</span><span class="p">,</span> <span class="s2">&quot;banana&quot;</span><span class="p">,</span> <span class="s2">&quot;clementine&quot;</span><span class="p">])</span>
-</span><span id="__span-1-12"><a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a><span class="nb">print</span><span class="p">(</span><span class="n">kb_corruptor</span><span class="p">([</span><span class="n">srs</span><span class="p">]))</span>
+</span><span id="__span-1-12"><a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a><span class="nb">print</span><span class="p">(</span><span class="n">kb_mutator</span><span class="p">([</span><span class="n">srs</span><span class="p">]))</span>
 </span><span id="__span-1-13"><a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a><span class="c1"># =&gt; [[&quot;spple&quot;, &quot;banany&quot;, &quot;cldmentine&quot;]]</span>
 </span></code></pre></div>
-<p>By default, this corruptor considers all possible neighboring keys for each key.
-If you want to constrain typos to a certain set of characters, you can pass an optional string of characters to this corruptor.
-One such example is to limit the corruptor to digits when manipulating a series of numbers that are broken up by non-digit characters.
+<p>By default, this mutator considers all possible neighboring keys for each key.
+If you want to constrain typos to a certain set of characters, you can pass an optional string of characters to this
+mutator.
+One such example is to limit the mutator to digits when manipulating a series of numbers that are broken up by
+non-digit characters.
 The following snippet avoids the substitution of hyphens by specifying that only digits may be manipulated.</p>
 <div class="language-py highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
 </span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 </span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="kn">import</span> <span class="nn">string</span>
 </span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>
-</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="kn">from</span> <span class="nn">gecko</span> <span class="kn">import</span> <span class="n">corruptor</span>
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="kn">from</span> <span class="nn">gecko</span> <span class="kn">import</span> <span class="n">mutator</span>
 </span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>
 </span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="n">rng</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="mi">2718</span><span class="p">)</span>
-</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="n">kb_corruptor</span> <span class="o">=</span> <span class="n">corruptor</span><span class="o">.</span><span class="n">with_cldr_keymap_file</span><span class="p">(</span>
+</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="n">kb_mutator</span> <span class="o">=</span> <span class="n">mutator</span><span class="o">.</span><span class="n">with_cldr_keymap_file</span><span class="p">(</span>
 </span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>    <span class="s2">&quot;./de-t-k0-windows.xml&quot;</span><span class="p">,</span>
 </span><span id="__span-2-10"><a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a>    <span class="n">charset</span><span class="o">=</span><span class="n">string</span><span class="o">.</span><span class="n">digits</span><span class="p">,</span>
 </span><span id="__span-2-11"><a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a>    <span class="n">rng</span><span class="o">=</span><span class="n">rng</span>
 </span><span id="__span-2-12"><a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a><span class="p">)</span>
 </span><span id="__span-2-13"><a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a><span class="n">srs</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">([</span><span class="s2">&quot;123-456-789&quot;</span><span class="p">,</span> <span class="s2">&quot;727-727-727&quot;</span><span class="p">,</span> <span class="s2">&quot;294-753-618&quot;</span><span class="p">])</span>
-</span><span id="__span-2-14"><a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a><span class="nb">print</span><span class="p">(</span><span class="n">kb_corruptor</span><span class="p">([</span><span class="n">srs</span><span class="p">]))</span>
+</span><span id="__span-2-14"><a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a><span class="nb">print</span><span class="p">(</span><span class="n">kb_mutator</span><span class="p">([</span><span class="n">srs</span><span class="p">]))</span>
 </span><span id="__span-2-15"><a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a><span class="c1"># =&gt; [[&quot;122-456-789&quot;, &quot;827-727-727&quot;, &quot;294-753-628&quot;]]</span>
 </span></code></pre></div>
 <h3 id="phonetic-errors">Phonetic errors</h3>
@@ -736,15 +763,15 @@ Taking the example from above, a suitable rule table could look like this.</p>
 </div>
 </div>
 <p>Gecko exposes the <code>with_phonetic_replacement_table</code> function to handle these types of tables.
-The signature is similar to that of <code>with_replacement_table</code>.</p>
+The call signature is similar to that of <code>with_replacement_table</code>.</p>
 <div class="language-py highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 </span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
 </span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>
-</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="kn">from</span> <span class="nn">gecko</span> <span class="kn">import</span> <span class="n">corruptor</span>
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="kn">from</span> <span class="nn">gecko</span> <span class="kn">import</span> <span class="n">mutator</span>
 </span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>
 </span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="n">rng</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="mi">8844167</span><span class="p">)</span>
 </span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>
-</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a><span class="n">phonetic_corruptor</span> <span class="o">=</span> <span class="n">corruptor</span><span class="o">.</span><span class="n">with_phonetic_replacement_table</span><span class="p">(</span>
+</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a><span class="n">phonetic_mutator</span> <span class="o">=</span> <span class="n">mutator</span><span class="o">.</span><span class="n">with_phonetic_replacement_table</span><span class="p">(</span>
 </span><span id="__span-4-9"><a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a>    <span class="s2">&quot;./phonetic-rules-de.csv&quot;</span><span class="p">,</span>
 </span><span id="__span-4-10"><a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a>    <span class="n">header</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
 </span><span id="__span-4-11"><a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a>    <span class="n">source_column</span><span class="o">=</span><span class="s2">&quot;source&quot;</span><span class="p">,</span>
@@ -754,155 +781,165 @@ The signature is similar to that of <code>with_replacement_table</code>.</p>
 </span><span id="__span-4-15"><a id="__codelineno-4-15" name="__codelineno-4-15" href="#__codelineno-4-15"></a><span class="p">)</span>
 </span><span id="__span-4-16"><a id="__codelineno-4-16" name="__codelineno-4-16" href="#__codelineno-4-16"></a>
 </span><span id="__span-4-17"><a id="__codelineno-4-17" name="__codelineno-4-17" href="#__codelineno-4-17"></a><span class="n">srs</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">([</span><span class="s2">&quot;straße&quot;</span><span class="p">,</span> <span class="s2">&quot;stadt&quot;</span><span class="p">,</span> <span class="s2">&quot;schießen&quot;</span><span class="p">])</span>
-</span><span id="__span-4-18"><a id="__codelineno-4-18" name="__codelineno-4-18" href="#__codelineno-4-18"></a><span class="nb">print</span><span class="p">(</span><span class="n">phonetic_corruptor</span><span class="p">([</span><span class="n">srs</span><span class="p">]))</span>
+</span><span id="__span-4-18"><a id="__codelineno-4-18" name="__codelineno-4-18" href="#__codelineno-4-18"></a><span class="nb">print</span><span class="p">(</span><span class="n">phonetic_mutator</span><span class="p">([</span><span class="n">srs</span><span class="p">]))</span>
 </span><span id="__span-4-19"><a id="__codelineno-4-19" name="__codelineno-4-19" href="#__codelineno-4-19"></a><span class="c1"># =&gt; [[&quot;strasse&quot;, &quot;statt&quot;, &quot;schiessen&quot;]]</span>
 </span></code></pre></div>
 <h3 id="missing-values">Missing values</h3>
-<p>A textual representation of a "missing value" is sometimes used to clearly indicate that a blank or an empty value is to be interpreted as a missing piece of information.
-In datasets sourced from large databases, this "missing value" might consist of characters that do not adhere to a table or column schema.
-A simple example would be <code>###_MISSING_###</code> in place of a person's date of birth, since it does not conform to any common date format and consists entirely of letters and special characters. </p>
-<p>Gecko provides the function <code>with_missing_value</code> which replaces certain values within a series with a custom "missing value".
-The corruptor replaces either empty, blank or all strings within a series depending on the defined strategy.
+<p>A textual representation of a "missing value" is sometimes used to clearly indicate that a blank or an empty value is to
+be interpreted as a missing piece of information.
+In datasets sourced from large databases, this "missing value" might consist of characters that do not adhere to a table
+or column schema.
+A simple example would be <code>###_MISSING_###</code> in place of a person's date of birth, since it does not conform to any
+common date format and consists entirely of letters and special characters.</p>
+<p>Gecko provides the function <code>with_missing_value</code> which replaces certain values within a series with a custom "missing
+value".
+The mutator replaces either empty, blank or all strings within a series depending on the defined strategy.
 This is best explained by a few examples.</p>
 <p>Gecko considers strings to be "empty" when their length is zero.
 Strings with whitespaces will be left as-is.</p>
 <div class="language-py highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
 </span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>
-</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="kn">from</span> <span class="nn">gecko</span> <span class="kn">import</span> <span class="n">corruptor</span>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="kn">from</span> <span class="nn">gecko</span> <span class="kn">import</span> <span class="n">mutator</span>
 </span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>
-</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="n">missing_corruptor</span> <span class="o">=</span> <span class="n">corruptor</span><span class="o">.</span><span class="n">with_missing_value</span><span class="p">(</span>
-</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>    <span class="s2">&quot;###_MISSING_###&quot;</span><span class="p">,</span> 
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="n">missing_mutator</span> <span class="o">=</span> <span class="n">mutator</span><span class="o">.</span><span class="n">with_missing_value</span><span class="p">(</span>
+</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>    <span class="s2">&quot;###_MISSING_###&quot;</span><span class="p">,</span>
 </span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a>    <span class="n">strategy</span><span class="o">=</span><span class="s2">&quot;empty&quot;</span>
 </span><span id="__span-5-8"><a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a><span class="p">)</span>
 </span><span id="__span-5-9"><a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a><span class="n">srs</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">([</span><span class="s2">&quot;apple&quot;</span><span class="p">,</span> <span class="s2">&quot;   &quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">])</span>
-</span><span id="__span-5-10"><a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a><span class="nb">print</span><span class="p">(</span><span class="n">missing_corruptor</span><span class="p">([</span><span class="n">srs</span><span class="p">]))</span>
+</span><span id="__span-5-10"><a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a><span class="nb">print</span><span class="p">(</span><span class="n">missing_mutator</span><span class="p">([</span><span class="n">srs</span><span class="p">]))</span>
 </span><span id="__span-5-11"><a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a><span class="c1"># =&gt; [[&quot;apple&quot;, &quot;   &quot;, &quot;###_MISSING_###&quot;]]</span>
 </span></code></pre></div>
 <p>Gecko considers strings to be "blank" when their length is zero after trimming all leading and trailing whitespaces.
-This is the default behavior of this corruptor.</p>
+This is the default behavior of this mutator.</p>
 <div class="language-py highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
 </span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>
-</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="kn">from</span> <span class="nn">gecko</span> <span class="kn">import</span> <span class="n">corruptor</span>
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="kn">from</span> <span class="nn">gecko</span> <span class="kn">import</span> <span class="n">mutator</span>
 </span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>
-</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="n">missing_corruptor</span> <span class="o">=</span> <span class="n">corruptor</span><span class="o">.</span><span class="n">with_missing_value</span><span class="p">(</span>
-</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>    <span class="s2">&quot;###_MISSING_###&quot;</span><span class="p">,</span> 
+</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="n">missing_mutator</span> <span class="o">=</span> <span class="n">mutator</span><span class="o">.</span><span class="n">with_missing_value</span><span class="p">(</span>
+</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>    <span class="s2">&quot;###_MISSING_###&quot;</span><span class="p">,</span>
 </span><span id="__span-6-7"><a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a>    <span class="n">strategy</span><span class="o">=</span><span class="s2">&quot;blank&quot;</span>
 </span><span id="__span-6-8"><a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a><span class="p">)</span>
 </span><span id="__span-6-9"><a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a><span class="n">srs</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">([</span><span class="s2">&quot;apple&quot;</span><span class="p">,</span> <span class="s2">&quot;   &quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">])</span>
-</span><span id="__span-6-10"><a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a><span class="nb">print</span><span class="p">(</span><span class="n">missing_corruptor</span><span class="p">([</span><span class="n">srs</span><span class="p">]))</span>
+</span><span id="__span-6-10"><a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a><span class="nb">print</span><span class="p">(</span><span class="n">missing_mutator</span><span class="p">([</span><span class="n">srs</span><span class="p">]))</span>
 </span><span id="__span-6-11"><a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a><span class="c1"># =&gt; [[&quot;apple&quot;, &quot;###_MISSING_###&quot;, &quot;###_MISSING_###&quot;]]</span>
 </span></code></pre></div>
 <p>The "nuclear" option is to replace all strings within a series with the "missing value".</p>
 <div class="language-py highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
 </span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>
-</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="kn">from</span> <span class="nn">gecko</span> <span class="kn">import</span> <span class="n">corruptor</span>
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="kn">from</span> <span class="nn">gecko</span> <span class="kn">import</span> <span class="n">mutator</span>
 </span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>
-</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="n">missing_corruptor</span> <span class="o">=</span> <span class="n">corruptor</span><span class="o">.</span><span class="n">with_missing_value</span><span class="p">(</span>
-</span><span id="__span-7-6"><a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a>    <span class="s2">&quot;###_MISSING_###&quot;</span><span class="p">,</span> 
+</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="n">missing_mutator</span> <span class="o">=</span> <span class="n">mutator</span><span class="o">.</span><span class="n">with_missing_value</span><span class="p">(</span>
+</span><span id="__span-7-6"><a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a>    <span class="s2">&quot;###_MISSING_###&quot;</span><span class="p">,</span>
 </span><span id="__span-7-7"><a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a>    <span class="n">strategy</span><span class="o">=</span><span class="s2">&quot;all&quot;</span>
 </span><span id="__span-7-8"><a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a><span class="p">)</span>
 </span><span id="__span-7-9"><a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a><span class="n">srs</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">([</span><span class="s2">&quot;apple&quot;</span><span class="p">,</span> <span class="s2">&quot;   &quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">])</span>
-</span><span id="__span-7-10"><a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a><span class="nb">print</span><span class="p">(</span><span class="n">missing_corruptor</span><span class="p">([</span><span class="n">srs</span><span class="p">]))</span>
+</span><span id="__span-7-10"><a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a><span class="nb">print</span><span class="p">(</span><span class="n">missing_mutator</span><span class="p">([</span><span class="n">srs</span><span class="p">]))</span>
 </span><span id="__span-7-11"><a id="__codelineno-7-11" name="__codelineno-7-11" href="#__codelineno-7-11"></a><span class="c1"># =&gt; [[&quot;###_MISSING_###&quot;, &quot;###_MISSING_###&quot;, &quot;###_MISSING_###&quot;]]</span>
 </span></code></pre></div>
 <h3 id="edit-errors">Edit errors</h3>
 <p>Edit errors are caused by a set of operations on single characters within a word.
-There are commonly four operations that can induce these types of errors: insertion and deletion of a single character, substitution of a character with a different one, and transposition of two adjacent characters.</p>
-<p>Gecko provides corruptors for each of these operations. 
+There are commonly four operations that can induce these types of errors: insertion and deletion of a single character,
+substitution of a character with a different one, and transposition of two adjacent characters.</p>
+<p>Gecko provides mutators for each of these operations.
 For insertions and substitutions, it is possible to define a set of characters to choose from.</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="kn">import</span> <span class="nn">string</span>
 </span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>
 </span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 </span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
 </span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a>
-</span><span id="__span-8-6"><a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a><span class="kn">from</span> <span class="nn">gecko</span> <span class="kn">import</span> <span class="n">corruptor</span>
+</span><span id="__span-8-6"><a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a><span class="kn">from</span> <span class="nn">gecko</span> <span class="kn">import</span> <span class="n">mutator</span>
 </span><span id="__span-8-7"><a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a>
 </span><span id="__span-8-8"><a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a><span class="n">rng</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="mi">8080</span><span class="p">)</span>
 </span><span id="__span-8-9"><a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a><span class="n">srs</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">([</span><span class="s2">&quot;apple&quot;</span><span class="p">,</span> <span class="s2">&quot;banana&quot;</span><span class="p">,</span> <span class="s2">&quot;clementine&quot;</span><span class="p">])</span>
 </span><span id="__span-8-10"><a id="__codelineno-8-10" name="__codelineno-8-10" href="#__codelineno-8-10"></a>
-</span><span id="__span-8-11"><a id="__codelineno-8-11" name="__codelineno-8-11" href="#__codelineno-8-11"></a><span class="n">insert_corruptor</span> <span class="o">=</span> <span class="n">corruptor</span><span class="o">.</span><span class="n">with_insert</span><span class="p">(</span><span class="n">charset</span><span class="o">=</span><span class="n">string</span><span class="o">.</span><span class="n">ascii_letters</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">rng</span><span class="p">)</span>
-</span><span id="__span-8-12"><a id="__codelineno-8-12" name="__codelineno-8-12" href="#__codelineno-8-12"></a><span class="nb">print</span><span class="p">(</span><span class="n">insert_corruptor</span><span class="p">([</span><span class="n">srs</span><span class="p">]))</span>
+</span><span id="__span-8-11"><a id="__codelineno-8-11" name="__codelineno-8-11" href="#__codelineno-8-11"></a><span class="n">insert_mutator</span> <span class="o">=</span> <span class="n">mutator</span><span class="o">.</span><span class="n">with_insert</span><span class="p">(</span><span class="n">charset</span><span class="o">=</span><span class="n">string</span><span class="o">.</span><span class="n">ascii_letters</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">rng</span><span class="p">)</span>
+</span><span id="__span-8-12"><a id="__codelineno-8-12" name="__codelineno-8-12" href="#__codelineno-8-12"></a><span class="nb">print</span><span class="p">(</span><span class="n">insert_mutator</span><span class="p">([</span><span class="n">srs</span><span class="p">]))</span>
 </span><span id="__span-8-13"><a id="__codelineno-8-13" name="__codelineno-8-13" href="#__codelineno-8-13"></a><span class="c1"># =&gt; [[&quot;aVpple&quot;, &quot;banaFna&quot;, &quot;clemenMtine&quot;]]</span>
 </span><span id="__span-8-14"><a id="__codelineno-8-14" name="__codelineno-8-14" href="#__codelineno-8-14"></a>
-</span><span id="__span-8-15"><a id="__codelineno-8-15" name="__codelineno-8-15" href="#__codelineno-8-15"></a><span class="n">delete_corruptor</span> <span class="o">=</span> <span class="n">corruptor</span><span class="o">.</span><span class="n">with_delete</span><span class="p">(</span><span class="n">rng</span><span class="o">=</span><span class="n">rng</span><span class="p">)</span>
-</span><span id="__span-8-16"><a id="__codelineno-8-16" name="__codelineno-8-16" href="#__codelineno-8-16"></a><span class="nb">print</span><span class="p">(</span><span class="n">delete_corruptor</span><span class="p">([</span><span class="n">srs</span><span class="p">]))</span>
+</span><span id="__span-8-15"><a id="__codelineno-8-15" name="__codelineno-8-15" href="#__codelineno-8-15"></a><span class="n">delete_mutator</span> <span class="o">=</span> <span class="n">mutator</span><span class="o">.</span><span class="n">with_delete</span><span class="p">(</span><span class="n">rng</span><span class="o">=</span><span class="n">rng</span><span class="p">)</span>
+</span><span id="__span-8-16"><a id="__codelineno-8-16" name="__codelineno-8-16" href="#__codelineno-8-16"></a><span class="nb">print</span><span class="p">(</span><span class="n">delete_mutator</span><span class="p">([</span><span class="n">srs</span><span class="p">]))</span>
 </span><span id="__span-8-17"><a id="__codelineno-8-17" name="__codelineno-8-17" href="#__codelineno-8-17"></a><span class="c1"># =&gt; [[&quot;aple&quot;, &quot;bnana&quot;, &quot;clementin&quot;]]</span>
 </span><span id="__span-8-18"><a id="__codelineno-8-18" name="__codelineno-8-18" href="#__codelineno-8-18"></a>
-</span><span id="__span-8-19"><a id="__codelineno-8-19" name="__codelineno-8-19" href="#__codelineno-8-19"></a><span class="n">substitute_corruptor</span> <span class="o">=</span> <span class="n">corruptor</span><span class="o">.</span><span class="n">with_substitute</span><span class="p">(</span><span class="n">charset</span><span class="o">=</span><span class="n">string</span><span class="o">.</span><span class="n">digits</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">rng</span><span class="p">)</span>
-</span><span id="__span-8-20"><a id="__codelineno-8-20" name="__codelineno-8-20" href="#__codelineno-8-20"></a><span class="nb">print</span><span class="p">(</span><span class="n">substitute_corruptor</span><span class="p">([</span><span class="n">srs</span><span class="p">]))</span>
+</span><span id="__span-8-19"><a id="__codelineno-8-19" name="__codelineno-8-19" href="#__codelineno-8-19"></a><span class="n">substitute_mutator</span> <span class="o">=</span> <span class="n">mutator</span><span class="o">.</span><span class="n">with_substitute</span><span class="p">(</span><span class="n">charset</span><span class="o">=</span><span class="n">string</span><span class="o">.</span><span class="n">digits</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">rng</span><span class="p">)</span>
+</span><span id="__span-8-20"><a id="__codelineno-8-20" name="__codelineno-8-20" href="#__codelineno-8-20"></a><span class="nb">print</span><span class="p">(</span><span class="n">substitute_mutator</span><span class="p">([</span><span class="n">srs</span><span class="p">]))</span>
 </span><span id="__span-8-21"><a id="__codelineno-8-21" name="__codelineno-8-21" href="#__codelineno-8-21"></a><span class="c1"># =&gt; [[&quot;appl9&quot;, &quot;ba4ana&quot;, &quot;clementi9e&quot;]]</span>
 </span><span id="__span-8-22"><a id="__codelineno-8-22" name="__codelineno-8-22" href="#__codelineno-8-22"></a>
-</span><span id="__span-8-23"><a id="__codelineno-8-23" name="__codelineno-8-23" href="#__codelineno-8-23"></a><span class="n">transpose_corruptor</span> <span class="o">=</span> <span class="n">corruptor</span><span class="o">.</span><span class="n">with_transpose</span><span class="p">(</span><span class="n">rng</span><span class="p">)</span>
-</span><span id="__span-8-24"><a id="__codelineno-8-24" name="__codelineno-8-24" href="#__codelineno-8-24"></a><span class="nb">print</span><span class="p">(</span><span class="n">transpose_corruptor</span><span class="p">([</span><span class="n">srs</span><span class="p">]))</span>
+</span><span id="__span-8-23"><a id="__codelineno-8-23" name="__codelineno-8-23" href="#__codelineno-8-23"></a><span class="n">transpose_mutator</span> <span class="o">=</span> <span class="n">mutator</span><span class="o">.</span><span class="n">with_transpose</span><span class="p">(</span><span class="n">rng</span><span class="p">)</span>
+</span><span id="__span-8-24"><a id="__codelineno-8-24" name="__codelineno-8-24" href="#__codelineno-8-24"></a><span class="nb">print</span><span class="p">(</span><span class="n">transpose_mutator</span><span class="p">([</span><span class="n">srs</span><span class="p">]))</span>
 </span><span id="__span-8-25"><a id="__codelineno-8-25" name="__codelineno-8-25" href="#__codelineno-8-25"></a><span class="c1"># =&gt; [[&quot;paple&quot;, &quot;baanna&quot;, &quot;clemenitne&quot;]]</span>
 </span></code></pre></div>
-<p>Gecko also provides a more general edit corruptor which wraps around the insertion, deletion, substitution and transposition corruptor.
+<p>Gecko also provides a more general edit mutator which wraps around the insertion, deletion, substitution and
+transposition mutator.
 It is then possible to assign probabilities for each operation.
 By default, all operations are equally likely to be performed.</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 </span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
 </span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>
-</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="kn">from</span> <span class="nn">gecko</span> <span class="kn">import</span> <span class="n">corruptor</span>
+</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="kn">from</span> <span class="nn">gecko</span> <span class="kn">import</span> <span class="n">mutator</span>
 </span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a>
 </span><span id="__span-9-6"><a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a><span class="n">rng</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="mi">8443</span><span class="p">)</span>
 </span><span id="__span-9-7"><a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a><span class="n">srs</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">([</span><span class="s2">&quot;apple&quot;</span><span class="p">,</span> <span class="s2">&quot;banana&quot;</span><span class="p">,</span> <span class="s2">&quot;clementine&quot;</span><span class="p">,</span> <span class="s2">&quot;durian&quot;</span><span class="p">,</span> <span class="s2">&quot;eggplant&quot;</span><span class="p">,</span> <span class="s2">&quot;fig&quot;</span><span class="p">,</span> <span class="s2">&quot;grape&quot;</span><span class="p">,</span> <span class="s2">&quot;honeydew&quot;</span><span class="p">])</span>
 </span><span id="__span-9-8"><a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a>
-</span><span id="__span-9-9"><a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a><span class="n">edit_corruptor_1</span> <span class="o">=</span> <span class="n">corruptor</span><span class="o">.</span><span class="n">with_edit</span><span class="p">(</span><span class="n">rng</span><span class="o">=</span><span class="n">rng</span><span class="p">)</span>
-</span><span id="__span-9-10"><a id="__codelineno-9-10" name="__codelineno-9-10" href="#__codelineno-9-10"></a><span class="nb">print</span><span class="p">(</span><span class="n">edit_corruptor_1</span><span class="p">([</span><span class="n">srs</span><span class="p">]))</span>
+</span><span id="__span-9-9"><a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a><span class="n">edit_mutator_1</span> <span class="o">=</span> <span class="n">mutator</span><span class="o">.</span><span class="n">with_edit</span><span class="p">(</span><span class="n">rng</span><span class="o">=</span><span class="n">rng</span><span class="p">)</span>
+</span><span id="__span-9-10"><a id="__codelineno-9-10" name="__codelineno-9-10" href="#__codelineno-9-10"></a><span class="nb">print</span><span class="p">(</span><span class="n">edit_mutator_1</span><span class="p">([</span><span class="n">srs</span><span class="p">]))</span>
 </span><span id="__span-9-11"><a id="__codelineno-9-11" name="__codelineno-9-11" href="#__codelineno-9-11"></a><span class="c1"># =&gt; [[&quot;aple&quot;, &quot;banan&quot;, &quot;clementinb&quot;, &quot;duiran&quot;, &quot;eAgplant&quot;, &quot;Nig&quot;, &quot;grapce&quot;, &quot;hoKeydew&quot;]]</span>
 </span><span id="__span-9-12"><a id="__codelineno-9-12" name="__codelineno-9-12" href="#__codelineno-9-12"></a>
-</span><span id="__span-9-13"><a id="__codelineno-9-13" name="__codelineno-9-13" href="#__codelineno-9-13"></a><span class="n">edit_corruptor_2</span> <span class="o">=</span> <span class="n">corruptor</span><span class="o">.</span><span class="n">with_edit</span><span class="p">(</span>
+</span><span id="__span-9-13"><a id="__codelineno-9-13" name="__codelineno-9-13" href="#__codelineno-9-13"></a><span class="n">edit_mutator_2</span> <span class="o">=</span> <span class="n">mutator</span><span class="o">.</span><span class="n">with_edit</span><span class="p">(</span>
 </span><span id="__span-9-14"><a id="__codelineno-9-14" name="__codelineno-9-14" href="#__codelineno-9-14"></a>    <span class="n">p_insert</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span>
 </span><span id="__span-9-15"><a id="__codelineno-9-15" name="__codelineno-9-15" href="#__codelineno-9-15"></a>    <span class="n">p_delete</span><span class="o">=</span><span class="mf">0.2</span><span class="p">,</span>
 </span><span id="__span-9-16"><a id="__codelineno-9-16" name="__codelineno-9-16" href="#__codelineno-9-16"></a>    <span class="n">p_substitute</span><span class="o">=</span><span class="mf">0.3</span><span class="p">,</span>
 </span><span id="__span-9-17"><a id="__codelineno-9-17" name="__codelineno-9-17" href="#__codelineno-9-17"></a>    <span class="n">p_transpose</span><span class="o">=</span><span class="mf">0.4</span><span class="p">,</span>
 </span><span id="__span-9-18"><a id="__codelineno-9-18" name="__codelineno-9-18" href="#__codelineno-9-18"></a>    <span class="n">rng</span><span class="o">=</span><span class="n">rng</span><span class="p">,</span>
 </span><span id="__span-9-19"><a id="__codelineno-9-19" name="__codelineno-9-19" href="#__codelineno-9-19"></a><span class="p">)</span>
-</span><span id="__span-9-20"><a id="__codelineno-9-20" name="__codelineno-9-20" href="#__codelineno-9-20"></a><span class="nb">print</span><span class="p">(</span><span class="n">edit_corruptor_2</span><span class="p">([</span><span class="n">srs</span><span class="p">]))</span>
+</span><span id="__span-9-20"><a id="__codelineno-9-20" name="__codelineno-9-20" href="#__codelineno-9-20"></a><span class="nb">print</span><span class="p">(</span><span class="n">edit_mutator_2</span><span class="p">([</span><span class="n">srs</span><span class="p">]))</span>
 </span><span id="__span-9-21"><a id="__codelineno-9-21" name="__codelineno-9-21" href="#__codelineno-9-21"></a><span class="c1"># =&gt; [[&quot;aplpe&quot;, &quot;anana&quot;, &quot;lementine&quot;, &quot;duriRan&quot;, &quot;geggplant&quot;, &quot;fg&quot;, &quot;rgape&quot;, &quot;honedyew&quot;]]</span>
 </span></code></pre></div>
 <h3 id="categorical-errors">Categorical errors</h3>
 <p>Sometimes an attribute can only take on a set number of values.
-For example, if you have a "gender" column in your dataset and it can only take on <code>m</code> for male, <code>f</code> for female and <code>o</code> for other, it wouldn't make sense for a corrupted record to contain anything else except these three options.</p>
+For example, if you have a "gender" column in your dataset and it can only take on <code>m</code> for male, <code>f</code> for female and <code>o</code>
+for other, it wouldn't make sense for a mutated record to contain anything else except these three options.</p>
 <p>Gecko offers the <code>with_categorical_values</code> function for this purpose.
-It sources all possible options from a column in CSV file and then applies random replacements respecting the limited available options.</p>
+It sources all possible options from a column in CSV file and then applies random replacements respecting the limited
+available options.</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 </span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
 </span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>
-</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="kn">from</span> <span class="nn">gecko</span> <span class="kn">import</span> <span class="n">corruptor</span>
+</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="kn">from</span> <span class="nn">gecko</span> <span class="kn">import</span> <span class="n">mutator</span>
 </span><span id="__span-10-5"><a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a>
 </span><span id="__span-10-6"><a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a><span class="n">rng</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="mi">22</span><span class="p">)</span>
 </span><span id="__span-10-7"><a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a><span class="n">srs</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">([</span><span class="s2">&quot;f&quot;</span><span class="p">,</span> <span class="s2">&quot;m&quot;</span><span class="p">,</span> <span class="s2">&quot;f&quot;</span><span class="p">,</span> <span class="s2">&quot;f&quot;</span><span class="p">,</span> <span class="s2">&quot;o&quot;</span><span class="p">,</span> <span class="s2">&quot;m&quot;</span><span class="p">,</span> <span class="s2">&quot;o&quot;</span><span class="p">,</span> <span class="s2">&quot;o&quot;</span><span class="p">])</span>
 </span><span id="__span-10-8"><a id="__codelineno-10-8" name="__codelineno-10-8" href="#__codelineno-10-8"></a>
-</span><span id="__span-10-9"><a id="__codelineno-10-9" name="__codelineno-10-9" href="#__codelineno-10-9"></a><span class="n">categorical_corruptor</span> <span class="o">=</span> <span class="n">corruptor</span><span class="o">.</span><span class="n">with_categorical_values</span><span class="p">(</span>
+</span><span id="__span-10-9"><a id="__codelineno-10-9" name="__codelineno-10-9" href="#__codelineno-10-9"></a><span class="n">categorical_mutator</span> <span class="o">=</span> <span class="n">mutator</span><span class="o">.</span><span class="n">with_categorical_values</span><span class="p">(</span>
 </span><span id="__span-10-10"><a id="__codelineno-10-10" name="__codelineno-10-10" href="#__codelineno-10-10"></a>    <span class="s2">&quot;./gender.csv&quot;</span><span class="p">,</span>  <span class="c1"># CSV file containing &quot;gender&quot; column with &quot;f&quot;, &quot;m&quot; and &quot;o&quot; as possible values</span>
 </span><span id="__span-10-11"><a id="__codelineno-10-11" name="__codelineno-10-11" href="#__codelineno-10-11"></a>    <span class="n">header</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
 </span><span id="__span-10-12"><a id="__codelineno-10-12" name="__codelineno-10-12" href="#__codelineno-10-12"></a>    <span class="n">value_column</span><span class="o">=</span><span class="s2">&quot;gender&quot;</span><span class="p">,</span>
 </span><span id="__span-10-13"><a id="__codelineno-10-13" name="__codelineno-10-13" href="#__codelineno-10-13"></a>    <span class="n">rng</span><span class="o">=</span><span class="n">rng</span><span class="p">,</span>
 </span><span id="__span-10-14"><a id="__codelineno-10-14" name="__codelineno-10-14" href="#__codelineno-10-14"></a><span class="p">)</span>
 </span><span id="__span-10-15"><a id="__codelineno-10-15" name="__codelineno-10-15" href="#__codelineno-10-15"></a>
-</span><span id="__span-10-16"><a id="__codelineno-10-16" name="__codelineno-10-16" href="#__codelineno-10-16"></a><span class="nb">print</span><span class="p">(</span><span class="n">categorical_corruptor</span><span class="p">([</span><span class="n">srs</span><span class="p">]))</span>
+</span><span id="__span-10-16"><a id="__codelineno-10-16" name="__codelineno-10-16" href="#__codelineno-10-16"></a><span class="nb">print</span><span class="p">(</span><span class="n">categorical_mutator</span><span class="p">([</span><span class="n">srs</span><span class="p">]))</span>
 </span><span id="__span-10-17"><a id="__codelineno-10-17" name="__codelineno-10-17" href="#__codelineno-10-17"></a><span class="c1"># =&gt; [[&quot;o&quot;, &quot;f&quot;, &quot;m&quot;, &quot;o&quot;, &quot;f&quot;, &quot;o&quot;, &quot;f&quot;, &quot;m&quot;]]</span>
 </span></code></pre></div>
 <h3 id="value-permutations">Value permutations</h3>
 <p>Certain types of information are easily confused with others.
-This is particularly true for names, where the differentiation between given and last names in a non-native language is challenging to get right.
+This is particularly true for names, where the differentiation between given and last names in a non-native language is
+challenging to get right.
 The <code>with_permute</code> function handles this exact use case.
 It simply swaps the values of two series that are passed into it.</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
 </span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>
-</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="kn">from</span> <span class="nn">gecko</span> <span class="kn">import</span> <span class="n">corruptor</span>
+</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="kn">from</span> <span class="nn">gecko</span> <span class="kn">import</span> <span class="n">mutator</span>
 </span><span id="__span-11-4"><a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a>
 </span><span id="__span-11-5"><a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a><span class="n">srs_given_name</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">([</span><span class="s2">&quot;Max&quot;</span><span class="p">,</span> <span class="s2">&quot;Jane&quot;</span><span class="p">,</span> <span class="s2">&quot;Jan&quot;</span><span class="p">])</span>
 </span><span id="__span-11-6"><a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a><span class="n">srs_last_name</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">([</span><span class="s2">&quot;Mustermann&quot;</span><span class="p">,</span> <span class="s2">&quot;Doe&quot;</span><span class="p">,</span> <span class="s2">&quot;Jansen&quot;</span><span class="p">])</span>
 </span><span id="__span-11-7"><a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a>
-</span><span id="__span-11-8"><a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a><span class="n">permute_corruptor</span> <span class="o">=</span> <span class="n">corruptor</span><span class="o">.</span><span class="n">with_permute</span><span class="p">()</span>
-</span><span id="__span-11-9"><a id="__codelineno-11-9" name="__codelineno-11-9" href="#__codelineno-11-9"></a><span class="nb">print</span><span class="p">(</span><span class="n">permute_corruptor</span><span class="p">([</span><span class="n">srs_given_name</span><span class="p">,</span> <span class="n">srs_last_name</span><span class="p">]))</span>
+</span><span id="__span-11-8"><a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a><span class="n">permute_mutator</span> <span class="o">=</span> <span class="n">mutator</span><span class="o">.</span><span class="n">with_permute</span><span class="p">()</span>
+</span><span id="__span-11-9"><a id="__codelineno-11-9" name="__codelineno-11-9" href="#__codelineno-11-9"></a><span class="nb">print</span><span class="p">(</span><span class="n">permute_mutator</span><span class="p">([</span><span class="n">srs_given_name</span><span class="p">,</span> <span class="n">srs_last_name</span><span class="p">]))</span>
 </span><span id="__span-11-10"><a id="__codelineno-11-10" name="__codelineno-11-10" href="#__codelineno-11-10"></a><span class="c1"># =&gt; [[&quot;Mustermann&quot;, &quot;Doe&quot;, &quot;Jansen&quot;],</span>
 </span><span id="__span-11-11"><a id="__codelineno-11-11" name="__codelineno-11-11" href="#__codelineno-11-11"></a><span class="c1">#       [&quot;Max&quot;, &quot;Jane&quot;, &quot;Jan&quot;]]</span>
 </span></code></pre></div>
 <h3 id="common-replacements">Common replacements</h3>
-<p>Other various error sources, such as optical character recognition (OCR) errors, can be modeled using simple replacement tables.
+<p>Other various error sources, such as optical character recognition (OCR) errors, can be modeled using simple replacement
+tables.
 These tables have a source and a target column, defining mappings between character sequences.</p>
 <p>The <code>with_replacement_table</code> function achieves just that.
 Suppose you have the following CSV file with common OCR errors.</p>
@@ -911,68 +948,70 @@ Suppose you have the following CSV file with common OCR errors.</p>
 </span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a>2,z
 </span><span id="__span-12-4"><a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a>1,|
 </span></code></pre></div>
-<p>You can use this file the same way you can with many other generation and corruption functions in Gecko.</p>
+<p>You can use this file the same way you can with many other generation and mutation functions in Gecko.</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 </span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a><span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
 </span><span id="__span-13-3"><a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a>
-</span><span id="__span-13-4"><a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a><span class="kn">from</span> <span class="nn">gecko</span> <span class="kn">import</span> <span class="n">corruptor</span>
+</span><span id="__span-13-4"><a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a><span class="kn">from</span> <span class="nn">gecko</span> <span class="kn">import</span> <span class="n">mutator</span>
 </span><span id="__span-13-5"><a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a>
 </span><span id="__span-13-6"><a id="__codelineno-13-6" name="__codelineno-13-6" href="#__codelineno-13-6"></a><span class="n">rng</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="mi">6379</span><span class="p">)</span>
 </span><span id="__span-13-7"><a id="__codelineno-13-7" name="__codelineno-13-7" href="#__codelineno-13-7"></a><span class="n">srs</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">([</span><span class="s2">&quot;kick 0&quot;</span><span class="p">,</span> <span class="s2">&quot;step 1&quot;</span><span class="p">,</span> <span class="s2">&quot;go 2&quot;</span><span class="p">,</span> <span class="s2">&quot;run 5&quot;</span><span class="p">])</span>
 </span><span id="__span-13-8"><a id="__codelineno-13-8" name="__codelineno-13-8" href="#__codelineno-13-8"></a>
-</span><span id="__span-13-9"><a id="__codelineno-13-9" name="__codelineno-13-9" href="#__codelineno-13-9"></a><span class="n">replacement_corruptor</span> <span class="o">=</span> <span class="n">corruptor</span><span class="o">.</span><span class="n">with_replacement_table</span><span class="p">(</span>
+</span><span id="__span-13-9"><a id="__codelineno-13-9" name="__codelineno-13-9" href="#__codelineno-13-9"></a><span class="n">replacement_mutator</span> <span class="o">=</span> <span class="n">mutator</span><span class="o">.</span><span class="n">with_replacement_table</span><span class="p">(</span>
 </span><span id="__span-13-10"><a id="__codelineno-13-10" name="__codelineno-13-10" href="#__codelineno-13-10"></a>    <span class="s2">&quot;./ocr.csv&quot;</span><span class="p">,</span>
 </span><span id="__span-13-11"><a id="__codelineno-13-11" name="__codelineno-13-11" href="#__codelineno-13-11"></a>    <span class="n">rng</span><span class="o">=</span><span class="n">rng</span><span class="p">,</span>
 </span><span id="__span-13-12"><a id="__codelineno-13-12" name="__codelineno-13-12" href="#__codelineno-13-12"></a><span class="p">)</span>
 </span><span id="__span-13-13"><a id="__codelineno-13-13" name="__codelineno-13-13" href="#__codelineno-13-13"></a>
-</span><span id="__span-13-14"><a id="__codelineno-13-14" name="__codelineno-13-14" href="#__codelineno-13-14"></a><span class="nb">print</span><span class="p">(</span><span class="n">replacement_corruptor</span><span class="p">([</span><span class="n">srs</span><span class="p">]))</span>
+</span><span id="__span-13-14"><a id="__codelineno-13-14" name="__codelineno-13-14" href="#__codelineno-13-14"></a><span class="nb">print</span><span class="p">(</span><span class="n">replacement_mutator</span><span class="p">([</span><span class="n">srs</span><span class="p">]))</span>
 </span><span id="__span-13-15"><a id="__codelineno-13-15" name="__codelineno-13-15" href="#__codelineno-13-15"></a><span class="c1"># =&gt; [&quot;lcick 0&quot;, &quot;step |&quot;, &quot;go z&quot;, &quot;run s&quot;]</span>
 </span></code></pre></div>
-<h2 id="multiple-corruptors">Multiple corruptors</h2>
-<p>Using <code>corrupt_dataframe</code>, you can apply multiple corruptors on many columns at once.
-It is possible to set probabilities for each corruptor, as well as to define multiple corruptors per column.</p>
+<h2 id="multiple-mutators">Multiple mutators</h2>
+<p>Using <code>mutate_data_frame</code>, you can apply multiple mutators on many columns at once.
+It is possible to set probabilities for each mutator, as well as to define multiple mutators per column.</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="kn">import</span> <span class="nn">string</span>
 </span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a>
 </span><span id="__span-14-3"><a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 </span><span id="__span-14-4"><a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a><span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
 </span><span id="__span-14-5"><a id="__codelineno-14-5" name="__codelineno-14-5" href="#__codelineno-14-5"></a>
-</span><span id="__span-14-6"><a id="__codelineno-14-6" name="__codelineno-14-6" href="#__codelineno-14-6"></a><span class="kn">from</span> <span class="nn">gecko</span> <span class="kn">import</span> <span class="n">corruptor</span>
-</span><span id="__span-14-7"><a id="__codelineno-14-7" name="__codelineno-14-7" href="#__codelineno-14-7"></a><span class="kn">from</span> <span class="nn">gecko.corruptor</span> <span class="kn">import</span> <span class="n">with_permute</span>
-</span><span id="__span-14-8"><a id="__codelineno-14-8" name="__codelineno-14-8" href="#__codelineno-14-8"></a>
-</span><span id="__span-14-9"><a id="__codelineno-14-9" name="__codelineno-14-9" href="#__codelineno-14-9"></a><span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
-</span><span id="__span-14-10"><a id="__codelineno-14-10" name="__codelineno-14-10" href="#__codelineno-14-10"></a>    <span class="p">{</span>
-</span><span id="__span-14-11"><a id="__codelineno-14-11" name="__codelineno-14-11" href="#__codelineno-14-11"></a>        <span class="s2">&quot;fruit&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;apple&quot;</span><span class="p">,</span> <span class="s2">&quot;banana&quot;</span><span class="p">,</span> <span class="s2">&quot;orange&quot;</span><span class="p">],</span>
-</span><span id="__span-14-12"><a id="__codelineno-14-12" name="__codelineno-14-12" href="#__codelineno-14-12"></a>        <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;elstar&quot;</span><span class="p">,</span> <span class="s2">&quot;cavendish&quot;</span><span class="p">,</span> <span class="s2">&quot;mandarin&quot;</span><span class="p">],</span>
-</span><span id="__span-14-13"><a id="__codelineno-14-13" name="__codelineno-14-13" href="#__codelineno-14-13"></a>        <span class="s2">&quot;weight_in_grams&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;241.0&quot;</span><span class="p">,</span> <span class="s2">&quot;195.6&quot;</span><span class="p">,</span> <span class="s2">&quot;71.1&quot;</span><span class="p">],</span>
-</span><span id="__span-14-14"><a id="__codelineno-14-14" name="__codelineno-14-14" href="#__codelineno-14-14"></a>        <span class="s2">&quot;amount&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;3&quot;</span><span class="p">,</span> <span class="s2">&quot;5&quot;</span><span class="p">,</span> <span class="s2">&quot;6&quot;</span><span class="p">],</span>
-</span><span id="__span-14-15"><a id="__codelineno-14-15" name="__codelineno-14-15" href="#__codelineno-14-15"></a>        <span class="s2">&quot;grade&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;B&quot;</span><span class="p">,</span> <span class="s2">&quot;C&quot;</span><span class="p">,</span> <span class="s2">&quot;B&quot;</span><span class="p">],</span>
-</span><span id="__span-14-16"><a id="__codelineno-14-16" name="__codelineno-14-16" href="#__codelineno-14-16"></a>    <span class="p">}</span>
-</span><span id="__span-14-17"><a id="__codelineno-14-17" name="__codelineno-14-17" href="#__codelineno-14-17"></a><span class="p">)</span>
-</span><span id="__span-14-18"><a id="__codelineno-14-18" name="__codelineno-14-18" href="#__codelineno-14-18"></a>
-</span><span id="__span-14-19"><a id="__codelineno-14-19" name="__codelineno-14-19" href="#__codelineno-14-19"></a><span class="n">rng</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="mi">25565</span><span class="p">)</span>
-</span><span id="__span-14-20"><a id="__codelineno-14-20" name="__codelineno-14-20" href="#__codelineno-14-20"></a>
-</span><span id="__span-14-21"><a id="__codelineno-14-21" name="__codelineno-14-21" href="#__codelineno-14-21"></a><span class="n">df_corrupt</span> <span class="o">=</span> <span class="n">corruptor</span><span class="o">.</span><span class="n">corrupt_dataframe</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="p">{</span>
-</span><span id="__span-14-22"><a id="__codelineno-14-22" name="__codelineno-14-22" href="#__codelineno-14-22"></a>    <span class="p">(</span><span class="s2">&quot;fruit&quot;</span><span class="p">,</span> <span class="s2">&quot;type&quot;</span><span class="p">):</span> <span class="p">(</span><span class="mf">.5</span><span class="p">,</span> <span class="n">with_permute</span><span class="p">()),</span>  <span class="c1"># (1)!</span>
-</span><span id="__span-14-23"><a id="__codelineno-14-23" name="__codelineno-14-23" href="#__codelineno-14-23"></a>    <span class="s2">&quot;grade&quot;</span><span class="p">:</span> <span class="p">[</span>  <span class="c1"># (2)!</span>
-</span><span id="__span-14-24"><a id="__codelineno-14-24" name="__codelineno-14-24" href="#__codelineno-14-24"></a>        <span class="n">corruptor</span><span class="o">.</span><span class="n">with_missing_value</span><span class="p">(</span><span class="n">strategy</span><span class="o">=</span><span class="s2">&quot;all&quot;</span><span class="p">),</span>
-</span><span id="__span-14-25"><a id="__codelineno-14-25" name="__codelineno-14-25" href="#__codelineno-14-25"></a>        <span class="n">corruptor</span><span class="o">.</span><span class="n">with_substitute</span><span class="p">(</span><span class="n">charset</span><span class="o">=</span><span class="n">string</span><span class="o">.</span><span class="n">ascii_uppercase</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">rng</span><span class="p">),</span>
-</span><span id="__span-14-26"><a id="__codelineno-14-26" name="__codelineno-14-26" href="#__codelineno-14-26"></a>    <span class="p">],</span>
-</span><span id="__span-14-27"><a id="__codelineno-14-27" name="__codelineno-14-27" href="#__codelineno-14-27"></a>    <span class="s2">&quot;amount&quot;</span><span class="p">:</span> <span class="p">[</span>  <span class="c1"># (3)!</span>
-</span><span id="__span-14-28"><a id="__codelineno-14-28" name="__codelineno-14-28" href="#__codelineno-14-28"></a>        <span class="p">(</span><span class="mf">.8</span><span class="p">,</span> <span class="n">corruptor</span><span class="o">.</span><span class="n">with_insert</span><span class="p">(</span><span class="n">charset</span><span class="o">=</span><span class="n">string</span><span class="o">.</span><span class="n">digits</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">rng</span><span class="p">,</span> <span class="p">)),</span>
-</span><span id="__span-14-29"><a id="__codelineno-14-29" name="__codelineno-14-29" href="#__codelineno-14-29"></a>        <span class="p">(</span><span class="mf">.2</span><span class="p">,</span> <span class="n">corruptor</span><span class="o">.</span><span class="n">with_delete</span><span class="p">(</span><span class="n">rng</span><span class="o">=</span><span class="n">rng</span><span class="p">,</span> <span class="p">))</span>
-</span><span id="__span-14-30"><a id="__codelineno-14-30" name="__codelineno-14-30" href="#__codelineno-14-30"></a>    <span class="p">]</span>
-</span><span id="__span-14-31"><a id="__codelineno-14-31" name="__codelineno-14-31" href="#__codelineno-14-31"></a><span class="p">},</span> <span class="n">rng</span><span class="o">=</span><span class="n">rng</span><span class="p">)</span>
-</span><span id="__span-14-32"><a id="__codelineno-14-32" name="__codelineno-14-32" href="#__codelineno-14-32"></a>
-</span><span id="__span-14-33"><a id="__codelineno-14-33" name="__codelineno-14-33" href="#__codelineno-14-33"></a><span class="nb">print</span><span class="p">(</span><span class="n">df_corrupt</span><span class="p">)</span>
-</span><span id="__span-14-34"><a id="__codelineno-14-34" name="__codelineno-14-34" href="#__codelineno-14-34"></a><span class="c1"># =&gt; [[&quot;fruit&quot;, &quot;type&quot;, &quot;weight_in_grams&quot;, &quot;amount&quot;, &quot;grade&quot;],</span>
-</span><span id="__span-14-35"><a id="__codelineno-14-35" name="__codelineno-14-35" href="#__codelineno-14-35"></a><span class="c1">#       [&quot;apple&quot;, &quot;elstar&quot;, &quot;241.0&quot;, &quot;83&quot;, &quot;&quot;],</span>
-</span><span id="__span-14-36"><a id="__codelineno-14-36" name="__codelineno-14-36" href="#__codelineno-14-36"></a><span class="c1">#       [&quot;cavendish&quot;, &quot;banana&quot;, &quot;195.6&quot;, &quot;&quot;, &quot;O&quot;],</span>
-</span><span id="__span-14-37"><a id="__codelineno-14-37" name="__codelineno-14-37" href="#__codelineno-14-37"></a><span class="c1">#       [&quot;mandarin&quot;, &quot;orange&quot;, &quot;71.1&quot;, &quot;&quot;, &quot;F&quot;]]</span>
+</span><span id="__span-14-6"><a id="__codelineno-14-6" name="__codelineno-14-6" href="#__codelineno-14-6"></a><span class="kn">from</span> <span class="nn">gecko</span> <span class="kn">import</span> <span class="n">mutator</span>
+</span><span id="__span-14-7"><a id="__codelineno-14-7" name="__codelineno-14-7" href="#__codelineno-14-7"></a>
+</span><span id="__span-14-8"><a id="__codelineno-14-8" name="__codelineno-14-8" href="#__codelineno-14-8"></a><span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
+</span><span id="__span-14-9"><a id="__codelineno-14-9" name="__codelineno-14-9" href="#__codelineno-14-9"></a>    <span class="p">{</span>
+</span><span id="__span-14-10"><a id="__codelineno-14-10" name="__codelineno-14-10" href="#__codelineno-14-10"></a>        <span class="s2">&quot;fruit&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;apple&quot;</span><span class="p">,</span> <span class="s2">&quot;banana&quot;</span><span class="p">,</span> <span class="s2">&quot;orange&quot;</span><span class="p">],</span>
+</span><span id="__span-14-11"><a id="__codelineno-14-11" name="__codelineno-14-11" href="#__codelineno-14-11"></a>        <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;elstar&quot;</span><span class="p">,</span> <span class="s2">&quot;cavendish&quot;</span><span class="p">,</span> <span class="s2">&quot;mandarin&quot;</span><span class="p">],</span>
+</span><span id="__span-14-12"><a id="__codelineno-14-12" name="__codelineno-14-12" href="#__codelineno-14-12"></a>        <span class="s2">&quot;weight_in_grams&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;241.0&quot;</span><span class="p">,</span> <span class="s2">&quot;195.6&quot;</span><span class="p">,</span> <span class="s2">&quot;71.1&quot;</span><span class="p">],</span>
+</span><span id="__span-14-13"><a id="__codelineno-14-13" name="__codelineno-14-13" href="#__codelineno-14-13"></a>        <span class="s2">&quot;amount&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;3&quot;</span><span class="p">,</span> <span class="s2">&quot;5&quot;</span><span class="p">,</span> <span class="s2">&quot;6&quot;</span><span class="p">],</span>
+</span><span id="__span-14-14"><a id="__codelineno-14-14" name="__codelineno-14-14" href="#__codelineno-14-14"></a>        <span class="s2">&quot;grade&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;B&quot;</span><span class="p">,</span> <span class="s2">&quot;C&quot;</span><span class="p">,</span> <span class="s2">&quot;B&quot;</span><span class="p">],</span>
+</span><span id="__span-14-15"><a id="__codelineno-14-15" name="__codelineno-14-15" href="#__codelineno-14-15"></a>    <span class="p">}</span>
+</span><span id="__span-14-16"><a id="__codelineno-14-16" name="__codelineno-14-16" href="#__codelineno-14-16"></a><span class="p">)</span>
+</span><span id="__span-14-17"><a id="__codelineno-14-17" name="__codelineno-14-17" href="#__codelineno-14-17"></a>
+</span><span id="__span-14-18"><a id="__codelineno-14-18" name="__codelineno-14-18" href="#__codelineno-14-18"></a><span class="n">rng</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="mi">25565</span><span class="p">)</span>
+</span><span id="__span-14-19"><a id="__codelineno-14-19" name="__codelineno-14-19" href="#__codelineno-14-19"></a>
+</span><span id="__span-14-20"><a id="__codelineno-14-20" name="__codelineno-14-20" href="#__codelineno-14-20"></a><span class="n">df_mutated</span> <span class="o">=</span> <span class="n">mutator</span><span class="o">.</span><span class="n">mutate_data_frame</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="p">{</span>
+</span><span id="__span-14-21"><a id="__codelineno-14-21" name="__codelineno-14-21" href="#__codelineno-14-21"></a>    <span class="p">(</span><span class="s2">&quot;fruit&quot;</span><span class="p">,</span> <span class="s2">&quot;type&quot;</span><span class="p">):</span> <span class="p">(</span><span class="mf">.5</span><span class="p">,</span> <span class="n">mutator</span><span class="o">.</span><span class="n">with_permute</span><span class="p">()),</span>  <span class="c1"># (1)!</span>
+</span><span id="__span-14-22"><a id="__codelineno-14-22" name="__codelineno-14-22" href="#__codelineno-14-22"></a>    <span class="s2">&quot;grade&quot;</span><span class="p">:</span> <span class="p">[</span>  <span class="c1"># (2)!</span>
+</span><span id="__span-14-23"><a id="__codelineno-14-23" name="__codelineno-14-23" href="#__codelineno-14-23"></a>        <span class="n">mutator</span><span class="o">.</span><span class="n">with_missing_value</span><span class="p">(</span><span class="n">strategy</span><span class="o">=</span><span class="s2">&quot;all&quot;</span><span class="p">),</span>
+</span><span id="__span-14-24"><a id="__codelineno-14-24" name="__codelineno-14-24" href="#__codelineno-14-24"></a>        <span class="n">mutator</span><span class="o">.</span><span class="n">with_substitute</span><span class="p">(</span><span class="n">charset</span><span class="o">=</span><span class="n">string</span><span class="o">.</span><span class="n">ascii_uppercase</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">rng</span><span class="p">),</span>
+</span><span id="__span-14-25"><a id="__codelineno-14-25" name="__codelineno-14-25" href="#__codelineno-14-25"></a>    <span class="p">],</span>
+</span><span id="__span-14-26"><a id="__codelineno-14-26" name="__codelineno-14-26" href="#__codelineno-14-26"></a>    <span class="s2">&quot;amount&quot;</span><span class="p">:</span> <span class="p">[</span>  <span class="c1"># (3)!</span>
+</span><span id="__span-14-27"><a id="__codelineno-14-27" name="__codelineno-14-27" href="#__codelineno-14-27"></a>        <span class="p">(</span><span class="mf">.8</span><span class="p">,</span> <span class="n">mutator</span><span class="o">.</span><span class="n">with_insert</span><span class="p">(</span><span class="n">charset</span><span class="o">=</span><span class="n">string</span><span class="o">.</span><span class="n">digits</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">rng</span><span class="p">)),</span>
+</span><span id="__span-14-28"><a id="__codelineno-14-28" name="__codelineno-14-28" href="#__codelineno-14-28"></a>        <span class="p">(</span><span class="mf">.2</span><span class="p">,</span> <span class="n">mutator</span><span class="o">.</span><span class="n">with_delete</span><span class="p">(</span><span class="n">rng</span><span class="o">=</span><span class="n">rng</span><span class="p">))</span>
+</span><span id="__span-14-29"><a id="__codelineno-14-29" name="__codelineno-14-29" href="#__codelineno-14-29"></a>    <span class="p">]</span>
+</span><span id="__span-14-30"><a id="__codelineno-14-30" name="__codelineno-14-30" href="#__codelineno-14-30"></a><span class="p">},</span> <span class="n">rng</span><span class="o">=</span><span class="n">rng</span><span class="p">)</span>
+</span><span id="__span-14-31"><a id="__codelineno-14-31" name="__codelineno-14-31" href="#__codelineno-14-31"></a>
+</span><span id="__span-14-32"><a id="__codelineno-14-32" name="__codelineno-14-32" href="#__codelineno-14-32"></a><span class="nb">print</span><span class="p">(</span><span class="n">df_mutated</span><span class="p">)</span>
+</span><span id="__span-14-33"><a id="__codelineno-14-33" name="__codelineno-14-33" href="#__codelineno-14-33"></a><span class="c1"># =&gt; [[&quot;fruit&quot;, &quot;type&quot;, &quot;weight_in_grams&quot;, &quot;amount&quot;, &quot;grade&quot;],</span>
+</span><span id="__span-14-34"><a id="__codelineno-14-34" name="__codelineno-14-34" href="#__codelineno-14-34"></a><span class="c1">#       [&quot;apple&quot;, &quot;elstar&quot;, &quot;241.0&quot;, &quot;83&quot;, &quot;&quot;],</span>
+</span><span id="__span-14-35"><a id="__codelineno-14-35" name="__codelineno-14-35" href="#__codelineno-14-35"></a><span class="c1">#       [&quot;cavendish&quot;, &quot;banana&quot;, &quot;195.6&quot;, &quot;&quot;, &quot;O&quot;],</span>
+</span><span id="__span-14-36"><a id="__codelineno-14-36" name="__codelineno-14-36" href="#__codelineno-14-36"></a><span class="c1">#       [&quot;mandarin&quot;, &quot;orange&quot;, &quot;71.1&quot;, &quot;&quot;, &quot;F&quot;]]</span>
 </span></code></pre></div>
 <ol>
-<li>You can assign probabilities to a corruptor for a column. In this case, the permutation corruptor will be applied to 50% of all records. The remaining 50% remain untouched.</li>
-<li>You can assign multiple corruptors to a column. In this case, the two corruptors will be evenly applied to 50% of all records.</li>
-<li>You can assign probabilities to multiple corruptors for a column. In this case, the insertion and deletion corruptor are applied to 80% and 20% of all records respectively.</li>
+<li>You can assign probabilities to a mutator for a column. In this case, the permutation mutator will be applied to
+   50% of all records. The remaining 50% remain untouched.</li>
+<li>You can assign multiple mutators to a column. In this case, the two mutators will be evenly applied to 50% of all
+   records.</li>
+<li>You can assign probabilities to multiple mutators for a column. In this case, the insertion and deletion mutator
+   are applied to 80% and 20% of all records respectively.</li>
 </ol>
 
 
@@ -1059,8 +1098,8 @@ It is possible to set probabilities for each corruptor, as well as to define mul
       
       
     
-    <a href="https://gitlab.com/ul-mds/record-linkage/gecko/gecko/" target="_blank" rel="noopener" title="gitlab.com" class="md-social__link">
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.5.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2023 Fonticons, Inc.--><path d="m503.5 204.6-.7-1.8-69.7-181.78c-1.4-3.57-3.9-6.59-7.2-8.64-2.4-1.55-5.1-2.515-8-2.81-2.9-.295-5.7.083-8.4 1.11-2.7 1.02-5.1 2.66-7.1 4.78-1.9 2.12-3.3 4.67-4.1 7.44l-47 144H160.8l-47.1-144c-.8-2.77-2.2-5.31-4.1-7.43-2-2.12-4.4-3.75-7.1-4.77a18.1 18.1 0 0 0-8.38-1.113 18.4 18.4 0 0 0-8.04 2.793 18.09 18.09 0 0 0-7.16 8.64L9.267 202.8l-.724 1.8a129.57 129.57 0 0 0-3.52 82c7.747 26.9 24.047 50.7 46.447 67.6l.27.2.59.4 105.97 79.5 52.6 39.7 32 24.2c3.7 1.9 8.3 4.3 13 4.3 4.7 0 9.3-2.4 13-4.3l32-24.2 52.6-39.7 106.7-79.9.3-.3c22.4-16.9 38.7-40.6 45.6-67.5 8.6-27 7.4-55.8-2.6-82z"/></svg>
+    <a href="https://github.com/ul-mds/" target="_blank" rel="noopener" title="github.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.5.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2023 Fonticons, Inc.--><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg>
     </a>
   
     
