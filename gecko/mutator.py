@@ -1,3 +1,8 @@
+"""
+The mutator module provides mutator functions for mutating data.
+These mutators implement common error sources such as typos based on keymaps, random edit errors and more.
+"""
+
 __all__ = [
     "Mutator",
     "with_cldr_keymap_file",
@@ -58,15 +63,25 @@ class KeyMutation:
 P = ParamSpec("P")
 
 
-def with_function(func: Callable[Concatenate[str, P], str], *args, **kwargs) -> Mutator:
+def with_function(
+    func: Callable[Concatenate[str, P], str],
+    *args: tuple[Any, ...],
+    **kwargs: dict[str, Any],
+) -> Mutator:
     """
-    Mutate data with an arbitrary function that returns a single value at a time.
-    This mutator should be used sparingly as it is not vectorized, meaning values have to be mutated one by one.
-    Use this mutator for testing purposes or if performance is not critical.
-    This mutator only accepts single series.
+    Mutate data using an arbitrary function that mutates a single value at a time.
 
-    :param func: function that takes in a string, any arguments passed into this wrapper and returns a single string
-    :return: function returning a Pandas series with values mutated by the custom function
+    Notes:
+        This function should be used sparingly since it is not vectorized.
+        Only use it for testing purposes or if performance is not important.
+
+    Args:
+        func: function to invoke to mutate data with
+        *args: positional arguments to pass to `func`
+        **kwargs: keyword arguments to pass to `func`
+
+    Returns:
+        function returning list with strings mutated using custom function
     """
 
     def _mutate(srs_lst: list[pd.Series]) -> list[pd.Series]:
@@ -92,12 +107,14 @@ def with_cldr_keymap_file(
     Any character may be replaced with one of its horizontal or vertical neighbors on a keyboard.
     They may also be replaced with its upper- or lowercase variant.
     It is possible for a string to not be modified if a selected character has no possible replacements.
-    This mutator only accepts single series.
 
-    :param cldr_path: path to CLDR keymap file
-    :param charset: optional string with characters that may be mutated (default: all characters)
-    :param rng: random number generator to use (default: None)
-    :return: function returning Pandas series of strings with random typos
+    Args:
+        cldr_path: path to CLDR keymap file
+        charset: string with characters that may be mutated
+        rng: random number generator to use
+
+    Returns:
+        function returning list with strings mutated by applying typos according to keymap file
     """
     if rng is None:
         rng = np.random.default_rng()
@@ -255,18 +272,21 @@ def with_phonetic_replacement_table(
     If no flags are defined, it is implied that this replacement can take place anywhere in a string.
     Conversely, if `^`, `$`, `_`, or any combination of the three are set, it implies that a replacement
     can only occur at the start, end or in the middle of a string.
-    This mutator only accepts single series.
 
-    :param csv_file_path: path to CSV file with pattern, replacement and flag column
-    :param header: `True` if the file contains a header, `False` otherwise (default: `False`)
-    :param encoding: character encoding of the CSV file (default: `utf-8`)
-    :param delimiter: column delimiter (default: `,`)
-    :param source_column: name of the source column if the file contains a header, otherwise the column index (default: `0`)
-    :param target_column: name of the target column if the file contains a header, otherwise the column index (default: `1`)
-    :param flags_column: name of the flags column if the file contains a header, otherwise the column index (default: `2`)
-    :param rng: random number generator to use (default: `None`)
-    :return: function returning Pandas series of strings with phonetically similar replacements
+    Args:
+        csv_file_path: path to CSV file containing phonetic replacement rules
+        header: `True` if the CSV file contains a header row, `False` otherwise
+        source_column: name or index of source column
+        target_column: name or index of target column
+        flags_column: name or index of flag column
+        encoding: character encoding of the CSV file
+        delimiter: column delimiter of the CSV file
+        rng: random number generator to use
+
+    Returns:
+        function returning list with strings mutated by applying phonetic errors according to rules in CSV file
     """
+
     # list of all flags. needs to be sorted for rng.
     _all_flags = "".join(sorted("^$_"))
 
@@ -446,17 +466,20 @@ def with_replacement_table(
     It is possible for a string to not be modified if no target value could be picked for its assigned source value.
     This can only happen if a source value is mapped to multiple target values.
     In this case, each target value will be independently selected or not.
-    This mutator only accepts single series.
 
-    :param csv_file_path: path to CSV file with source and target column
-    :param header: `True` if the file contains a header, `False` otherwise (default: `False`)
-    :param source_column: name of the source column if the file contains a header, otherwise the column index (default: `0`)
-    :param target_column: name of the target column if the file contains a header, otherwise the column index (default: `1`)
-    :param encoding: character encoding of the CSV file (default: `utf-8`)
-    :param delimiter: column delimiter (default: `,`)
-    :param rng: random number generator to use (default: `None`)
-    :return: function returning Pandas series of strings with inline substitutions according to replacement table
+    Args:
+        csv_file_path: path to CSV file
+        header: `True` if the CSV file contains a header row, `False` otherwiise
+        source_column: name or index of the source column
+        target_column: name or index of the target column
+        encoding: character encoding of the CSV file
+        delimiter: column delimiter of the CSV file
+        rng: random number generator to use
+
+    Returns:
+        function returning list with strings mutated by replacing characters as specified in CSV file
     """
+
     if rng is None:
         rng = np.random.default_rng()
 
@@ -564,13 +587,15 @@ def with_replacement_table(
 def _mutate_all_from_value(value: str) -> Mutator:
     """
     Mutate data by replacing all of its values with the same "missing" value.
-    This mutator only accepts single series.
 
-    :param value: "missing" value to replace entries with
-    :return: function returning Pandas series where all entries are replaced with "missing" value
+    Args:
+        value: "missing" value to replace entries with
+
+    Returns:
+        function returning list where all strings will be replaced with the "missing" value
     """
 
-    def _mutate_list(srs_lst: list[pd.Series]) -> list[pd.Series]:
+    def _mutate(srs_lst: list[pd.Series]) -> list[pd.Series]:
         __assert_srs_lst_len(srs_lst, 1)
         srs = srs_lst[0]
 
@@ -582,47 +607,50 @@ def _mutate_all_from_value(value: str) -> Mutator:
             )
         ]
 
-    return _mutate_list
+    return _mutate
 
 
 def _mutate_only_empty_from_value(value: str) -> Mutator:
     """
-    Mutate data by replacing all of its empty values (string length = 0) with the
-    same "missing" value.
-    This mutator only accepts single series.
+    Mutate data by replacing all of its empty values (string length = 0) with the same "missing" value.
 
-    :param value: "missing" value to replace empty entries with
-    :return: function returning Pandas series where all empty entries are replaced with "missing" value
+    Args:
+        value: "missing" value to replace empty entries with
+
+    Returns:
+        function returning list where all empty strings will be replaced with the "missing" value
     """
 
-    def _mutate_list(srs_lst: list[pd.Series]) -> list[pd.Series]:
+    def _mutate(srs_lst: list[pd.Series]) -> list[pd.Series]:
         __assert_srs_lst_len(srs_lst, 1)
 
         srs_out = srs_lst[0].copy()
         srs_out[srs_out == ""] = value
         return [srs_out]
 
-    return _mutate_list
+    return _mutate
 
 
 def _mutate_only_blank_from_value(value: str) -> Mutator:
     """
-    Mutate data by replacing all of its blank values (empty strings after trimming whitespaces)
-    with the same "missing" value.
-    This mutator only accepts single series.
+    Mutate data by replacing all of its blank values (empty strings after trimming whitespaces) with the same
+    "missing" value.
 
-    :param value: "missing" value to replace blank entries with
-    :return: function returning Pandas series where all blank entries are replaced with "missing" value
+    Args:
+        value: "missing" value to replace blank entries with
+
+    Returns:
+        function returning list where all blank strings will be replaced with the "missing" value
     """
 
-    def _mutate_list(srs_lst: list[pd.Series]) -> list[pd.Series]:
+    def _mutate(srs_lst: list[pd.Series]) -> list[pd.Series]:
         __assert_srs_lst_len(srs_lst, 1)
 
         srs_out = srs_lst[0].copy()
         srs_out[srs_out.str.strip() == ""] = value
         return [srs_out]
 
-    return _mutate_list
+    return _mutate
 
 
 def with_missing_value(
@@ -633,13 +661,16 @@ def with_missing_value(
     Mutate data by replacing select entries with a representative "missing" value.
     Strings are selected for replacement depending on the chosen strategy.
     If `all`, then all strings in the series will be replaced with the missing value.
-    If `blank`, then all strings that are either empty or consist of whitespace characters only will be replaced with the missing value.
+    If `blank`, then all strings that are either empty or consist of whitespace characters only will be replaced with
+    the missing value.
     If `empty`, then all strings that are empty will be replaced with the missing value.
-    This mutator only accepts single series.
 
-    :param value: "missing" value to replace select entries with (default: empty string)
-    :param strategy: `all`, `blank` or `empty` to select values to replace (default: `blank`)
-    :return: function returning Pandas series of strings where select entries are replaced with a "missing" value
+    Args:
+        value: "missing" value to replace select entries with
+        strategy: `all`, `blank` or `empty` to select values to replace
+
+    Returns:
+        function returning list where select strings will be replaced with the "missing" value
     """
     if strategy == "all":
         return _mutate_all_from_value(value)
@@ -658,11 +689,13 @@ def with_insert(
     """
     Mutate data by inserting random characters.
     The characters are drawn from the provided charset.
-    This mutator only accepts single series.
 
-    :param charset: string to sample random characters from (default: all ASCII letters)
-    :param rng: random number generator to use (default: `None`)
-    :return: function returning Pandas series of strings with randomly inserted characters
+    Args:
+        charset: string to sample random characters from
+        rng: random number generator to use
+
+    Returns:
+        function returning list with strings mutated by inserting random characters
     """
     if rng is None:
         rng = np.random.default_rng()
@@ -708,10 +741,12 @@ def with_insert(
 def with_delete(rng: Optional[np.random.Generator] = None) -> Mutator:
     """
     Mutate data by randomly deleting characters.
-    This mutator only accepts single series.
 
-    :param rng: random number generator to use (default: `None`)
-    :return: function returning Pandas series of strings with randomly deleted characters
+    Args:
+        rng: random number generator to use
+
+    Returns:
+        function returning list with strings mutated by deleting random characters
     """
     if rng is None:
         rng = np.random.default_rng()
@@ -755,11 +790,15 @@ def with_delete(rng: Optional[np.random.Generator] = None) -> Mutator:
 def with_transpose(rng: Optional[np.random.Generator] = None) -> Mutator:
     """
     Mutate data by randomly swapping neighboring characters.
-    Note that it is possible for the same two neighboring characters to be swapped.
-    This mutator only accepts single series.
 
-    :param rng: random number generator to use (default: `None`)
-    :return: function returning Pandas series of strings with randomly swapped neighboring characters
+    Notes:
+        It is possible for the same two neighboring characters to be swapped.
+
+    Args:
+        rng: random number generator to use
+
+    Returns:
+        function returning list with strings mutated by transposing random neighboring characters
     """
     if rng is None:
         rng = np.random.default_rng()
@@ -812,12 +851,16 @@ def with_substitute(
     """
     Mutate data by replacing single characters with a new one.
     The characters are drawn from the provided charset.
-    Note that it is possible for a character to be replaced by itself.
-    This mutator only accepts single series.
 
-    :param charset: string to sample random characters from (default: all ASCII letters)
-    :param rng: random number generator to use (default: `None`)
-    :return: function returning Pandas series of strings with randomly inserted characters
+    Notes:
+        It is possible for a character to be replaced by itself.
+
+    Args:
+        charset: string to sample random characters from
+        rng: random number generator to use
+
+    Returns:
+        function returning list with strings mutated by substituting random characters
     """
     if rng is None:
         rng = np.random.default_rng()
@@ -880,15 +923,17 @@ def with_edit(
     The charset of allowed characters is passed on to the insertion and substitution mutators.
     Each mutator receives its own isolated RNG which is derived from the RNG passed into this function.
     The probabilities of each mutator must sum up to 1.
-    This mutator only accepts single series.
 
-    :param p_insert: probability of random character insertion on a string (default: `0.25`, 25%)
-    :param p_delete: probability of random character deletion on a string (default: `0.25`, 25%)
-    :param p_substitute: probability of random character substitution on a string (default: `0.25`, 25%)
-    :param p_transpose: probability of random character transposition on a string (default: `0.25`, 25%)
-    :param charset: string to sample random characters from for insertion and substitution (default: all ASCII letters)
-    :param rng: random number generator to use (default: `None`)
-    :return: function returning Pandas series of strings with randomly mutated characters
+    Args:
+        p_insert: probability of random character insertion on a string
+        p_delete: probability of random character deletion on a string
+        p_substitute: probability of random character substitution on a string
+        p_transpose: probability of random character transposition on a string
+        charset: string to sample random characters from for insertion and substitution
+        rng: random number generator to use
+
+    Returns:
+        function returning list with strings mutated by random edit operations
     """
     if rng is None:
         rng = np.random.default_rng()
@@ -954,9 +999,9 @@ def with_noop() -> Mutator:
     Mutate data by not mutating it at all.
     This mutator returns the input series as-is.
     You might use it to leave a certain percentage of records in a series untouched.
-    This mutator only accepts single series.
 
-    :return: function returning Pandas series as-is
+    Returns:
+        function returning list of strings as-is
     """
 
     def _mutate(srs_lst: list[pd.Series]) -> list[pd.Series]:
@@ -977,15 +1022,17 @@ def with_categorical_values(
     Mutate data by replacing it with another from a list of categorical values.
     This mutator reads all unique values from a column within a CSV file.
     All strings within a series will be replaced with a different random value from this column.
-    This mutator only accepts single series.
 
-    :param csv_file_path: CSV file to read from
-    :param header: `True` if the file contains a header, `False` otherwise (default: `False`)
-    :param value_column: name of column with categorical values if the file contains a header, otherwise the column index (default: `0`)
-    :param encoding: character encoding of the CSV file (default: `utf-8`)
-    :param delimiter: column delimiter (default: `,`)
-    :param rng: random number generator to use (default: `None`)
-    :return: function returning Pandas series of strings that are replaced with a different value from a category
+    Args:
+        csv_file_path: path to CSV file
+        header: `True` if the file contains a header, `False` otherwise
+        value_column: name or index of value column
+        encoding: character encoding of the CSV file
+        delimiter: column delimiter of the CSV file
+        rng: random number generator to use
+
+    Returns:
+        function returning list with strings mutated by replacing values with a different one from a limited set of permitted values
     """
     if rng is None:
         rng = np.random.default_rng()
@@ -1049,20 +1096,20 @@ def with_categorical_values(
 
 def with_permute() -> Mutator:
     """
-    Mutate two series with data by permuting their contents.
+    Mutate data from two series by permuting their contents.
     This effectively swaps one series with another.
-    This mutator only accepts two series.
 
-    :return: function swapping the contents of two Pandas series
+    Returns:
+        function returning list with its entries swapped
     """
 
-    def __mutate(srs_lst: list[pd.Series]) -> list[pd.Series]:
+    def _mutate(srs_lst: list[pd.Series]) -> list[pd.Series]:
         __assert_srs_lst_len(srs_lst, 2)
 
         srs, srs_other = srs_lst
         return [srs_other.copy(), srs.copy()]
 
-    return __mutate
+    return _mutate
 
 
 def mutate_data_frame(
@@ -1077,17 +1124,20 @@ def mutate_data_frame(
         ],
     ],
     rng: Optional[np.random.Generator] = None,
-):
+) -> pd.DataFrame:
     """
-    Mutate a dataframe by applying several mutators on select columns.
+    Mutate a data frame by applying several mutators on select columns.
     This function takes a dictionary which has column names as keys and mutators as values.
     A column may be assigned a single mutator, a mutator with a probability, a list of mutators where each is applied
     with the same probability, and a list of weighted mutators where each is applied with its assigned probability.
 
-    :param df_in: dataframe to mutate
-    :param column_to_mutator_dict: dictionary of columns to mutators
-    :param rng: random number generator to use (default: `None`)
-    :return: copy of dataframe with mutators applied as specified
+    Args:
+        df_in: data frame to mutate
+        column_to_mutator_dict: mapping of column names to mutators
+        rng: random number generator to use
+
+    Returns:
+        data frame with columns mutated as specified
     """
 
     def __is_weighted_mutator_tuple(x: Any):
