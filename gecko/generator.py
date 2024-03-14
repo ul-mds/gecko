@@ -1,3 +1,8 @@
+"""
+The generator module provides generator functions for generating realistic data.
+These generators wrap around common data sources such as frequency tables and numeric distributions.
+"""
+
 __all__ = [
     "Generator",
     "from_function",
@@ -9,7 +14,7 @@ __all__ = [
 ]
 
 from os import PathLike
-from typing import Callable, Optional, Union
+from typing import Callable, Optional, Union, Any
 
 import numpy as np
 import pandas as pd
@@ -19,15 +24,23 @@ P = ParamSpec("P")
 Generator = Callable[[int], list[pd.Series]]
 
 
-def from_function(func: Callable[P, str], *args, **kwargs) -> Generator:
+def from_function(
+    func: Callable[P, str], *args: tuple[Any, ...], **kwargs: dict[str, Any]
+) -> Generator:
     """
     Generate data from an arbitrary function that returns a single value at a time.
-    This generator should be used sparingly as it is not vectorized, meaning values have to be generated one by one.
-    Use this generator for testing purposes or if performance is not critical.
-    This generator returns a single series with values generated from the supplied function.
 
-    :param func: function that takes in any arguments and returns a single string
-    :return: function returning a Pandas series with values generated from the custom function
+    Notes:
+        This function should be used sparingly since it is not vectorized.
+        Only use it for testing purposes or if performance is not important.
+
+    Args:
+        func: function to invoke to generate data from
+        *args: positional arguments to pass to `func`
+        **kwargs: keyword arguments to pass to `func`
+
+    Returns:
+        function returning list with strings generated from custom function
     """
 
     def _generate(count: int) -> list[pd.Series]:
@@ -43,15 +56,16 @@ def from_uniform_distribution(
     rng: Optional[np.random.Generator] = None,
 ) -> Generator:
     """
-    Generate data from numbers drawn from a uniform distribution within the specified bounds.
-    These numbers are formatted into strings.
-    This generator returns a single series with values generated from the uniform distribution.
+    Generate data from a uniform distribution.
 
-    :param low: lower (inclusive) bound of the uniform distribution (default: `0`)
-    :param high: upper (exclusive) bound of the uniform distribution (default: `1`)
-    :param precision: amount of decimal places to round to (default: `6`)
-    :param rng: random number generator to use (default: `None`)
-    :return: function returning Pandas series of numbers from uniform distribution with specified parameters
+    Args:
+        low: lower limit of uniform distribution (inclusive)
+        high: upper limit of uniform distribution (exclusive)
+        precision: decimal precision of the numbers generated from the uniform distribution
+        rng: random number generator to use
+
+    Returns:
+        function returning list with numbers drawn from a uniform distribution formatted as strings
     """
     if rng is None:
         rng = np.random.default_rng()
@@ -71,15 +85,16 @@ def from_normal_distribution(
     rng: Optional[np.random.Generator] = None,
 ) -> Generator:
     """
-    Generate data from numbers drawn from a normal distribution with the specified parameters.
-    These numbers are formatted into strings.
-    This generator returns a single series with values generated from the normal distribution.
+    Generate data from a normal distribution.
 
-    :param mean: mean of the normal distribution (default: `0`)
-    :param sd: standard deviation of the normal distribution (default: `1`)
-    :param precision: amount of decimal places to round to (default: `6`)
-    :param rng: random number generator to use (default: `None`)
-    :return: function returning Pandas series of numbers from normal distribution with specified parameters
+    Args:
+        mean: mean of the normal distribution
+        sd: standard deviation of the normal distribution
+        precision: decimal precision of the numbers generated from the normal distribution
+        rng: random number generator to use
+
+    Returns:
+        function returning list with numbers drawn from a normal distribution formatted as strings
     """
     if rng is None:
         rng = np.random.default_rng()
@@ -102,20 +117,22 @@ def from_frequency_table(
     rng: Optional[np.random.Generator] = None,
 ) -> Generator:
     """
-    Generate data from values in a CSV file.
-    This CSV file must contain at least two columns, one holding values and one holding their absolute frequencies.
-    Values are generated using their assigned absolute frequencies.
-    Therefore, the values in the resulting series should have a similar distribution compared to the input file.
-    This generator returns a single series with values generated from the value column of the CSV file.
+    Generate data from a frequency table.
+    The frequency table must be provided in CSV format and contain at least two columns: one containing values to
+    generate and one containing their assigned absolute frequencies.
+    Values generated by this function will have a distribution similar to the frequencies listed in the input file.
 
-    :param csv_file_path: CSV file to read from
-    :param header: `True` if the file contains a header, `False` otherwise (default: `False`)
-    :param value_column: name of the value column if the file contains a header, otherwise the column index (default: `0`)
-    :param freq_column: name of the frequency column if the file contains a header, otherwise the column index (default: `1`)
-    :param encoding: character encoding of the CSV file (default: `utf-8`)
-    :param delimiter: column delimiter (default: `,`)
-    :param rng: random number generator to use (default: `None`)
-    :return: function returning Pandas series of values with a distribution similar to that of the input file
+    Args:
+        csv_file_path: path to CSV file
+        header: `True` if the CSV file contains a header row, `False` otherwise
+        value_column: name or index of the value column
+        freq_column: name or index of the frequency column
+        encoding: character encoding of the CSV file
+        delimiter: column delimiter of the CSV file
+        rng: random number generator to use
+
+    Returns:
+        function returning list with single series containing values generated from the input file
     """
     if rng is None:
         rng = np.random.default_rng()
@@ -217,14 +234,19 @@ def from_multicolumn_frequency_table(
 def to_data_frame(
     column_to_generator_dict: dict[Union[str, tuple[str, ...]], Generator],
     count: int,
-):
+) -> pd.DataFrame:
     """
-    Generate a data frame by using multiple generators at once.
-    This function takes a dictionary where columns are mapped to their respective generators.
+    Generate data frame by using multiple generators at once.
+    Column names must be mapped to their respective generators.
+    A generator can be assigned to one or multiple column names, but it must always match the amount of series
+    that the generator returns.
 
-    :param column_to_generator_dict: dict that maps column names to generators
-    :param count: number of records to generate
-    :return: dataframe with columns generated as specified
+    Args:
+        column_to_generator_dict: mapping of column names to generators
+        count: amount of records to generate
+
+    Returns:
+        data frame with columns and rows generated as specified
     """
     if len(column_to_generator_dict) == 0:
         raise ValueError("generator dict may not be empty")

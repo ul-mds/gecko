@@ -2,6 +2,9 @@
 site_name: Gecko Docs
 plugins:
   - search
+  - mkdocstrings
+watch:
+  - gecko
 theme:
   name: material
   features:
@@ -50,6 +53,7 @@ nav:
   - Examples with Gecko:
       - German population dataset: examples/german.md
   - Release notes: release-notes.md
+  - API reference: api-reference.md
 
 extra:
   social:
