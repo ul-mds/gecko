@@ -9,6 +9,3 @@ steps:
     when:
       - event: tag
       - evaluate: 'CI_COMMIT_MESSAGE contains "[bench]"'
-
-depends_on:
-  - test
