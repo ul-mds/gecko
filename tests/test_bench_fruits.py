@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from gecko import generator, corruptor
+from gecko import generator, mutator
 from tests.helpers import get_asset_path
 
 pytestmark = pytest.mark.benchmark
@@ -117,7 +117,7 @@ def test_bench_to_dataframe(benchmark, rng):
     gen_uniform = __create_amount_uniform_dist_generator(rng)
 
     def __gen_dataframe(n: int):
-        return lambda: generator.to_dataframe(
+        return lambda: generator.to_data_frame(
             {
                 ("fruit", "type"): gen_multi_col,
                 "origin": gen_single_col,
@@ -135,37 +135,37 @@ def test_bench_to_dataframe(benchmark, rng):
         )
 
 
-def test_bench_corrupt_edit(benchmark, rng):
+def test_bench_mutate_edit(benchmark, rng):
     gen_origin = __create_origin_single_column_generator(rng)
-    corr_edit = corruptor.with_edit(rng=rng)
+    mut_edit = mutator.with_edit(rng=rng)
 
     for count in record_counts:
         srs_lst = gen_origin(count)
         benchmark(
-            lambda: corr_edit(srs_lst),
-            name=f"corr_edit_fruits({count})",
+            lambda: mut_edit(srs_lst),
+            name=f"mut_edit_fruits({count})",
             calls=100,
-            extra=__extra("corruptor.with_edit", count),
+            extra=__extra("mutator.with_edit", count),
         )
 
 
-def test_bench_corrupt_missing(benchmark, rng):
+def test_bench_mutate_missing(benchmark, rng):
     gen_origin = __create_origin_single_column_generator(rng)
-    corr_missing = corruptor.with_missing_value(strategy="all")
+    mut_missing = mutator.with_missing_value(strategy="all")
 
     for count in record_counts:
         srs_lst = gen_origin(count)
         benchmark(
-            lambda: corr_missing(srs_lst),
-            name=f"corr_missing_fruits({count})",
+            lambda: mut_missing(srs_lst),
+            name=f"mut_missing_fruits({count})",
             calls=100,
-            extra=__extra("corruptor.with_missing_value", count),
+            extra=__extra("mutator.with_missing_value", count),
         )
 
 
-def test_bench_corrupt_replacement_table(benchmark, rng):
+def test_bench_mutate_replacement_table(benchmark, rng):
     gen_origin = __create_origin_single_column_generator(rng)
-    corr_replacement = corruptor.with_replacement_table(
+    mut_replacement = mutator.with_replacement_table(
         get_asset_path("ocr.csv"),
         rng=rng,
     )
@@ -173,16 +173,16 @@ def test_bench_corrupt_replacement_table(benchmark, rng):
     for count in record_counts:
         srs_lst = gen_origin(count)
         benchmark(
-            lambda: corr_replacement(srs_lst),
-            name=f"corr_replacement_fruits({count})",
+            lambda: mut_replacement(srs_lst),
+            name=f"mut_replacement_fruits({count})",
             calls=100,
-            extra=__extra("corruptor.with_replacement_table", count),
+            extra=__extra("mutator.with_replacement_table", count),
         )
 
 
-def test_bench_corrupt_cldr(benchmark, rng):
+def test_bench_mutate_cldr(benchmark, rng):
     gen_origin = __create_origin_single_column_generator(rng)
-    corr_cldr = corruptor.with_cldr_keymap_file(
+    mut_cldr = mutator.with_cldr_keymap_file(
         get_asset_path("de-t-k0-windows.xml"),
         rng=rng,
     )
@@ -190,30 +190,30 @@ def test_bench_corrupt_cldr(benchmark, rng):
     for count in record_counts:
         srs_lst = gen_origin(count)
         benchmark(
-            lambda: corr_cldr(srs_lst),
-            name=f"corr_cldr_fruits({count})",
+            lambda: mut_cldr(srs_lst),
+            name=f"mut_cldr_fruits({count})",
             calls=100,
-            extra=__extra("corruptor.with_cldr_keymap_file", count),
+            extra=__extra("mutator.with_cldr_keymap_file", count),
         )
 
 
 def test_bench_permute(benchmark, rng):
     gen_fruit_type = __create_fruit_type_multicolumn_generator(rng)
-    corr_permute = corruptor.with_permute()
+    mut_permute = mutator.with_permute()
 
     for count in record_counts:
         srs_lst = gen_fruit_type(count)
         benchmark(
-            lambda: corr_permute(srs_lst),
-            name=f"corr_permute_fruits({count})",
+            lambda: mut_permute(srs_lst),
+            name=f"mut_permute_fruits({count})",
             calls=100,
-            extra=__extra("corruptor.with_permute", count),
+            extra=__extra("mutator.with_permute", count),
         )
 
 
 def test_bench_categorical(benchmark, rng):
     gen_origin = __create_origin_single_column_generator(rng)
-    corr_categorical = corruptor.with_categorical_values(
+    mut_categorical = mutator.with_categorical_values(
         get_asset_path("freq-fruit-origin.csv"),
         header=True,
         value_column="origin",
@@ -223,8 +223,8 @@ def test_bench_categorical(benchmark, rng):
     for count in record_counts:
         srs_lst = gen_origin(count)
         benchmark(
-            lambda: corr_categorical(srs_lst),
-            name=f"corr_categorical_fruits({count})",
+            lambda: mut_categorical(srs_lst),
+            name=f"mut_categorical_fruits({count})",
             calls=100,
-            extra=__extra("corruptor.with_categorical_values", count),
+            extra=__extra("mutator.with_categorical_values", count),
         )

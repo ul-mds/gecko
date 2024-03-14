@@ -2,6 +2,9 @@
 site_name: Gecko Docs
 plugins:
   - search
+  - mkdocstrings
+watch:
+  - gecko
 theme:
   name: material
   features:
@@ -46,15 +49,16 @@ markdown_extensions:
 nav:
   - Intro to Gecko: index.md
   - Generating data: data-generation.md
-  - Corrupting data: data-corruption.md
+  - Mutating data: data-mutation.md
   - Examples with Gecko:
       - German population dataset: examples/german.md
   - Release notes: release-notes.md
+  - API reference: api-reference.md
 
 extra:
   social:
-    - icon: fontawesome/brands/gitlab
-      link: https://gitlab.com/ul-mds/record-linkage/gecko/gecko/
+    - icon: fontawesome/brands/github
+      link: https://github.com/ul-mds/
     - icon: fontawesome/solid/globe
       link: https://www.uniklinikum-leipzig.de/einrichtungen/medical-data-science/en
     - icon: fontawesome/solid/envelope

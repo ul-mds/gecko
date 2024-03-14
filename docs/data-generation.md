@@ -1,14 +1,22 @@
 # Generating data
 
-Any function that takes in a number of rows and returns a list of [Pandas series](https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.Series.html) is considered a generator function in Gecko.
+A generator is a function that takes in a number of records and returns a list of
+[Pandas series](https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.Series.html) where each series
+represents a data column.
+For example, a generator that returns a single column containing numbers from one up to the desired amount of records
+could look like this.
 
 ```py
 import pandas as pd
 
-def generator_func(count: int) -> list[pd.Series]:
-    # this is where data generation magic would happen ...  
-    return [pd.Series([str(i) for i in range(count)])]
+
+def generate_numbers(count: int) -> list[pd.Series]:
+    numbers = [i + 1 for i in range(count)]
+    return [pd.Series(numbers)]
 ```
+
+Gecko comes with a bunch of built-in generators which are described on this page.
+They are exposed in Gecko's `generator` module.
 
 ## Available generators
 
@@ -30,7 +38,7 @@ The goal is to generate a series that has a similar distribution of values.
     ```
 
 === "Table"
-    
+
     | **Fruit** | **Count** |
     | :-- | --: |
     | Apple | 100 |
@@ -53,7 +61,7 @@ fruit_generator = generator.from_frequency_table(
     "fruit.csv",
     header=True,
     value_column="fruit",
-    frequency_column="count",
+    freq_column="count",
     rng=rng
 )
 
@@ -81,7 +89,7 @@ Continuing the example from above, assume a frequency table with fruits and thei
     ```
 
 === "Table"
-    
+
     | **Fruit** | **Type** | **Count** |
     | :-- | :-- | --: |
     | Apple | Braeburn | 30 |
@@ -173,31 +181,34 @@ import string
 
 from gecko import generator
 
+
 def next_letter(
-    my_rng: np.random.Generator,
-    charset: str = string.ascii_lowercase
+        my_rng: np.random.Generator,
+        charset: str = string.ascii_lowercase
 ):
     return my_rng.choice(list(charset))
+
 
 rng = np.random.default_rng(11247)
 
 my_generator = generator.from_function(
-    next_letter, 
+    next_letter,
     my_rng=rng
 )
 print(my_generator(100))
 # => [["e", "m", "e", "y", ..., "u", "h"]]
 
 my_umlaut_generator = generator.from_function(
-    next_letter, 
-    my_rng=rng, 
+    next_letter,
+    my_rng=rng,
     charset="äöü"
 )
 print(my_umlaut_generator(100))
 # => [["ü", "ü", "ü", "ä", ..., "ä", "ä"]]
 ```
 
-An interesting use case is to use Gecko in combination with the popular [Faker library](https://faker.readthedocs.io/en/master/index.html).
+An interesting use case is to use Gecko in combination with the
+popular [Faker library](https://faker.readthedocs.io/en/master/index.html).
 Faker offers many providers for generating synthetic data.
 All providers that return strings can be plugged seamlessly into Geckos `from_function` generator.
 However, users of Faker are responsible for seeding their own RNG instances to achieve reproducible results.
@@ -224,8 +235,10 @@ print(age_generator(100))
 
 ## Multiple generators
 
-All generators return one or more series, so it is reasonable to combine them all together into one [Pandas data frame](https://pandas.pydata.org/pandas-docs/stable/reference/frame.html) for further processing.
-Gecko provides the `to_dataframe` function which takes in a list of generators and column names and generates a data frame based on them.
+All generators return one or more series, so it is reasonable to combine them all together into
+one [Pandas data frame](https://pandas.pydata.org/pandas-docs/stable/reference/frame.html) for further processing.
+Gecko provides the `to_dataframe` function which takes in a list of generators and column names and generates a data
+frame based on them.
 The following example utilizes most of the generators shown in this guide.
 
 ```py
@@ -257,22 +270,24 @@ amount_generator = generator.from_uniform_distribution(
     rng=rng,
 )
 
+
 def next_fruit_grade(rand: np.random.Generator) -> str:
     return rand.choice(list("ABC"))
+
 
 grade_generator = generator.from_function(
     next_fruit_grade,
     rand=rng,
 )
 
-df = generator.to_dataframe(
+df = generator.to_data_frame(
     {
         ("fruit", "type"): fruit_generator,
         "weight_in_grams": weight_generator,
         "amount": amount_generator,
         "grade": grade_generator,
     },
-    1000,
+    1_000,
 )
 
 print(df)
