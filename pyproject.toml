@@ -1,14 +1,14 @@
 [tool.poetry]
 name = "gecko-syndata"
 version = "0.2.0"
-description = "Mass generation and corruption of realistic synthetic data."
+description = "Generation and mutation of realistic data at scale."
 authors = ["Maximilian Jugl <Maximilian.Jugl@medizin.uni-leipzig.de>"]
 readme = "README.md"
 packages = [{ include = "gecko" }]
 license = "MIT"
-documentation = "https://ul-mds.gitlab.io/record-linkage/gecko/gecko-docs"
-repository = "https://gitlab.com/ul-mds/record-linkage/gecko/gecko"
-keywords = ["data science", "data generation", "data corruption", "synthetic data"]
+documentation = "https://ul-mds.github.io/gecko/"
+repository = "https://github.com/ul-mds/gecko"
+keywords = ["data science", "data generation", "data mutation"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Environment :: Console",
