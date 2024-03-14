@@ -46,7 +46,7 @@ markdown_extensions:
 nav:
   - Intro to Gecko: index.md
   - Generating data: data-generation.md
-  - Corrupting data: data-corruption.md
+  - Mutating data: data-mutation.md
   - Examples with Gecko:
       - German population dataset: examples/german.md
   - Release notes: release-notes.md
