@@ -99,7 +99,6 @@ df_generated = generator.to_data_frame(  # (3)!
     {
         ("given_name", "gender"): generator.from_multicolumn_frequency_table(  # (4)!
             gecko_data_dir / "de_DE" / "given-name-gender.csv",
-            header=True,
             value_columns=["given_name", "gender"],
             freq_column="count",
             rng=rng,
@@ -116,7 +115,6 @@ df_mutated = mutator.mutate_data_frame(  # (7)!
     {
         "gender": (.01, mutator.with_categorical_values(  # (8)!
             gecko_data_dir / "de_DE" / "given-name-gender.csv",
-            header=True,
             value_column="gender",
             rng=rng,
         )),
@@ -136,9 +134,9 @@ df_mutated.to_csv("german-mutated.csv", index_label="id")
 3. `to_data_frame` is one of Gecko's main helper functions. It allows you to map column names to generators and puts out
    a data frame according to your specifications.
 4. To generate given names and associated genders, we use the corresponding frequency table from the Gecko data
-   repository. The `from_multicolumn_frequency_table` generator needs to know where the frequency table is, whether it
-   has a header or not and what the value columns and the frequency column are called. Almost all generators and
-   mutators also accept a `rng` argument which allows you to pass in your own RNG instance for predictable results.
+   repository. The `from_multicolumn_frequency_table` generator needs to know where the frequency table is and what the
+   value columns and the frequency column are called. Almost all generators and mutators also accept a `rng` argument
+   which allows you to pass in your own RNG instance for predictable results.
 5. To generate ages, we draw random numbers from a uniform distribution. This distributions has a lower limit of 18 and
    an upper limit of 120. To avoid floating point numbers, we set the precision to zero. Of course, in reality ages are
    never uniformly distributed. This is just for demonstration purposes.
