@@ -302,7 +302,7 @@ Certain types of information are easily confused with others.
 This is particularly true for names, where the differentiation between given and last names in a non-native language is
 challenging to get right.
 The `with_permute` function handles this exact use case.
-It simply swaps the values of two series that are passed into it.
+It simply swaps the values between series that are passed into it.
 
 ```python
 import pandas as pd
