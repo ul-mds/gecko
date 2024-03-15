@@ -47,7 +47,6 @@ def __create_given_name_gender_generator(
 ):
     return generator.from_multicolumn_frequency_table(
         gecko_data_base_path / "de_DE" / "given-name-gender.csv",
-        header=True,
         value_columns=["given_name", "gender"],
         freq_column="count",
         rng=rng,
@@ -59,7 +58,6 @@ def __create_street_municip_postcode_generator(
 ):
     return generator.from_multicolumn_frequency_table(
         gecko_data_base_path / "de_DE" / "street-municipality-postcode.csv",
-        header=True,
         value_columns=["street_name", "municipality", "postcode"],
         freq_column="count",
         rng=rng,
@@ -69,7 +67,6 @@ def __create_street_municip_postcode_generator(
 def __create_last_name_generator(rng: np.random.Generator, gecko_data_base_path):
     return generator.from_frequency_table(
         gecko_data_base_path / "de_DE" / "last-name.csv",
-        header=True,
         value_column="last_name",
         freq_column="count",
         rng=rng,
@@ -281,7 +278,6 @@ def test_bench_corrupt_categorical(benchmark, rng, gecko_data_path):
     gen_given_name_gender = __create_given_name_gender_generator(rng, gecko_data_path)
     mut_categorical = mutator.with_categorical_values(
         gecko_data_path / "de_DE" / "given-name-gender.csv",
-        header=True,
         value_column="gender",
         rng=rng,
     )

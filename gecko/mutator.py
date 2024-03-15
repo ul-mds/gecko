@@ -255,7 +255,6 @@ def with_cldr_keymap_file(
 
 def with_phonetic_replacement_table(
     csv_file_path: Union[PathLike, str],
-    header: bool = False,
     source_column: Union[int, str] = 0,
     target_column: Union[int, str] = 1,
     flags_column: Union[int, str] = 2,
@@ -272,10 +271,11 @@ def with_phonetic_replacement_table(
     If no flags are defined, it is implied that this replacement can take place anywhere in a string.
     Conversely, if `^`, `$`, `_`, or any combination of the three are set, it implies that a replacement
     can only occur at the start, end or in the middle of a string.
+    If the source, target and flags column are provided as strings, then it is automatically assumed that the CSV file
+    has a header row.
 
     Args:
         csv_file_path: path to CSV file containing phonetic replacement rules
-        header: `True` if the CSV file contains a header row, `False` otherwise
         source_column: name or index of source column
         target_column: name or index of target column
         flags_column: name or index of flag column
@@ -306,6 +306,19 @@ def with_phonetic_replacement_table(
 
     if rng is None:
         rng = np.random.default_rng()
+
+    if type(source_column) is not type(target_column) or type(
+        target_column
+    ) is not type(flags_column):
+        raise ValueError("source, target and flags columns must be of the same type")
+
+    # skip check for source and target column bc they are all of the same type already
+    if not isinstance(flags_column, str) and not isinstance(flags_column, int):
+        raise ValueError(
+            "source, target and flags columns must be either a string or an integer"
+        )
+
+    header = isinstance(flags_column, str)
 
     # read csv file
     df = pd.read_csv(
@@ -451,7 +464,6 @@ def with_phonetic_replacement_table(
 
 def with_replacement_table(
     csv_file_path: Union[PathLike, str],
-    header: bool = False,
     source_column: Union[str, int] = 0,
     target_column: Union[str, int] = 1,
     encoding: str = "utf-8",
@@ -466,10 +478,11 @@ def with_replacement_table(
     It is possible for a string to not be modified if no target value could be picked for its assigned source value.
     This can only happen if a source value is mapped to multiple target values.
     In this case, each target value will be independently selected or not.
+    If the source and target column are provided as strings, then it is automatically assumed that the CSV file
+    has a header row.
 
     Args:
         csv_file_path: path to CSV file
-        header: `True` if the CSV file contains a header row, `False` otherwiise
         source_column: name or index of the source column
         target_column: name or index of the target column
         encoding: character encoding of the CSV file
@@ -483,10 +496,16 @@ def with_replacement_table(
     if rng is None:
         rng = np.random.default_rng()
 
-    if header and (isinstance(source_column, str) or isinstance(target_column, str)):
+    if type(source_column) is not type(target_column):
+        raise ValueError("source and target columns must be of the same type")
+
+    # skip check for source_column bc they are both of the same type already
+    if not isinstance(target_column, str) and not isinstance(target_column, int):
         raise ValueError(
-            "header present, but source and target columns must be strings"
+            "source and target columns must be either a string or an integer"
         )
+
+    header = isinstance(target_column, str)
 
     df = pd.read_csv(
         csv_file_path,
@@ -1012,7 +1031,6 @@ def with_noop() -> Mutator:
 
 def with_categorical_values(
     csv_file_path: Union[PathLike, str],
-    header: bool = False,
     value_column: Union[str, int] = 0,
     encoding: str = "utf-8",
     delimiter: str = ",",
@@ -1022,10 +1040,11 @@ def with_categorical_values(
     Mutate data by replacing it with another from a list of categorical values.
     This mutator reads all unique values from a column within a CSV file.
     All strings within a series will be replaced with a different random value from this column.
+    If the value column is provided as a string, then it is automatically assumed that the CSV file
+    has a header row.
 
     Args:
         csv_file_path: path to CSV file
-        header: `True` if the file contains a header, `False` otherwise
         value_column: name or index of value column
         encoding: character encoding of the CSV file
         delimiter: column delimiter of the CSV file
@@ -1037,8 +1056,10 @@ def with_categorical_values(
     if rng is None:
         rng = np.random.default_rng()
 
-    if header and not isinstance(value_column, str):
-        raise ValueError("header present, but value column must be a string")
+    if not isinstance(value_column, str) and not isinstance(value_column, int):
+        raise ValueError("value column must be either a string or an integer")
+
+    header = isinstance(value_column, str)
 
     # read csv file
     df = pd.read_csv(

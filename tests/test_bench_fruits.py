@@ -2,10 +2,12 @@ from types import ModuleType
 from typing import Any, Callable
 
 import numpy as np
+import pytest
 
 from gecko import generator, mutator
 from tests.helpers import get_asset_path
 
+pytestmark = pytest.mark.benchmark
 record_counts = (100, 250, 500, 1_000, 2_500, 5_000, 10_000, 25_000, 50_000, 100_000)
 
 
@@ -24,7 +26,6 @@ def __extra(
 def __create_fruit_type_multicolumn_generator(rng: np.random.Generator):
     return generator.from_multicolumn_frequency_table(
         get_asset_path("freq-fruits-types.csv"),
-        header=True,
         value_columns=["fruit", "type"],
         freq_column="count",
         rng=rng,
@@ -34,7 +35,6 @@ def __create_fruit_type_multicolumn_generator(rng: np.random.Generator):
 def __create_origin_single_column_generator(rng: np.random.Generator):
     return generator.from_frequency_table(
         get_asset_path("freq-fruit-origin.csv"),
-        header=True,
         value_column="origin",
         freq_column="count",
         rng=rng,
@@ -309,7 +309,6 @@ def test_bench_categorical(benchmark, rng):
     gen_origin = __create_origin_single_column_generator(rng)
     mut_categorical = mutator.with_categorical_values(
         get_asset_path("freq-fruit-origin.csv"),
-        header=True,
         value_column="origin",
         rng=rng,
     )

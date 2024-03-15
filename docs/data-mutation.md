@@ -126,7 +126,6 @@ rng = np.random.default_rng(8844167)
 
 phonetic_mutator = mutator.with_phonetic_replacement_table(
     "./phonetic-rules-de.csv",
-    header=True,
     source_column="source",
     target_column="target",
     flags_column="flags",
@@ -275,7 +274,7 @@ For example, if you have a "gender" column in your dataset and it can only take 
 for other, it wouldn't make sense for a mutated record to contain anything else except these three options.
 
 Gecko offers the `with_categorical_values` function for this purpose.
-It sources all possible options from a column in CSV file and then applies random replacements respecting the limited
+It sources all possible options from a column in a CSV file and then applies random replacements respecting the limited
 available options.
 
 ```python
@@ -289,7 +288,6 @@ srs = pd.Series(["f", "m", "f", "f", "o", "m", "o", "o"])
 
 categorical_mutator = mutator.with_categorical_values(
     "./gender.csv",  # CSV file containing "gender" column with "f", "m" and "o" as possible values
-    header=True,
     value_column="gender",
     rng=rng,
 )

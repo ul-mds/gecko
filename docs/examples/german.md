@@ -91,7 +91,6 @@ Now it's finally time to generate some data.
 The Gecko data repository contains a CSV file for the most common last names found in Germany.
 It consists of two columns: `last_name` and `count`.
 To use it with Gecko, use the `from_frequency_table` function from the `generator` module.
-Since the CSV file contains a header, some extra configuration is necessary.
 
 ```python
 from gecko import generator
@@ -100,21 +99,18 @@ from gecko import generator
 def generate_data_frame(count, rng):  # (1)!
     gen_last_name = generator.from_frequency_table(
         "gecko-data/de_DE/last-name.csv",  # (2)!
-        header=True,  # (3)!
-        value_column="last_name",  # (4)!
-        freq_column="count",  # (5)!
-        rng=rng,  # (6)!
+        value_column="last_name",  # (3)!
+        freq_column="count",  # (4)!
+        rng=rng,  # (5)!
     )
 ```
 
 1. For brevity, the rest of the script is excluded from this snippet. Bear in mind that all code you write belongs in
    your `main.py` file.
 2. This is the path to the CSV file. It's relative to the location of the `main.py` file.
-3. Since Gecko does not consider header lines in CSV files by default, you need to explicitly tell it to treat the first
-   line in the CSV file as a header.
-4. This is the name of the column in the CSV file that contains the values to generate.
-5. This is the name of the column in the CSV file that contains the absolute frequency per value.
-6. Almost every function in Gecko allows for a RNG to be passed in. Reusing the same RNG in your script is crucial to
+3. This is the name of the column in the CSV file that contains the values to generate.
+4. This is the name of the column in the CSV file that contains the absolute frequency per value.
+5. Almost every function in Gecko allows for a RNG to be passed in. Reusing the same RNG in your script is crucial to
    ensure reproducibility. If no RNG is passed in, Gecko will use a new RNG with a random starting point.
 
 Last names aren't everything though.
@@ -140,7 +136,6 @@ from gecko import generator
 def generate_data_frame(count, rng):
     gen_last_name = generator.from_frequency_table(
         "gecko-data/de_DE/last-name.csv",
-        header=True,
         value_column="last_name",
         freq_column="count",
         rng=rng,
@@ -148,7 +143,6 @@ def generate_data_frame(count, rng):
 
     gen_given_name_gender = generator.from_multicolumn_frequency_table(
         "gecko-data/de_DE/given-name-gender.csv",
-        header=True,
         value_columns=["given_name", "gender"],  # (1)!
         freq_column="count",
         rng=rng,
@@ -176,7 +170,6 @@ from gecko import generator
 def generate_data_frame(count, rng):
     gen_last_name = generator.from_frequency_table(
         "gecko-data/de_DE/last-name.csv",
-        header=True,
         value_column="last_name",
         freq_column="count",
         rng=rng,
@@ -184,7 +177,6 @@ def generate_data_frame(count, rng):
 
     gen_given_name_gender = generator.from_multicolumn_frequency_table(
         "gecko-data/de_DE/given-name-gender.csv",
-        header=True,
         value_columns=["given_name", "gender"],
         freq_column="count",
         rng=rng,
@@ -192,7 +184,6 @@ def generate_data_frame(count, rng):
 
     gen_street_municip_postcode = generator.from_multicolumn_frequency_table(
         "gecko-data/de_DE/street-municipality-postcode.csv",
-        header=True,
         value_columns=["street_name", "municipality", "postcode"],  # (1)!
         freq_column="count",
         rng=rng,
@@ -213,7 +204,6 @@ from gecko import generator
 def generate_data_frame(count, rng):
     gen_last_name = generator.from_frequency_table(
         "gecko-data/de_DE/last-name.csv",
-        header=True,
         value_column="last_name",
         freq_column="count",
         rng=rng,
@@ -221,7 +211,6 @@ def generate_data_frame(count, rng):
 
     gen_given_name_gender = generator.from_multicolumn_frequency_table(
         "gecko-data/de_DE/given-name-gender.csv",
-        header=True,
         value_columns=["given_name", "gender"],
         freq_column="count",
         rng=rng,
@@ -229,7 +218,6 @@ def generate_data_frame(count, rng):
 
     gen_street_municip_postcode = generator.from_multicolumn_frequency_table(
         "gecko-data/de_DE/street-municipality-postcode.csv",
-        header=True,
         value_columns=["street_name", "municipality", "postcode"],
         freq_column="count",
         rng=rng,
@@ -262,9 +250,9 @@ original GeCo framework which inspired Gecko.
 
 To perform random inline replacements of letters within a word, use the `with_replacement_table` function from
 the `mutator` module.
-Since the CSV file does not contain a header, there is nothing else that needs to be configured.
-If the CSV file were to have a header, you'd have to call it similar to the frequency table functions in the section on
-generating data.
+You might notice that this function does not require extra configuration to read the CSV file with the OCR replacements.
+If left unconfigured, Gecko will select the first and second column in this case.
+This is exactly what we want, so we can leave all other parameters unset.
 For this example, apply the mutator to 10% of all values in the `given_name` column.
 
 ```python
@@ -315,7 +303,6 @@ def mutate_data_frame(df, rng):
         "gender": [
             (0.02, mutator.with_categorical_values(  # (1)!
                 "gecko-data/de_DE/given-name-gender.csv",
-                header=True,
                 value_column="gender",
                 rng=rng,
             ))
@@ -348,7 +335,6 @@ def mutate_data_frame(df, rng):
         "gender": [
             (0.02, mutator.with_categorical_values(
                 "gecko-data/de_DE/given-name-gender.csv",
-                header=True,
                 value_column="gender",
                 rng=rng,
             )),
@@ -392,7 +378,6 @@ def mutate_data_frame(df, rng):
         "gender": [
             (0.02, mutator.with_categorical_values(
                 "gecko-data/de_DE/given-name-gender.csv",
-                header=True,
                 value_column="gender",
                 rng=rng,
             )),
@@ -440,7 +425,6 @@ from gecko import generator, mutator
 def generate_data_frame(count, rng):
     gen_last_name = generator.from_frequency_table(
         "gecko-data/de_DE/last-name.csv",
-        header=True,
         value_column="last_name",
         freq_column="count",
         rng=rng,
@@ -448,7 +432,6 @@ def generate_data_frame(count, rng):
 
     gen_given_name_gender = generator.from_multicolumn_frequency_table(
         "gecko-data/de_DE/given-name-gender.csv",
-        header=True,
         value_columns=["given_name", "gender"],
         freq_column="count",
         rng=rng,
@@ -456,7 +439,6 @@ def generate_data_frame(count, rng):
 
     gen_street_municip_postcode = generator.from_multicolumn_frequency_table(
         "gecko-data/de_DE/street-municipality-postcode.csv",
-        header=True,
         value_columns=["street_name", "municipality", "postcode"],
         freq_column="count",
         rng=rng,
@@ -480,7 +462,6 @@ def mutate_data_frame(df, rng):
         "gender": [
             (0.02, mutator.with_categorical_values(
                 "gecko-data/de_DE/given-name-gender.csv",
-                header=True,
                 value_column="gender",
                 rng=rng,
             )),
@@ -715,7 +696,6 @@ def create_date_of_birth_generator(
 def generate_data_frame(count, rng):
     gen_last_name = generator.from_frequency_table(
         "gecko-data/de_DE/last-name.csv",
-        header=True,
         value_column="last_name",
         freq_column="count",
         rng=rng,
@@ -723,7 +703,6 @@ def generate_data_frame(count, rng):
 
     gen_given_name_gender = generator.from_multicolumn_frequency_table(
         "gecko-data/de_DE/given-name-gender.csv",
-        header=True,
         value_columns=["given_name", "gender"],
         freq_column="count",
         rng=rng,
@@ -731,7 +710,6 @@ def generate_data_frame(count, rng):
 
     gen_street_municip_postcode = generator.from_multicolumn_frequency_table(
         "gecko-data/de_DE/street-municipality-postcode.csv",
-        header=True,
         value_columns=["street_name", "municipality", "postcode"],
         freq_column="count",
         rng=rng,
@@ -749,5 +727,5 @@ def generate_data_frame(count, rng):
 
 1. Now you have a reusable generator with a configurable start and end date. As long as a function returns a generator,
    it can be seamlessly used with Gecko.
-2. As with all other generators, your custom generator is accepted by `to_dataframe` by simply assigning it a column
+2. As with all other generators, your custom generator is accepted by `to_data_frame` by simply assigning it a column
    name.
