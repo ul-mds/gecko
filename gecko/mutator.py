@@ -39,11 +39,6 @@ Mutator = Callable[[list[pd.Series]], list[pd.Series]]
 _EditOp = Literal["ins", "del", "sub", "trs"]
 
 
-def __assert_srs_lst_len(srs_lst: list[pd.Series], expected: int):
-    if len(srs_lst) != expected:
-        raise ValueError(f"mutator expects {expected} series, got {len(srs_lst)}")
-
-
 class _PhoneticReplacementRule(NamedTuple):
     pattern: str
     replacement: str
