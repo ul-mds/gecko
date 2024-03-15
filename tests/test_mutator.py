@@ -168,7 +168,6 @@ def test_with_categorical_values(rng):
 
     mutate_categorical = with_categorical_values(
         get_asset_path("freq_table_gender.csv"),
-        header=True,
         value_column="gender",
         rng=rng,
     )
@@ -463,7 +462,6 @@ __dummy_rng = np.random.default_rng(5432)
             1,
             with_categorical_values(
                 get_asset_path("freq_table_gender.csv"),
-                header=True,
                 value_column="gender",
                 rng=__dummy_rng,
             ),
