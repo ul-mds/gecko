@@ -34,9 +34,9 @@ By the end, you will have a generated dataset and a mutated copy thereof.
 
 ![Common workflow with Gecko](docs/img/gecko-workflow.png)
 
-Gecko exposes two modules, `generator` and `mutator` to help you write data generation scripts.
-Both contain built-in functions covering the most common use cases for generating data from frequency information, as
-well as mutating data based on common error sources, such as typos, OCR errors and much more.
+Gecko exposes two modules, `generator` and `mutator`, to help you write data generation scripts.
+Both contain built-in functions covering the most common use cases for generating data from frequency information and
+mutating data based on common error sources, such as typos, OCR errors and much more.
 
 The following example gives a very brief overview of what a data generation script with Gecko might look like.
 It uses frequency tables from the [Gecko data repository](https://github.com/ul-mds/gecko-data) which has been cloned
@@ -60,7 +60,6 @@ df_generated = generator.to_data_frame(
     {
         "last_name": generator.from_frequency_table(
             gecko_data_dir / "de_DE" / "last-name.csv",
-            header=True,
             value_column="last_name",
             freq_column="count",
             rng=rng,

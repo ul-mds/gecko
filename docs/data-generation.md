@@ -47,9 +47,7 @@ The goal is to generate a series that has a similar distribution of values.
 
 Gecko exposes the function `from_frequency_table` for this purpose.
 Point the generator to the CSV file.
-It requires some additional information in order to correctly read the CSV file.
-Since it contains a header with column names, the `header` argument needs to be set to `True`.
-Furthermore, since the columns are named, the value and frequency columns need to be explicitly passed in too.
+Since the columns are named, the value and frequency columns need to be explicitly passed in.
 
 ```py
 import numpy as np
@@ -59,7 +57,6 @@ from gecko import generator
 rng = np.random.default_rng(112358)
 fruit_generator = generator.from_frequency_table(
     "fruit.csv",
-    header=True,
     value_column="fruit",
     freq_column="count",
     rng=rng
@@ -101,7 +98,7 @@ Continuing the example from above, assume a frequency table with fruits and thei
 
 These types of frequency tables are handled by the `from_multicolumn_frequency_table` function.
 The syntax is similar to that of `from_frequency_table`, except multiple value columns can be passed into it.
-This results in a list of series; one for each value column passed into the generator.
+This results in a list of series: one for each value column passed into the generator.
 
 ```py
 import numpy as np
@@ -111,7 +108,6 @@ from gecko import generator
 rng = np.random.default_rng(14916)
 fruit_generator = generator.from_multicolumn_frequency_table(
     "./fruit-types.csv",
-    header=True,
     value_columns=["fruit", "type"],
     freq_column="count",
     rng=rng,
@@ -250,7 +246,6 @@ rng = np.random.default_rng(222)
 
 fruit_generator = generator.from_multicolumn_frequency_table(
     "./fruit-types.csv",
-    header=True,
     value_columns=["fruit", "type"],
     freq_column="count",
     rng=rng,

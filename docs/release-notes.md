@@ -1,5 +1,30 @@
 # Release notes
 
+## 0.3.0 (Mar 15, 2024)
+
+### Features
+
+- Infer `header` parameter from functions reading CSV files
+
+### Refactors
+
+- Rename `corruptor` module to `mutator`
+- Rename `Corruptor` type alias to `Mutator`
+- Rename `generator.to_dataframe` to `generator.to_dataframe`
+- Rename `corruptor.corrupt_dataframe` to `mutator.mutate_data_frame`
+
+### Documentation
+
+- Add API reference
+- Update docs to use new "mutator" terminology wherever possible
+- Use Google format docstrings instead of reST
+
+### Internal
+
+- Merge documentation repository into main repository
+- Move repositories from GitLab to GitHub
+- Refine benchmark suite, add example based on [German population dataset](examples/german.md)
+
 ## 0.2.0 (Feb 16, 2024)
 
 ### Features
