@@ -60,7 +60,6 @@ def test_from_frequency_table_with_header(rng):
     generate_tab = generator.from_frequency_table(
         get_asset_path("freq_table_header.csv"),
         rng=rng,
-        header=True,
         value_column="value",
         freq_column="freq",
     )
@@ -85,7 +84,6 @@ def test_from_frequency_table_tsv(rng):
 def test_from_frequency_table(rng):
     gen_fruits = generator.from_frequency_table(
         get_asset_path("freq-fruits.csv"),
-        header=True,
         value_column="fruit",
         freq_column="count",
         rng=rng,
@@ -102,7 +100,6 @@ def test_from_frequency_table(rng):
 def test_from_multicolumn_frequency_table(rng):
     gen_fruit_types = generator.from_multicolumn_frequency_table(
         get_asset_path("freq-fruits-types.csv"),
-        header=True,
         value_columns=["fruit", "type"],
         freq_column="count",
         rng=rng,
@@ -151,7 +148,6 @@ def test_to_dataframe_error_count_not_positive():
 def test_to_dataframe(rng):
     gen_fruit_types = generator.from_multicolumn_frequency_table(
         get_asset_path("freq-fruits-types.csv"),
-        header=True,
         value_columns=["fruit", "type"],
         freq_column="count",
         rng=rng,
