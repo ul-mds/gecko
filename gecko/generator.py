@@ -14,7 +14,7 @@ __all__ = [
 ]
 
 from os import PathLike
-from typing import Callable, Optional, Union, Any
+from typing import Callable, Optional, Union
 
 import numpy as np
 import pandas as pd
@@ -24,9 +24,7 @@ P = ParamSpec("P")
 Generator = Callable[[int], list[pd.Series]]
 
 
-def from_function(
-    func: Callable[P, str], *args: tuple[Any, ...], **kwargs: dict[str, Any]
-) -> Generator:
+def from_function(func: Callable[P, str], *args: object, **kwargs: object) -> Generator:
     """
     Generate data from an arbitrary function that returns a single value at a time.
 

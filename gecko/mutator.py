@@ -26,7 +26,7 @@ import string
 from dataclasses import dataclass, field
 from os import PathLike
 from pathlib import Path
-from typing import Callable, Optional, Union, Literal, NamedTuple, Any
+from typing import Callable, Optional, Union, Literal, NamedTuple
 
 import numpy as np
 import pandas as pd
@@ -61,8 +61,8 @@ P = ParamSpec("P")
 
 def with_function(
     func: Callable[Concatenate[str, P], str],
-    *args: tuple[Any, ...],
-    **kwargs: dict[str, Any],
+    *args: object,
+    **kwargs: object,
 ) -> Mutator:
     """
     Mutate data using an arbitrary function that mutates a single value at a time.
@@ -1206,7 +1206,7 @@ def mutate_data_frame(
         data frame with columns mutated as specified
     """
 
-    def __is_weighted_mutator_tuple(x: Any):
+    def __is_weighted_mutator_tuple(x: object):
         return (
             isinstance(x, tuple)
             and len(x) == 2
