@@ -405,13 +405,13 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#020-feb-16-2024" class="md-nav__link">
+  <a href="#030-mar-15-2024" class="md-nav__link">
     <span class="md-ellipsis">
-      0.2.0 (Feb 16, 2024)
+      0.3.0 (Mar 15, 2024)
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="0.2.0 (Feb 16, 2024)">
+    <nav class="md-nav" aria-label="0.3.0 (Mar 15, 2024)">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -433,7 +433,58 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#documentation" class="md-nav__link">
+    <span class="md-ellipsis">
+      Documentation
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#internal" class="md-nav__link">
+    <span class="md-ellipsis">
+      Internal
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#020-feb-16-2024" class="md-nav__link">
+    <span class="md-ellipsis">
+      0.2.0 (Feb 16, 2024)
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="0.2.0 (Feb 16, 2024)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#features_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      Features
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#refactors_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      Refactors
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#internal_1" class="md-nav__link">
     <span class="md-ellipsis">
       Internal
     </span>
@@ -510,13 +561,13 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#020-feb-16-2024" class="md-nav__link">
+  <a href="#030-mar-15-2024" class="md-nav__link">
     <span class="md-ellipsis">
-      0.2.0 (Feb 16, 2024)
+      0.3.0 (Mar 15, 2024)
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="0.2.0 (Feb 16, 2024)">
+    <nav class="md-nav" aria-label="0.3.0 (Mar 15, 2024)">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -538,7 +589,58 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#documentation" class="md-nav__link">
+    <span class="md-ellipsis">
+      Documentation
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#internal" class="md-nav__link">
+    <span class="md-ellipsis">
+      Internal
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#020-feb-16-2024" class="md-nav__link">
+    <span class="md-ellipsis">
+      0.2.0 (Feb 16, 2024)
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="0.2.0 (Feb 16, 2024)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#features_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      Features
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#refactors_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      Refactors
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#internal_1" class="md-nav__link">
     <span class="md-ellipsis">
       Internal
     </span>
@@ -576,20 +678,44 @@
 
 
 <h1 id="release-notes">Release notes</h1>
-<h2 id="020-feb-16-2024">0.2.0 (Feb 16, 2024)</h2>
+<h2 id="030-mar-15-2024">0.3.0 (Mar 15, 2024)</h2>
 <h3 id="features">Features</h3>
+<ul>
+<li>Infer <code>header</code> parameter from functions reading CSV files</li>
+</ul>
+<h3 id="refactors">Refactors</h3>
+<ul>
+<li>Rename <code>corruptor</code> module to <code>mutator</code></li>
+<li>Rename <code>Corruptor</code> type alias to <code>Mutator</code></li>
+<li>Rename <code>generator.to_dataframe</code> to <code>generator.to_dataframe</code></li>
+<li>Rename <code>corruptor.corrupt_dataframe</code> to <code>mutator.mutate_data_frame</code></li>
+</ul>
+<h3 id="documentation">Documentation</h3>
+<ul>
+<li>Add API reference</li>
+<li>Update docs to use new "mutator" terminology wherever possible</li>
+<li>Use Google format docstrings instead of reST</li>
+</ul>
+<h3 id="internal">Internal</h3>
+<ul>
+<li>Merge documentation repository into main repository</li>
+<li>Move repositories from GitLab to GitHub</li>
+<li>Refine benchmark suite, add example based on <a href="../examples/german/">German population dataset</a></li>
+</ul>
+<h2 id="020-feb-16-2024">0.2.0 (Feb 16, 2024)</h2>
+<h3 id="features_1">Features</h3>
 <ul>
 <li>Add <code>generator.with_permute</code> for swapping values between series</li>
 <li>Set wider version ranges for dependencies</li>
 <li>Fix <code>corruptor.corrupt_dataframe</code> to not modify original data frame</li>
 <li>Add tests to all corruptor functions to ensure no modifications to original data</li>
 </ul>
-<h3 id="refactors">Refactors</h3>
+<h3 id="refactors_1">Refactors</h3>
 <ul>
 <li>Change generators to take in and return a list of series instead of single series</li>
 <li>Change <code>generator.to_dataframe</code> signature to align with <code>corruptor.corrupt_dataframe</code></li>
 </ul>
-<h3 id="internal">Internal</h3>
+<h3 id="internal_1">Internal</h3>
 <ul>
 <li>Extend CI pipeline with a benchmarking step that runs on release and when manually triggered</li>
 <li>Add benchmark based on the "fruits" example in the docs</li>
