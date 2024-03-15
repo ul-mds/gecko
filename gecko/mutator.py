@@ -21,6 +21,7 @@ __all__ = [
     "mutate_data_frame",
 ]
 
+import itertools
 import string
 from dataclasses import dataclass, field
 from os import PathLike
@@ -1121,20 +1122,63 @@ def with_categorical_values(
     return _mutate
 
 
-def with_permute() -> Mutator:
+def with_permute(rng: Optional[np.random.Generator] = None) -> Mutator:
     """
-    Mutate data from two series by permuting their contents.
-    This effectively swaps one series with another.
+    Mutate data from series by permuting their contents.
+    This function ensures that for each row there is at least one permutation happening.
+
+    Args:
+        rng: random number generator to use
 
     Returns:
-        function returning list with its entries swapped
+        function returning list with the entries in each series swapped
     """
+    if rng is None:
+        rng = np.random.default_rng()
 
     def _mutate(srs_lst: list[pd.Series]) -> list[pd.Series]:
-        __assert_srs_lst_len(srs_lst, 2)
+        srs_lst_len = len(srs_lst)
 
-        srs, srs_other = srs_lst
-        return [srs_other.copy(), srs.copy()]
+        if srs_lst_len < 2:
+            raise ValueError("list must contain at least two series to permute")
+
+        srs_0_len = len(srs_lst[0])
+
+        for i in range(1, srs_lst_len):
+            if len(srs_lst[i]) != srs_0_len:
+                raise ValueError("all series must be of the same length")
+
+        # e.g. for l=3, this will produce (0, 1, 2)
+        tpl_idx_not_permuted = tuple(range(srs_lst_len))
+        # generate all series index permutations and remove the tuple with all indices in order
+        srs_idx_permutations = sorted(
+            set(itertools.permutations(range(len(srs_lst)))) - {tpl_idx_not_permuted}
+        )
+        # choose random index permutations
+        arr_rand_idx_tpl = rng.choice(srs_idx_permutations, size=srs_0_len)
+        # map tuples to each series
+        srs_idx_per_srs = list(zip(*arr_rand_idx_tpl))
+        # transform each list of indices into series
+        srs_lst_idx_per_srs = [
+            pd.Series(
+                data=srs_idx_per_srs[i],
+                index=srs_lst[i].index,
+                copy=False,
+            )
+            for i in range(srs_lst_len)
+        ]
+
+        srs_lst_out = [srs.copy() for srs in srs_lst]
+
+        for i in range(srs_lst_len):
+            for j in range(srs_lst_len):
+                if i == j:
+                    continue
+
+                mask_this_srs = srs_lst_idx_per_srs[i] == j
+                srs_lst_out[i][mask_this_srs] = srs_lst[j][mask_this_srs]
+
+        return srs_lst_out
 
     return _mutate
 
