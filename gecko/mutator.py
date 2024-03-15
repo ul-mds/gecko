@@ -21,6 +21,7 @@ __all__ = [
     "mutate_data_frame",
 ]
 
+import itertools
 import string
 from dataclasses import dataclass, field
 from os import PathLike
@@ -36,11 +37,6 @@ from gecko.cldr import decode_iso_kb_pos, unescape_kb_char, get_neighbor_kb_pos_
 
 Mutator = Callable[[list[pd.Series]], list[pd.Series]]
 _EditOp = Literal["ins", "del", "sub", "trs"]
-
-
-def __assert_srs_lst_len(srs_lst: list[pd.Series], expected: int):
-    if len(srs_lst) != expected:
-        raise ValueError(f"mutator expects {expected} series, got {len(srs_lst)}")
 
 
 class _PhoneticReplacementRule(NamedTuple):
@@ -84,14 +80,16 @@ def with_function(
         function returning list with strings mutated using custom function
     """
 
-    def _mutate(srs_lst: list[pd.Series]) -> list[pd.Series]:
-        __assert_srs_lst_len(srs_lst, 1)
-        srs_out = srs_lst[0].copy()
+    def _mutate_series(srs: pd.Series) -> pd.Series:
+        srs_out = srs.copy()
 
         for i in range(len(srs_out)):
             srs_out.iloc[i] = func(srs_out.iloc[i], *args, **kwargs)
 
-        return [srs_out]
+        return srs_out
+
+    def _mutate(srs_lst: list[pd.Series]) -> list[pd.Series]:
+        return [_mutate_series(srs) for srs in srs_lst]
 
     return _mutate
 
@@ -201,10 +199,8 @@ def with_cldr_keymap_file(
                     )  # needs to be sorted to ensure reproducibility
                 )
 
-    def _mutate(srs_lst: list[pd.Series]) -> list[pd.Series]:
-        __assert_srs_lst_len(srs_lst, 1)
-
-        srs_out = srs_lst[0].copy()
+    def _mutate_series(srs: pd.Series) -> pd.Series:
+        srs_out = srs.copy()
         str_count = len(srs_out)
 
         # string length series
@@ -248,7 +244,10 @@ def with_cldr_keymap_file(
                 + srs_out[idx_mask].str[i + 1 :]
             )
 
-        return [srs_out]
+        return srs_out
+
+    def _mutate(srs_lst: list[pd.Series]) -> list[pd.Series]:
+        return [_mutate_series(srs) for srs in srs_lst]
 
     return _mutate
 
@@ -342,11 +341,9 @@ def with_phonetic_replacement_table(
             _PhoneticReplacementRule(pattern, replacement, flags)
         )
 
-    def _mutate(srs_lst: list[pd.Series]) -> list[pd.Series]:
-        __assert_srs_lst_len(srs_lst, 1)
-
+    def _mutate_series(srs: pd.Series) -> pd.Series:
         # create a copy of input series
-        srs_out = srs_lst[0].copy()
+        srs_out = srs.copy()
         # get series of string lengths
         srs_str_out_len = srs_out.str.len()
         # get series length
@@ -457,7 +454,10 @@ def with_phonetic_replacement_table(
                 # update modified row series
                 mask_modified_rows |= mask_current_candidate_rows
 
-        return [srs_out]
+        return srs_out
+
+    def _mutate(srs_lst: list[pd.Series]) -> list[pd.Series]:
+        return [_mutate_series(srs) for srs in srs_lst]
 
     return _mutate
 
@@ -518,11 +518,9 @@ def with_replacement_table(
 
     srs_unique_source_values = df[source_column].unique()
 
-    def _mutate(srs_lst: list[pd.Series]) -> list[pd.Series]:
-        __assert_srs_lst_len(srs_lst, 1)
-
+    def _mutate_series(srs: pd.Series) -> pd.Series:
         # create copy of input series
-        srs_out = srs_lst[0].copy()
+        srs_out = srs.copy()
         str_count = len(srs_out)
         # create series to compute probability of substitution for each row
         srs_str_sub_prob = pd.Series(dtype=float, index=srs_out.index)
@@ -598,7 +596,10 @@ def with_replacement_table(
                 # perform replacement of source -> target
                 srs_out[mask] = srs_out[mask].str.replace(source, target, n=1)
 
-        return [srs_out]
+        return srs_out
+
+    def _mutate(srs_lst: list[pd.Series]) -> list[pd.Series]:
+        return [_mutate_series(srs) for srs in srs_lst]
 
     return _mutate
 
@@ -614,17 +615,15 @@ def _mutate_all_from_value(value: str) -> Mutator:
         function returning list where all strings will be replaced with the "missing" value
     """
 
-    def _mutate(srs_lst: list[pd.Series]) -> list[pd.Series]:
-        __assert_srs_lst_len(srs_lst, 1)
-        srs = srs_lst[0]
+    def _mutate_series(srs: pd.Series) -> pd.Series:
+        return pd.Series(
+            data=[value] * len(srs),
+            index=srs.index,
+            dtype=str,
+        )
 
-        return [
-            pd.Series(
-                data=[value] * len(srs),
-                index=srs.index,
-                dtype=str,
-            )
-        ]
+    def _mutate(srs_lst: list[pd.Series]) -> list[pd.Series]:
+        return [_mutate_series(srs) for srs in srs_lst]
 
     return _mutate
 
@@ -640,12 +639,13 @@ def _mutate_only_empty_from_value(value: str) -> Mutator:
         function returning list where all empty strings will be replaced with the "missing" value
     """
 
-    def _mutate(srs_lst: list[pd.Series]) -> list[pd.Series]:
-        __assert_srs_lst_len(srs_lst, 1)
-
-        srs_out = srs_lst[0].copy()
+    def _mutate_series(srs: pd.Series) -> pd.Series:
+        srs_out = srs.copy()
         srs_out[srs_out == ""] = value
-        return [srs_out]
+        return srs_out
+
+    def _mutate(srs_lst: list[pd.Series]) -> list[pd.Series]:
+        return [_mutate_series(srs) for srs in srs_lst]
 
     return _mutate
 
@@ -662,12 +662,13 @@ def _mutate_only_blank_from_value(value: str) -> Mutator:
         function returning list where all blank strings will be replaced with the "missing" value
     """
 
-    def _mutate(srs_lst: list[pd.Series]) -> list[pd.Series]:
-        __assert_srs_lst_len(srs_lst, 1)
-
-        srs_out = srs_lst[0].copy()
+    def _mutate_series(srs: pd.Series) -> pd.Series:
+        srs_out = srs.copy()
         srs_out[srs_out.str.strip() == ""] = value
-        return [srs_out]
+        return srs_out
+
+    def _mutate(srs_lst: list[pd.Series]) -> list[pd.Series]:
+        return [_mutate_series(srs) for srs in srs_lst]
 
     return _mutate
 
@@ -719,10 +720,8 @@ def with_insert(
     if rng is None:
         rng = np.random.default_rng()
 
-    def _mutate(srs_lst: list[pd.Series]) -> list[pd.Series]:
-        __assert_srs_lst_len(srs_lst, 1)
-
-        srs_out = srs_lst[0].copy()
+    def _mutate_series(srs: pd.Series) -> pd.Series:
+        srs_out = srs.copy()
         str_count = len(srs_out)
 
         # get series of lengths of all strings in series
@@ -752,7 +751,10 @@ def with_insert(
                 + srs_out[srs_idx_mask].str[i:]
             )
 
-        return [srs_out]
+        return srs_out
+
+    def _mutate(srs_lst: list[pd.Series]) -> list[pd.Series]:
+        return [_mutate_series(srs) for srs in srs_lst]
 
     return _mutate
 
@@ -770,21 +772,18 @@ def with_delete(rng: Optional[np.random.Generator] = None) -> Mutator:
     if rng is None:
         rng = np.random.default_rng()
 
-    def _mutate(srs_lst: list[pd.Series]) -> list[pd.Series]:
-        __assert_srs_lst_len(srs_lst, 1)
-
-        srs_orig = srs_lst[0]
+    def _mutate_series(srs: pd.Series) -> pd.Series:
         # get series of string lengths
-        srs_str_out_len = srs_orig.str.len()
+        srs_str_out_len = srs.str.len()
         # limit view to strings that have at least one character
-        srs_str_out_min_len = srs_orig[srs_str_out_len >= 1]
+        srs_str_out_min_len = srs[srs_str_out_len >= 1]
 
         # check that there are any strings to modify
         if len(srs_str_out_min_len) == 0:
-            return srs_lst
+            return srs
 
         # create copy after length check
-        srs_out = srs_orig.copy()
+        srs_out = srs.copy()
         # generate random indices
         arr_rng_vals = rng.random(size=len(srs_str_out_min_len))
         arr_rng_delete_indices = np.floor(
@@ -801,7 +800,10 @@ def with_delete(rng: Optional[np.random.Generator] = None) -> Mutator:
                 srs_str_out_min_len[srs_idx_mask].str.slice_replace(i, i + 1, "")
             )
 
-        return [srs_out]
+        return srs_out
+
+    def _mutate(srs_lst: list[pd.Series]) -> list[pd.Series]:
+        return [_mutate_series(srs) for srs in srs_lst]
 
     return _mutate
 
@@ -822,21 +824,18 @@ def with_transpose(rng: Optional[np.random.Generator] = None) -> Mutator:
     if rng is None:
         rng = np.random.default_rng()
 
-    def _mutate(srs_lst: list[pd.Series]) -> list[pd.Series]:
-        __assert_srs_lst_len(srs_lst, 1)
-
-        srs_orig = srs_lst[0]
+    def _mutate_series(srs: pd.Series) -> pd.Series:
         # length of strings
-        srs_str_out_len = srs_orig.str.len()
+        srs_str_out_len = srs.str.len()
         # limit view to strings that have at least two characters
-        srs_str_out_min_len = srs_orig[srs_str_out_len >= 2]
+        srs_str_out_min_len = srs[srs_str_out_len >= 2]
 
         # check that there are any strings to modify
         if len(srs_str_out_min_len) == 0:
-            return srs_lst
+            return srs
 
         # create a copy only after running the length check
-        srs_str_out = srs_orig.copy()
+        srs_out = srs.copy()
         # generate random numbers
         arr_rng_vals = rng.random(size=len(srs_str_out_min_len))
 
@@ -851,14 +850,17 @@ def with_transpose(rng: Optional[np.random.Generator] = None) -> Mutator:
             # select strings that have the same transposition
             srs_idx_mask = arr_rng_transpose_indices == i
             srs_masked = srs_str_out_min_len[srs_idx_mask]
-            srs_str_out.update(
+            srs_out.update(
                 srs_masked.str[:i]
                 + srs_masked.str[i + 1]
                 + srs_masked.str[i]
                 + srs_masked.str[i + 2 :]
             )
 
-        return [srs_str_out]
+        return srs_out
+
+    def _mutate(srs_lst: list[pd.Series]) -> list[pd.Series]:
+        return [_mutate_series(srs) for srs in srs_lst]
 
     return _mutate
 
@@ -884,21 +886,18 @@ def with_substitute(
     if rng is None:
         rng = np.random.default_rng()
 
-    def _mutate(srs_lst: list[pd.Series]) -> list[pd.Series]:
-        __assert_srs_lst_len(srs_lst, 1)
-
-        srs_orig = srs_lst[0]
+    def _mutate_series(srs: pd.Series) -> pd.Series:
         # length of strings
-        srs_str_out_len = srs_orig.str.len()
+        srs_str_out_len = srs.str.len()
         # limit view to strings that have at least 1 character
-        srs_str_out_min_len = srs_orig[srs_str_out_len >= 1]
+        srs_str_out_min_len = srs[srs_str_out_len >= 1]
 
         # check that there are any strings to modify
         if len(srs_str_out_min_len) == 0:
-            return srs_lst
+            return srs
 
         # create copy after length check
-        srs_str_out = srs_orig.copy()
+        srs_out = srs.copy()
         # count strings that may be modified
         str_count = len(srs_str_out_min_len)
         # random indices
@@ -917,13 +916,16 @@ def with_substitute(
         for i in arr_uniq_idx:
             srs_idx_mask = arr_rng_sub_indices == i
             srs_masked = srs_str_out_min_len[srs_idx_mask]
-            srs_str_out.update(
+            srs_out.update(
                 srs_masked.str[:i]
                 + srs_rand_chars[srs_idx_mask]
                 + srs_masked.str[i + 1 :]
             )
 
-        return [srs_str_out]
+        return srs_out
+
+    def _mutate(srs_lst: list[pd.Series]) -> list[pd.Series]:
+        return [_mutate_series(srs) for srs in srs_lst]
 
     return _mutate
 
@@ -978,11 +980,8 @@ def with_edit(
         with_transpose(rng_trs),
     )
 
-    # noinspection PyUnresolvedReferences
-    def _mutate_list(srs_lst: list[pd.Series]) -> list[pd.Series]:
-        __assert_srs_lst_len(srs_lst, 1)
-
-        srs_out = srs_lst[0].copy()
+    def _mutate_series(srs: pd.Series) -> pd.Series:
+        srs_out = srs.copy()
         str_in_edit_ops = pd.Series(
             rng.choice(edit_ops, size=len(srs_out), p=edit_ops_prob),
             index=srs_out.index,
@@ -1008,9 +1007,12 @@ def with_edit(
         if msk_trs.sum() != 0:
             (srs_out[msk_trs],) = mut_trs([srs_out[msk_trs]])
 
-        return [srs_out]
+        return srs_out
 
-    return _mutate_list
+    def _mutate(srs_lst: list[pd.Series]) -> list[pd.Series]:
+        return [_mutate_series(srs) for srs in srs_lst]
+
+    return _mutate
 
 
 def with_noop() -> Mutator:
@@ -1074,23 +1076,20 @@ def with_categorical_values(
     # fetch unique values
     unique_values = pd.Series(df[value_column].dropna().unique())
 
-    def _mutate_list(srs_lst: list[pd.Series]) -> list[pd.Series]:
-        __assert_srs_lst_len(srs_lst, 1)
+    def _mutate_series(srs: pd.Series) -> pd.Series:
         nonlocal unique_values
-
-        srs_orig = srs_lst[0]
 
         # create a new series with which the original one will be updated.
         # for starters all rows will be NaN. dtype is to avoid typecast warning.
         srs_in_update = pd.Series(
-            np.full(len(srs_orig), np.nan), copy=False, dtype=str, index=srs_orig.index
+            np.full(len(srs), np.nan), copy=False, dtype=str, index=srs.index
         )
 
         for unique_val in unique_values:
             # remove current value from list of unique values
             unique_vals_without_current = np.setdiff1d(unique_values, unique_val)
             # select all rows that equal the current value
-            srs_in_matching_val = srs_orig.str.fullmatch(unique_val)
+            srs_in_matching_val = srs.str.fullmatch(unique_val)
             # count the rows that contain the current value
             unique_val_total = srs_in_matching_val.sum()
 
@@ -1107,28 +1106,74 @@ def with_categorical_values(
             srs_in_update[srs_in_matching_val] = new_unique_vals
 
         # update() is performed in-place, so create a copy of the initial series first.
-        srs_out = srs_orig.copy()
+        srs_out = srs.copy()
         srs_out.update(srs_in_update)
 
-        return [srs_out]
-
-    return _mutate_list
-
-
-def with_permute() -> Mutator:
-    """
-    Mutate data from two series by permuting their contents.
-    This effectively swaps one series with another.
-
-    Returns:
-        function returning list with its entries swapped
-    """
+        return srs_out
 
     def _mutate(srs_lst: list[pd.Series]) -> list[pd.Series]:
-        __assert_srs_lst_len(srs_lst, 2)
+        return [_mutate_series(srs) for srs in srs_lst]
 
-        srs, srs_other = srs_lst
-        return [srs_other.copy(), srs.copy()]
+    return _mutate
+
+
+def with_permute(rng: Optional[np.random.Generator] = None) -> Mutator:
+    """
+    Mutate data from series by permuting their contents.
+    This function ensures that for each row there is at least one permutation happening.
+
+    Args:
+        rng: random number generator to use
+
+    Returns:
+        function returning list with the entries in each series swapped
+    """
+    if rng is None:
+        rng = np.random.default_rng()
+
+    def _mutate(srs_lst: list[pd.Series]) -> list[pd.Series]:
+        srs_lst_len = len(srs_lst)
+
+        if srs_lst_len < 2:
+            raise ValueError("list must contain at least two series to permute")
+
+        srs_0_len = len(srs_lst[0])
+
+        for i in range(1, srs_lst_len):
+            if len(srs_lst[i]) != srs_0_len:
+                raise ValueError("all series must be of the same length")
+
+        # e.g. for l=3, this will produce (0, 1, 2)
+        tpl_idx_not_permuted = tuple(range(srs_lst_len))
+        # generate all series index permutations and remove the tuple with all indices in order
+        srs_idx_permutations = sorted(
+            set(itertools.permutations(range(len(srs_lst)))) - {tpl_idx_not_permuted}
+        )
+        # choose random index permutations
+        arr_rand_idx_tpl = rng.choice(srs_idx_permutations, size=srs_0_len)
+        # map tuples to each series
+        srs_idx_per_srs = list(zip(*arr_rand_idx_tpl))
+        # transform each list of indices into series
+        srs_lst_idx_per_srs = [
+            pd.Series(
+                data=srs_idx_per_srs[i],
+                index=srs_lst[i].index,
+                copy=False,
+            )
+            for i in range(srs_lst_len)
+        ]
+
+        srs_lst_out = [srs.copy() for srs in srs_lst]
+
+        for i in range(srs_lst_len):
+            for j in range(srs_lst_len):
+                if i == j:
+                    continue
+
+                mask_this_srs = srs_lst_idx_per_srs[i] == j
+                srs_lst_out[i][mask_this_srs] = srs_lst[j][mask_this_srs]
+
+        return srs_lst_out
 
     return _mutate
 

@@ -300,6 +300,28 @@ def test_permute():
     assert (srs_2 == srs_1_mutated).all()
 
 
+def test_permute_more_than_two(rng):
+    srs_1, srs_2, srs_3 = (
+        pd.Series(["foo"] * 100),
+        pd.Series(["bar"] * 100),
+        pd.Series(["baz"] * 100),
+    )
+    mutate_permute = with_permute(rng)
+    srs_1_mutated, srs_2_mutated, srs_3_mutated = mutate_permute([srs_1, srs_2, srs_3])
+
+    orig_srs = [srs_1, srs_2, srs_3]
+    mut_srs = [srs_1_mutated, srs_2_mutated, srs_3_mutated]
+
+    for i in range(len(orig_srs)):
+        for j in range(len(orig_srs)):
+            if i == j:
+                # if checking series against itself, ensure that not all original entries are copied over
+                assert not (orig_srs[i] == mut_srs[j]).all()
+
+            # check that some entries have been shared between the series
+            assert (orig_srs[i] == mut_srs[j]).any()
+
+
 def test_mutate_data_frame_single(rng):
     df = pd.DataFrame({"foo": list(string.ascii_letters)})
     df_mut = mutate_data_frame(
