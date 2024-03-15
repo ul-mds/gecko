@@ -4,11 +4,6 @@ on:
   push:
     branches:
       - main
-    paths:
-      - "docs/**/*"
-      - "mkdocs.yml"
-      - "poetry.lock"
-      - "pyproject.toml"
 
 permissions:
   contents: write
