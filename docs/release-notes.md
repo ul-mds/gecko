@@ -1,21 +1,24 @@
 # Release notes
 
-## 0.3.0 (Mar 15, 2024)
+## 0.3.0 (Mar 18, 2024)
 
 ### Features
 
-- Infer `header` parameter from functions reading CSV files
+- Allow `corruptor.with_permute` to work with more than two series at once
+- Infer `header` parameter for functions reading CSV files
+- Remove list length constraints from `mutator` module
 
 ### Refactors
 
+- Fix type hints on `*args` and `**kwargs`
 - Rename `corruptor` module to `mutator`
 - Rename `Corruptor` type alias to `Mutator`
-- Rename `generator.to_dataframe` to `generator.to_dataframe`
 - Rename `corruptor.corrupt_dataframe` to `mutator.mutate_data_frame`
+- Rename `generator.to_dataframe` to `generator.to_dataframe`
 
 ### Documentation
 
-- Add API reference
+- Add API reference to documentation
 - Update docs to use new "mutator" terminology wherever possible
 - Use Google format docstrings instead of reST
 
