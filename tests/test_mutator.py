@@ -541,3 +541,9 @@ def test_mutate_data_frame_no_modify(rng):
     )
 
     assert df_orig.equals(df_copy)
+
+
+# see https://github.com/ul-mds/gecko/issues/33
+def test_permute_on_empty_series(rng):
+    mutate_permute = with_permute(rng)
+    mutate_permute([pd.Series(), pd.Series()])
