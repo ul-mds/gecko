@@ -1143,6 +1143,10 @@ def with_permute(rng: Optional[np.random.Generator] = None) -> Mutator:
             if len(srs_lst[i]) != srs_0_len:
                 raise ValueError("all series must be of the same length")
 
+        # nothing to permute
+        if srs_0_len == 0:
+            return srs_lst
+
         # e.g. for l=3, this will produce (0, 1, 2)
         tpl_idx_not_permuted = tuple(range(srs_lst_len))
         # generate all series index permutations and remove the tuple with all indices in order

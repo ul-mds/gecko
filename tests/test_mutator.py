@@ -541,3 +541,46 @@ def test_mutate_data_frame_no_modify(rng):
     )
 
     assert df_orig.equals(df_copy)
+
+
+# see https://github.com/ul-mds/gecko/issues/33
+# this is to test that none of the mutators fail if they are provided an empty series
+@pytest.mark.parametrize(
+    "num_srs,func",
+    [
+        (1, with_noop()),
+        (1, with_missing_value("", "all")),
+        (1, with_missing_value("", "blank")),
+        (1, with_missing_value("", "empty")),
+        (1, with_function(lambda s: s.upper())),
+        (1, with_insert(rng=__dummy_rng)),
+        (1, with_delete(rng=__dummy_rng)),
+        (1, with_transpose(rng=__dummy_rng)),
+        (1, with_substitute(rng=__dummy_rng)),
+        (1, with_edit(rng=__dummy_rng)),
+        (
+            1,
+            with_categorical_values(
+                get_asset_path("freq_table_gender.csv"),
+                value_column="gender",
+                rng=__dummy_rng,
+            ),
+        ),
+        (
+            1,
+            with_phonetic_replacement_table(
+                get_asset_path("homophone-de.csv"), rng=__dummy_rng
+            ),
+        ),
+        (
+            1,
+            with_cldr_keymap_file(
+                get_asset_path("de-t-k0-windows.xml"), rng=__dummy_rng
+            ),
+        ),
+        (1, with_replacement_table(get_asset_path("ocr.csv"), rng=__dummy_rng)),
+        (2, with_permute()),
+    ],
+)
+def test_no_error_on_empty_series(num_srs: int, func: Mutator):
+    func([pd.Series() for _ in range(num_srs)])
