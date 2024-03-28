@@ -1,5 +1,26 @@
 # Release notes
 
+## 0.3.1 (Mar 28, 2024)
+
+### Fixes
+
+- Fix `IndexError` when calling `with_permute` on empty series
+- Fix Python version range in `pyproject.toml`
+
+### Refactors
+
+- Fix type hint on `**kwargs` in benchmarks
+
+### Documentation
+
+- Add navigation tabs to documentation
+- Fix image link in README so that it can be displayed on PyPI
+
+### Internal
+
+- Cache dependencies in CI pipelines
+- Reorganize dependencies into groups for tests, development and documentation
+
 ## 0.3.0 (Mar 18, 2024)
 
 ### Features
