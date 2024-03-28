@@ -1,7 +1,7 @@
 Gecko is a Python library for the bulk generation and mutation of realistic personal data.
 It is a spiritual successor to the GeCo framework which was initially published by Tran, Vatsalan and Christen.
 Gecko reimplements the most promising aspects of the original framework for modern Python with a simplified API, adds
-extra features and massively improves performance thanks to Numpy and Pandas.
+extra features and massively improves performance thanks to NumPy and Pandas.
 
 # Installation
 
@@ -32,7 +32,7 @@ Gecko provides functions which deliberately introduce errors into your dataset.
 These errors can take shape in typos, edit errors and other common data sources.
 By the end, you will have a generated dataset and a mutated copy thereof.
 
-![Common workflow with Gecko](docs/img/gecko-workflow.png)
+![Common workflow with Gecko](https://ul-mds.github.io/gecko/img/gecko-workflow.png)
 
 Gecko exposes two modules, `generator` and `mutator`, to help you write data generation scripts.
 Both contain built-in functions covering the most common use cases for generating data from frequency information and
@@ -96,10 +96,10 @@ lot of promise.
 This has led to the development of the Gecko library.
 
 A lot of GeCo's weaknesses were rectified with this library.
-Vectorized functions from Pandas and Numpy provides significant performance boosts and aid integration into existing
+Vectorized functions from Pandas and NumPy provide significant performance boosts and aid integration into existing
 data science applications.
 A simplified API allows for a much easier development of custom generators and mutators.
-Numpy's random number generation routines instead of Python's built-in `random` module make fine-tuned reproducible
+NumPy's random number generation routines instead of Python's built-in `random` module make fine-tuned reproducible
 results a breeze.
 Gecko therefore seeks to be GeCo's "bigger brother" and aims to provide a much more refined experience to generate
 realistic personal data.
