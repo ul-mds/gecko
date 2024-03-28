@@ -3,7 +3,7 @@ import os.path
 import time
 import timeit
 from datetime import datetime, timezone
-from typing import Callable, Optional, Any
+from typing import Callable, Optional
 
 import numpy as np
 import pytest
@@ -31,7 +31,7 @@ def benchmark():
         func: Callable,
         calls: int = 1,
         iterations: int = 10,
-        extra: Optional[dict[str, Any]] = None,
+        extra: Optional[dict[str, object]] = None,
     ):
         result = timeit.repeat(
             func, number=calls, repeat=iterations, timer=time.perf_counter_ns

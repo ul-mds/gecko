@@ -1,6 +1,6 @@
 import os
 from types import ModuleType
-from typing import Callable, Any
+from typing import Callable
 
 import numpy as np
 import pytest
@@ -14,9 +14,7 @@ pytestmark = pytest.mark.benchmark
 record_counts = (100, 250, 500, 1_000, 2_500, 5_000, 10_000, 25_000, 50_000, 100_000)
 
 
-def __extra(
-    mod_type: ModuleType, func_type: Callable, records: int, **kwargs: dict[str, Any]
-):
+def __extra(mod_type: ModuleType, func_type: Callable, records: int, **kwargs: object):
     return {
         "suite": "german",
         "module": mod_type.__name__,
