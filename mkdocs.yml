@@ -1,11 +1,17 @@
 # yaml-language-server: $schema=https://squidfunk.github.io/mkdocs-material/schema.json
 site_name: Gecko Docs
+repo_url: https://github.com/ul-mds/gecko
+repo_name: ul-mds/gecko
 plugins:
   - search
   - mkdocstrings
+  - git-revision-date-localized:
+      enable_creation_date: true
 watch:
   - gecko
 theme:
+  icon:
+    repo: fontawesome/brands/github
   name: material
   features:
     - content.code.copy
@@ -14,6 +20,7 @@ theme:
     - search.share
     - navigation.expand
     - navigation.footer
+    - navigation.tabs
   palette:
     - media: "(prefers-color-scheme: light)"
       scheme: default
@@ -47,13 +54,14 @@ markdown_extensions:
       alternate_style: true
 
 nav:
-  - Intro to Gecko: index.md
-  - Generating data: data-generation.md
-  - Mutating data: data-mutation.md
-  - Examples with Gecko:
-      - German population dataset: examples/german.md
-  - Release notes: release-notes.md
+  - Guide:
+      - Intro to Gecko: index.md
+      - Generating data: data-generation.md
+      - Mutating data: data-mutation.md
+      - Examples with Gecko:
+          - German population dataset: examples/german.md
   - API reference: api-reference.md
+  - Release notes: release-notes.md
 
 extra:
   social:
