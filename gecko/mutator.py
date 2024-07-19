@@ -1288,7 +1288,7 @@ def mutate_data_frame(
         arr_mutator_idx = np.arange(mutator_count)
         arr_mutator_per_row = rng.choice(arr_mutator_idx, p=p_values, size=len(df_out))
         srs_mutator_idx = pd.Series(data=arr_mutator_per_row, index=df_out.index)
-        srs_columns = [df_in[column_name] for column_name in column_spec]
+        srs_columns = [df_out[column_name] for column_name in column_spec]
 
         for i in arr_mutator_idx:
             mutator = mutator_funcs[i]

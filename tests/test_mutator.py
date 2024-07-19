@@ -584,3 +584,22 @@ def test_mutate_data_frame_no_modify(rng):
 )
 def test_no_error_on_empty_series(num_srs: int, func: Mutator):
     func([pd.Series() for _ in range(num_srs)])
+
+
+def test_multiple_mutators_per_column(rng):
+    df_in = pd.DataFrame(
+        {
+            "foo": ["a"] * 100,
+            "bar": ["b"] * 100,
+        }
+    )
+
+    df_out = mutate_data_frame(
+        df_in,
+        {"foo": with_delete(rng=rng), ("foo", "bar"): with_permute(rng=rng)},
+        rng=rng,
+    )
+
+    # check that permutation and deletion was applied (`a` should no longer be present)
+    assert (df_out["foo"] == "b").all()
+    assert (df_out["bar"] == "").all()
