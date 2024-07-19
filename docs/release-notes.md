@@ -1,5 +1,11 @@
 # Release notes
 
+## 0.3.2 (Jul 19, 2024)
+
+### Fixes
+
+- Fix multiple mutators not being applied correctly when defined on the same column
+
 ## 0.3.1 (Mar 28, 2024)
 
 ### Fixes
