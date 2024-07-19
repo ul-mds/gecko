@@ -594,10 +594,11 @@ def test_multiple_mutators_per_column(rng):
         }
     )
 
-    df_out = mutate_data_frame(df_in, {
-        "foo": with_delete(rng=rng),
-        ("foo", "bar"): with_permute(rng=rng)
-    }, rng=rng)
+    df_out = mutate_data_frame(
+        df_in,
+        {"foo": with_delete(rng=rng), ("foo", "bar"): with_permute(rng=rng)},
+        rng=rng,
+    )
 
     # check that permutation and deletion was applied (`a` should no longer be present)
     assert (df_out["foo"] == "b").all()
