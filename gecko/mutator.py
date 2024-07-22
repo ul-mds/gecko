@@ -1214,7 +1214,7 @@ def mutate_data_frame(
         return (
             isinstance(x, tuple)
             and len(x) == 2
-            and isinstance(x[0], float)
+            and isinstance(x[0], (float, int))
             and isinstance(x[1], Callable)
         )
 
