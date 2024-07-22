@@ -603,3 +603,21 @@ def test_multiple_mutators_per_column(rng):
     # check that permutation and deletion was applied (`a` should no longer be present)
     assert (df_out["foo"] == "b").all()
     assert (df_out["bar"] == "").all()
+
+
+# see https://github.com/ul-mds/gecko/issues/41
+@pytest.mark.parametrize(
+    "value,value_type",
+    [
+        (1, int),
+        (1.0, float),
+    ],
+)
+def test_mutate_data_frame_numeric_input(value, value_type, rng):
+    # sanity check
+    assert isinstance(value, value_type)
+
+    df_in = pd.DataFrame({"foo": ["a"] * 100})
+
+    # before the fix mentioned above, this failed if the provided probability was an int
+    _ = mutate_data_frame(df_in, {"foo": (value, with_delete(rng=rng))}, rng=rng)
