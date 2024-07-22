@@ -1,5 +1,4 @@
 import string
-from typing import Type
 
 import numpy as np
 import pandas as pd
@@ -614,9 +613,7 @@ def test_multiple_mutators_per_column(rng):
         (1.0, float),
     ],
 )
-def test_mutate_data_frame_numeric_input(
-    value: int | float, value_type: Type[int | float], rng
-):
+def test_mutate_data_frame_numeric_input(value, value_type, rng):
     # sanity check
     assert isinstance(value, value_type)
 
