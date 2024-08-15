@@ -1,0 +1,50 @@
+cff-version: 1.2.0
+title: Gecko
+message: 'If you use this software, please cite it as below.'
+type: software
+authors:
+  - given-names: Maximilian
+    family-names: Jugl
+    email: Maximilian.Jugl@medizin.uni-leipzig.de
+    affiliation: >-
+      Leipzig University Medical Center, Dept. Medical Data
+      Science
+    orcid: 'https://orcid.org/0009-0000-8479-1716'
+  - given-names: Toralf
+    family-names: Kirsten
+    email: Toralf.Kirsten@medizin.uni-leipzig.de
+    affiliation: >-
+      Leipzig University Medical Center, Dept. Medical Data
+      Science
+    orcid: 'https://orcid.org/0000-0001-7117-4268'
+repository-code: 'https://github.com/ul-mds/gecko'
+url: 'https://ul-mds.github.io/gecko/'
+repository-artifact: 'https://pypi.org/project/gecko-syndata/'
+license: MIT
+commit: 195510411978c76999ee63a0eb37650bb976490c
+version: 0.3.2
+date-released: '2024-07-19'
+preferred-citation:
+  type: article
+  authors:
+  - given-names: Maximilian
+    family-names: Jugl
+    email: Maximilian.Jugl@medizin.uni-leipzig.de
+    affiliation: >-
+      Leipzig University Medical Center, Dept. Medical Data
+      Science
+    orcid: 'https://orcid.org/0009-0000-8479-1716'
+  - given-names: Toralf
+    family-names: Kirsten
+    email: Toralf.Kirsten@medizin.uni-leipzig.de
+    affiliation: >-
+      Leipzig University Medical Center, Dept. Medical Data
+      Science
+    orcid: 'https://orcid.org/0000-0001-7117-4268'
+  doi: '10.1016/j.softx.2024.101846'
+  journal: 'SoftwareX'
+  month: 9
+  title: 'Gecko: A Python library for the generation and mutation of realistic personal identification data at scale'
+  abstract: 'Record linkage algorithms require testing on realistic personal identification data to assess their efficacy in real-world settings. Access to this kind of data is often infeasible due to rigid data privacy regulations. Open-source tools for generating realistic data are either unmaintained or lack performance to scale to the generation of millions of records. We introduce Gecko as a Python library for creating shareable scripts to generate and mutate realistic personal data. Built on top of popular data science libraries in Python, it greatly facilitates integration into existing workflows. Benchmarks are provided to prove the library’s performance and scalability claims.'
+  volume: 27
+  year: 2024
