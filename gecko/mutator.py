@@ -1184,26 +1184,28 @@ def with_permute(rng: Optional[np.random.Generator] = None) -> Mutator:
 
 def mutate_data_frame(
     df_in: pd.DataFrame,
-    column_to_mutator_dict: dict[
-        Union[str, tuple[str, ...]],
-        Union[
-            Mutator,
-            tuple[float, Mutator],
-            list[Mutator],
-            list[tuple[float, Mutator]],
+    column_to_mutator_list: list[
+        tuple[
+            Union[str, tuple[str, ...]],
+            Union[
+                Mutator,
+                list[Mutator],
+                tuple[float, Mutator],
+                list[tuple[float, Mutator]],
+            ],
         ],
     ],
     rng: Optional[np.random.Generator] = None,
 ) -> pd.DataFrame:
     """
     Mutate a data frame by applying several mutators on select columns.
-    This function takes a dictionary which has column names as keys and mutators as values.
+    This function takes a list which contains columns and mutators that are assigned to them.
     A column may be assigned a single mutator, a mutator with a probability, a list of mutators where each is applied
     with the same probability, and a list of weighted mutators where each is applied with its assigned probability.
 
     Args:
         df_in: data frame to mutate
-        column_to_mutator_dict: mapping of column names to mutators
+        column_to_mutator_list: list of columns with their mutator assignments
         rng: random number generator to use
 
     Returns:
@@ -1223,7 +1225,9 @@ def mutate_data_frame(
 
     df_out = df_in.copy()
 
-    for column_spec, mutator_spec in column_to_mutator_dict.items():
+    for column_to_mutator_entry in column_to_mutator_list:
+        column_spec, mutator_spec = column_to_mutator_entry
+
         # convert to list if there is only one column specified
         if isinstance(column_spec, str):
             column_spec = (column_spec,)

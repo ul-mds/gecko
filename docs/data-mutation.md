@@ -379,17 +379,17 @@ df = pd.DataFrame(
 
 rng = np.random.default_rng(25565)
 
-df_mutated = mutator.mutate_data_frame(df, {
-    ("fruit", "type"): (.5, mutator.with_permute()),  # (1)!
-    "grade": [  # (2)!
+df_mutated = mutator.mutate_data_frame(df, [
+    (("fruit", "type"), (.5, mutator.with_permute())),  # (1)!
+    ("grade", [  # (2)!
         mutator.with_missing_value(strategy="all"),
         mutator.with_substitute(charset=string.ascii_uppercase, rng=rng),
-    ],
-    "amount": [  # (3)!
+    ]),
+    ("amount", [  # (3)!
         (.8, mutator.with_insert(charset=string.digits, rng=rng)),
         (.2, mutator.with_delete(rng=rng))
-    ]
-}, rng=rng)
+    ])
+], rng=rng)
 
 print(df_mutated)
 # => [["fruit", "type", "weight_in_grams", "amount", "grade"],

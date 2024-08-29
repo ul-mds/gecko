@@ -260,17 +260,17 @@ from gecko import mutator
 
 
 def mutate_data_frame(df, rng):
-    return mutator.mutate_data_frame(df, {  # (1)!
-        "given_name": [
+    return mutator.mutate_data_frame(df, [  # (1)!
+        ("given_name", [
             (0.1, mutator.with_replacement_table(  # (2)!
                 "gecko-data/common/ocr.csv",
                 rng=rng,
             ))
-        ]
-    }, rng=rng)  # (3)!
+        ])
+    ], rng=rng)  # (3)!
 ```
 
-1. The `mutate_data_frame` function takes in two arguments: the data frame to mutate and a dictionary. This dictionary
+1. The `mutate_data_frame` function takes in two arguments: the data frame to mutate and a list. This list
    maps column names to a list of mutators to apply to this column.
 2. Each column is assigned a list. This list contains entries that define how mutators should be applied. The syntax
    for each entry is `(probability, mutator)`. So in this case, the replacement table mutator is applied to 10% of
@@ -293,21 +293,21 @@ from gecko import mutator
 
 
 def mutate_data_frame(df, rng):
-    return mutator.mutate_data_frame(df, {
-        "given_name": [
+    return mutator.mutate_data_frame(df, [
+        ("given_name", [
             (0.1, mutator.with_replacement_table(
                 "gecko-data/common/ocr.csv",
                 rng=rng,
             ))
-        ],
-        "gender": [
+        ]),
+        ("gender", [
             (0.02, mutator.with_categorical_values(  # (1)!
                 "gecko-data/de_DE/given-name-gender.csv",
                 value_column="gender",
                 rng=rng,
             ))
-        ]
-    }, rng=rng)
+        ])
+    ], rng=rng)
 ```
 
 1. The `with_categorical_values` function allows you to reuse the same files that you used to generate your data. The
@@ -325,14 +325,14 @@ from gecko import mutator
 
 
 def mutate_data_frame(df, rng):
-    return mutator.mutate_data_frame(df, {
-        "given_name": [
+    return mutator.mutate_data_frame(df, [
+        ("given_name", [
             (0.1, mutator.with_replacement_table(
                 "gecko-data/common/ocr.csv",
                 rng=rng,
             ))
-        ],
-        "gender": [
+        ]),
+        ("gender", [
             (0.02, mutator.with_categorical_values(
                 "gecko-data/de_DE/given-name-gender.csv",
                 value_column="gender",
@@ -342,8 +342,8 @@ def mutate_data_frame(df, rng):
                 value="",  # (1)!
                 strategy="all",  # (2)!
             ))
-        ]
-    }, rng=rng)
+        ])
+    ], rng=rng)
 ```
 
 1. By default, this mutator uses an empty string as the "missing value". You don't need to add this parameter if you
@@ -368,14 +368,14 @@ from gecko import mutator
 
 
 def mutate_data_frame(df, rng):
-    return mutator.mutate_data_frame(df, {
-        "given_name": [
+    return mutator.mutate_data_frame(df, [
+        ("given_name", [
             (0.1, mutator.with_replacement_table(
                 "gecko-data/common/ocr.csv",
                 rng=rng,
             ))
-        ],
-        "gender": [
+        ]),
+        ("gender", [
             (0.02, mutator.with_categorical_values(
                 "gecko-data/de_DE/given-name-gender.csv",
                 value_column="gender",
@@ -385,15 +385,15 @@ def mutate_data_frame(df, rng):
                 value="",
                 strategy="all",
             ))
-        ],
-        "postcode": [
+        ]),
+        ("postcode", [
             (0.01, mutator.with_cldr_keymap_file(
                 "de-t-k0-windows.xml",  # (1)!
                 charset="0123456789",  # (2)!
                 rng=rng,
             ))
-        ]
-    }, rng=rng)
+        ])
+    ], rng=rng)
 ```
 
 1. The `with_cldr_keymap_file` function can read any CLDR
@@ -452,14 +452,14 @@ def generate_data_frame(count, rng):
 
 
 def mutate_data_frame(df, rng):
-    return mutator.mutate_data_frame(df, {
-        "given_name": [
+    return mutator.mutate_data_frame(df, [
+        ("given_name", [
             (0.1, mutator.with_replacement_table(
                 "gecko-data/common/ocr.csv",
                 rng=rng,
             ))
-        ],
-        "gender": [
+        ]),
+        ("gender", [
             (0.02, mutator.with_categorical_values(
                 "gecko-data/de_DE/given-name-gender.csv",
                 value_column="gender",
@@ -469,15 +469,15 @@ def mutate_data_frame(df, rng):
                 value="",
                 strategy="all",
             ))
-        ],
-        "postcode": [
+        ]),
+        ("postcode", [
             (0.01, mutator.with_cldr_keymap_file(
                 "de-t-k0-windows.xml",
                 charset="0123456789",
                 rng=rng,
             ))
-        ]
-    }, rng=rng)
+        ])
+    ], rng=rng)
 
 
 if __name__ == "__main__":
@@ -553,7 +553,8 @@ def create_date_of_birth_generator(
 ```
 
 1. If no RNG is supplied to this function, then it will use a new RNG with a random starting
-   point. [See the Numpy docs on `default_rng` for more information.](https://numpy.org/doc/stable/reference/random/generator.html#numpy.random.default_rng)
+   point. [See the Numpy docs on
+   `default_rng` for more information.](https://numpy.org/doc/stable/reference/random/generator.html#numpy.random.default_rng)
 2. This is the actual generator function that will take care of generating random data. It must take in a number and
    return a list of series.
 3. The generator is returned by your function. This means whenever you call `create_date_of_birth_generator` in your
@@ -605,7 +606,8 @@ def create_date_of_birth_generator(
    number. It is then converted into an integer.
 
 Now you can generate random days to add to the start date.
-Use [Numpy's RNG `integers` function](https://numpy.org/doc/stable/reference/random/generated/numpy.random.Generator.integers.html)
+Use [Numpy's RNG
+`integers` function](https://numpy.org/doc/stable/reference/random/generated/numpy.random.Generator.integers.html)
 to quickly generate many numbers at once.
 By setting `endpoint` to `True`, you're ensuring that the upper bound is included in the random number generation.
 

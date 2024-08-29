@@ -326,9 +326,12 @@ def test_mutate_data_frame_single(rng):
     df = pd.DataFrame({"foo": list(string.ascii_letters)})
     df_mut = mutate_data_frame(
         df,
-        {
-            "foo": with_missing_value(strategy="all"),
-        },
+        [
+            (
+                "foo",
+                with_missing_value(strategy="all"),
+            )
+        ],
     )
 
     assert (df_mut["foo"] == "").all()
@@ -338,12 +341,15 @@ def test_mutate_data_frame_multiple(rng):
     df = pd.DataFrame({"foo": list(string.ascii_letters)})
     df_mut = mutate_data_frame(
         df,
-        {
-            "foo": [
-                with_missing_value(strategy="all"),
-                with_missing_value(value="bar", strategy="all"),
-            ]
-        },
+        [
+            (
+                "foo",
+                [
+                    with_missing_value(strategy="all"),
+                    with_missing_value(value="bar", strategy="all"),
+                ],
+            )
+        ],
     )
 
     assert (df_mut["foo"] == "").any()
@@ -352,7 +358,7 @@ def test_mutate_data_frame_multiple(rng):
 
 def test_mutate_data_frame_single_weighted(rng):
     df = pd.DataFrame({"foo": list(string.ascii_letters)})
-    df_mut = mutate_data_frame(df, {"foo": (0.5, with_missing_value(strategy="all"))})
+    df_mut = mutate_data_frame(df, [("foo", (0.5, with_missing_value(strategy="all")))])
 
     assert (df_mut["foo"] == "").any()
     assert not (df_mut["foo"] == "").all()
@@ -362,12 +368,15 @@ def test_mutate_data_frame_multiple_weighted(rng):
     df = pd.DataFrame({"foo": list(string.ascii_letters)})
     df_mut = mutate_data_frame(
         df,
-        {
-            "foo": [
-                (0.2, with_missing_value(strategy="all")),
-                (0.8, with_missing_value("bar", strategy="all")),
-            ]
-        },
+        [
+            (
+                "foo",
+                [
+                    (0.2, with_missing_value(strategy="all")),
+                    (0.8, with_missing_value("bar", strategy="all")),
+                ],
+            )
+        ],
     )
 
     assert (df_mut["foo"] == "").any()
@@ -379,7 +388,7 @@ def test_mutate_data_frame_incorrect_column():
     df = pd.DataFrame(data={"foo": ["bar", "baz"]})
 
     with pytest.raises(ValueError) as e:
-        mutate_data_frame(df, {"foobar": with_noop()})
+        mutate_data_frame(df, [("foobar", with_noop())])
 
     assert str(e.value) == "column `foobar` does not exist, must be one of `foo`"
 
@@ -390,12 +399,15 @@ def test_mutate_data_frame_probability_sum_too_high():
     with pytest.raises(ValueError) as e:
         mutate_data_frame(
             df,
-            {
-                "foo": [
-                    (0.8, with_noop()),
-                    (0.3, with_missing_value()),
-                ],
-            },
+            [
+                (
+                    "foo",
+                    [
+                        (0.8, with_noop()),
+                        (0.3, with_missing_value()),
+                    ],
+                )
+            ],
         )
 
     assert str(e.value) == "sum of probabilities may not be higher than 1.0, is 1.1"
@@ -405,11 +417,14 @@ def test_mutate_data_frame_pad_probability():
     df_in = pd.DataFrame(data={"foo": ["a"] * 100})
     df_out = mutate_data_frame(
         df_in,
-        {
-            "foo": [
-                (0.5, with_missing_value("b", "all")),
-            ]
-        },
+        [
+            (
+                "foo",
+                [
+                    (0.5, with_missing_value("b", "all")),
+                ],
+            )
+        ],
     )
 
     srs_in = df_in["foo"]
@@ -433,10 +448,7 @@ def test_mutate_data_frame_multicolumn():
 
     df_out = mutate_data_frame(
         df_in,
-        {
-            ("foo", "bar"): with_permute(),
-            "baz": with_missing_value(strategy="all"),
-        },
+        [(("foo", "bar"), with_permute()), ("baz", with_missing_value(strategy="all"))],
     )
 
     srs_foo_mutated = df_out["foo"]
@@ -455,7 +467,7 @@ def test_mutate_data_frame_multicolumn_noop():
         }
     )
 
-    df_out = mutate_data_frame(df_in, {("foo", "bar"): [(0.5, with_permute())]})
+    df_out = mutate_data_frame(df_in, [(("foo", "bar"), [(0.5, with_permute())])])
 
     assert not (df_out["foo"] == "b").all()
     assert (df_out["foo"] == "b").any()
@@ -534,10 +546,10 @@ def test_mutate_data_frame_no_modify(rng):
 
     _ = mutate_data_frame(
         df_orig,
-        {
-            "upper": with_delete(rng=rng),
-            "lower": with_insert(rng=rng),
-        },
+        [
+            ("upper", with_delete(rng=rng)),
+            ("lower", with_insert(rng=rng)),
+        ],
     )
 
     assert df_orig.equals(df_copy)
@@ -596,7 +608,7 @@ def test_multiple_mutators_per_column(rng):
 
     df_out = mutate_data_frame(
         df_in,
-        {"foo": with_delete(rng=rng), ("foo", "bar"): with_permute(rng=rng)},
+        [("foo", with_delete(rng=rng)), (("foo", "bar"), with_permute(rng=rng))],
         rng=rng,
     )
 
@@ -620,4 +632,31 @@ def test_mutate_data_frame_numeric_input(value, value_type, rng):
     df_in = pd.DataFrame({"foo": ["a"] * 100})
 
     # before the fix mentioned above, this failed if the provided probability was an int
-    _ = mutate_data_frame(df_in, {"foo": (value, with_delete(rng=rng))}, rng=rng)
+    _ = mutate_data_frame(df_in, [("foo", (value, with_delete(rng=rng)))], rng=rng)
+
+
+def test_mutate_data_frame_order_generates_different_results(rng_factory):
+    rng_1 = rng_factory()
+    rng_2 = rng_factory()
+
+    df_in = pd.DataFrame({"foo": ["a"] * 100})
+
+    df_out_1 = mutate_data_frame(
+        df_in,
+        [
+            ("foo", (0.5, with_delete(rng=rng_1))),
+            ("foo", (0.5, with_insert(rng=rng_1))),
+        ],
+        rng=rng_1,
+    )
+
+    df_out_2 = mutate_data_frame(
+        df_in,
+        [
+            ("foo", (0.5, with_insert(rng=rng_2))),
+            ("foo", (0.5, with_delete(rng=rng_2))),
+        ],
+        rng=rng_2,
+    )
+
+    assert not (df_out_1["foo"] == df_out_2["foo"]).all()

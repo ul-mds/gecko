@@ -112,14 +112,14 @@ df_generated = generator.to_data_frame(  # (3)!
 
 df_mutated = mutator.mutate_data_frame(  # (7)!
     df_generated,
-    {
-        "gender": (.01, mutator.with_categorical_values(  # (8)!
+    [
+        ("gender", (.01, mutator.with_categorical_values(  # (8)!
             gecko_data_dir / "de_DE" / "given-name-gender.csv",
             value_column="gender",
             rng=rng,
-        )),
-        "age": (.02, mutator.with_transpose(rng)),  # (9)!
-    },
+        ))),
+        ("age", (.02, mutator.with_transpose(rng))),  # (9)!
+    ],
     rng,
 )
 
