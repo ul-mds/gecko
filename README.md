@@ -71,9 +71,9 @@ df_generated = generator.to_data_frame(
 # mutate this data frame by randomly deleting characters in 1% of all rows
 df_mutated = mutator.mutate_data_frame(
     df_generated,
-    {
-        "last_name": (.01, mutator.with_delete(rng)),
-    },
+    [
+        ("last_name", (.01, mutator.with_delete(rng))),
+    ],
     rng,
 )
 
