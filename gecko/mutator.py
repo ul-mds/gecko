@@ -1184,13 +1184,15 @@ def with_permute(rng: Optional[np.random.Generator] = None) -> Mutator:
 
 def mutate_data_frame(
     df_in: pd.DataFrame,
-    column_to_mutator_dict: dict[
-        Union[str, tuple[str, ...]],
-        Union[
-            Mutator,
-            tuple[float, Mutator],
-            list[Mutator],
-            list[tuple[float, Mutator]],
+    column_to_mutator_list: list[
+        tuple[
+            Union[str, tuple[str, ...]],
+            Union[
+                Mutator,
+                list[Mutator],
+                tuple[float, Mutator],
+                list[tuple[float, Mutator]],
+            ],
         ],
     ],
     rng: Optional[np.random.Generator] = None,
@@ -1203,7 +1205,7 @@ def mutate_data_frame(
 
     Args:
         df_in: data frame to mutate
-        column_to_mutator_dict: mapping of column names to mutators
+        column_to_mutator_list: mapping of column names to mutators
         rng: random number generator to use
 
     Returns:
@@ -1223,7 +1225,9 @@ def mutate_data_frame(
 
     df_out = df_in.copy()
 
-    for column_spec, mutator_spec in column_to_mutator_dict.items():
+    for column_to_mutator_entry in column_to_mutator_list:
+        column_spec, mutator_spec = column_to_mutator_entry
+
         # convert to list if there is only one column specified
         if isinstance(column_spec, str):
             column_spec = (column_spec,)
