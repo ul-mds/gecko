@@ -20,6 +20,8 @@ from gecko.mutator import (
     with_function,
     with_permute,
     Mutator,
+    with_lowercase,
+    with_uppercase,
 )
 from tests.helpers import get_asset_path
 
@@ -322,6 +324,26 @@ def test_permute_more_than_two(rng):
             assert (orig_srs[i] == mut_srs[j]).any()
 
 
+def test_with_lowercase():
+    srs = pd.Series(["Foobar"] * 100)
+    mutate_lowercase = with_lowercase()
+    (srs_mutated,) = mutate_lowercase([srs])
+
+    assert len(srs) == len(srs_mutated)
+    assert (srs != srs_mutated).all()
+    assert (srs_mutated == "foobar").all()
+
+
+def test_with_uppercase():
+    srs = pd.Series(["Foobar"] * 100)
+    mutate_uppercase = with_uppercase()
+    (srs_mutated,) = mutate_uppercase([srs])
+
+    assert len(srs) == len(srs_mutated)
+    assert (srs != srs_mutated).all()
+    assert (srs_mutated == "FOOBAR").all()
+
+
 def test_mutate_data_frame_single(rng):
     df = pd.DataFrame({"foo": list(string.ascii_letters)})
     df_mut = mutate_data_frame(
@@ -514,6 +536,8 @@ __dummy_rng = np.random.default_rng(5432)
         ),
         (1, with_replacement_table(get_asset_path("ocr.csv"), rng=__dummy_rng)),
         (2, with_permute()),
+        (1, with_lowercase()),
+        (1, with_uppercase()),
     ],
 )
 def test_mutator_no_modify(num_srs: int, func: Mutator, rng):
