@@ -354,6 +354,28 @@ print(replacement_mutator([srs]))
 # => ["lcick 0", "step |", "go z", "run s"]
 ```
 
+### Case conversions
+
+During data entry or normalization, it may occur that text is converted to all lowercase or uppercase, by accident or on
+purpose.
+`with_lowercase` and `with_uppercase` handle these use cases.
+
+```python
+import pandas as pd
+
+from gecko import mutator
+
+srs = pd.Series(["Foobar", "foobaz", "FOOBAT"])
+
+lowercase_mutator = mutator.with_lowercase()
+uppercase_mutator = mutator.with_uppercase()
+
+print(lowercase_mutator([srs]))
+# => ["foobar", "foobaz", "foobat"]
+print(uppercase_mutator([srs]))
+# => ["FOOBAR", "FOOBAZ", "FOOBAT"]
+```
+
 ## Multiple mutators
 
 Using `mutate_data_frame`, you can apply multiple mutators on many columns at once.

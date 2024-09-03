@@ -18,6 +18,8 @@ __all__ = [
     "with_categorical_values",
     "with_function",
     "with_permute",
+    "with_lowercase",
+    "with_uppercase",
     "mutate_data_frame",
 ]
 
@@ -1178,6 +1180,34 @@ def with_permute(rng: Optional[np.random.Generator] = None) -> Mutator:
                 srs_lst_out[i][mask_this_srs] = srs_lst[j][mask_this_srs]
 
         return srs_lst_out
+
+    return _mutate
+
+
+def with_lowercase() -> Mutator:
+    """
+    Mutate data from a series by converting it into lowercase.
+
+    Returns:
+        function returning list with the entries in each series converted to lowercase
+    """
+
+    def _mutate(srs_lst: list[pd.Series]) -> list[pd.Series]:
+        return [srs.str.lower() for srs in srs_lst]
+
+    return _mutate
+
+
+def with_uppercase() -> Mutator:
+    """
+    Mutate data from a series by converting it into uppercase.
+
+    Returns:
+        function returning list with the entries in each series converted to uppercase
+    """
+
+    def _mutate(srs_lst: list[pd.Series]) -> list[pd.Series]:
+        return [srs.str.upper() for srs in srs_lst]
 
     return _mutate
 
