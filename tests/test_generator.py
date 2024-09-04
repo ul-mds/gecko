@@ -126,6 +126,64 @@ def test_from_multicolumn_frequency_table(rng):
             raise AssertionError(f"unknown fruit: `{fruit}`")
 
 
+def test_from_datetime_range(rng):
+    gen_datetime = generator.from_datetime_range(
+        "1920-01-01", "2020-01-01", "%d.%m.%Y", "D", rng=rng
+    )
+
+    (dt_srs,) = gen_datetime(100)
+    assert dt_srs.str.fullmatch(r"\d{2}\.\d{2}\.\d{4}").all()
+
+
+def test_from_datetime_range_invalid_start_datetime(rng):
+    with pytest.raises(ValueError) as e:
+        generator.from_datetime_range("foobar", "2020-01-01", "%d.%m.%Y", "D")
+
+    assert str(e.value).startswith("Error parsing datetime string")
+
+
+def test_from_datetime_range_invalid_end_datetime(rng):
+    with pytest.raises(ValueError) as e:
+        generator.from_datetime_range("1920-01-01", "foobar", "%d.%m.%Y", "D")
+
+    assert str(e.value).startswith("Error parsing datetime string")
+
+
+@pytest.mark.parametrize("unit", ["D", "h", "m", "s"])
+def test_from_datetime_range_all_units(rng, unit):
+    gen_datetime = generator.from_datetime_range(
+        "1920-01-01", "2020-01-01", "%d.%m.%Y %H:%M:%S", unit, rng=rng
+    )
+
+    (dt_srs,) = gen_datetime(100)
+
+    df_matches = dt_srs.str.extract(
+        r"(?P<date>\d{2}.\d{2}.\d{4}) (?P<hour>\d{2}):(?P<minute>\d{2}):(?P<second>\d{2})"
+    )
+
+    assert df_matches["date"].notna().all()
+
+    hour_not_all_zero = unit in ("h", "m", "s")
+    minute_not_all_zero = unit in ("m", "s")
+    second_not_all_zero = unit == "s"
+
+    assert (not (df_matches["hour"] == "00").all()) == hour_not_all_zero
+    assert (not (df_matches["minute"] == "00").all()) == minute_not_all_zero
+    assert (not (df_matches["second"] == "00").all()) == second_not_all_zero
+
+
+def test_from_datetime_range_end_before_start(rng):
+    with pytest.raises(ValueError) as e:
+        generator.from_datetime_range(
+            "2020-01-01", "1920-01-01", "%d.%m.%Y", "D", rng=rng
+        )
+
+    assert (
+        str(e.value)
+        == "start datetime `2020-01-01` is greater than end datetime `1920-01-01`"
+    )
+
+
 def test_to_dataframe_error_empty_dict():
     with pytest.raises(ValueError) as e:
         generator.to_data_frame({}, 1000)

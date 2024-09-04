@@ -10,11 +10,12 @@ __all__ = [
     "from_normal_distribution",
     "from_frequency_table",
     "from_multicolumn_frequency_table",
+    "from_datetime_range",
     "to_data_frame",
 ]
 
 from os import PathLike
-from typing import Callable, Optional, Union
+from typing import Callable, Optional, Union, Literal
 
 import numpy as np
 import pandas as pd
@@ -246,6 +247,59 @@ def from_multicolumn_frequency_table(
     def _generate(count: int) -> list[pd.Series]:
         x = rng.choice(value_tuple_list, count, p=rel_freq_list)
         return [pd.Series(list(t)) for t in zip(*x)]  # dark magic
+
+    return _generate
+
+
+def from_datetime_range(
+    start_dt: Union[str, np.datetime64],
+    end_dt: Union[str, np.datetime64],
+    dt_format: str,
+    unit: Literal["D", "h", "m", "s"],
+    rng: Optional[np.random.Generator] = None,
+) -> Generator:
+    """
+    Generate data from a range of dates and times.
+    The start and end datetime must be provided either as a ISO 8601 datetime string or a NumPy datetime object.
+    The output format must include the same format codes as specified in the `datetime` Python module for the
+    `strftime` function.
+    The unit specifies the smallest unit of time that may change when generating random dates and times.
+    For example if `D` is specified, generated dates will only differ in their days, months and years, leaving hours,
+    minutes and seconds unaffected.
+    The same applies for `h`, `m` and `s` for hours, minutes and seconds respectively.
+
+    Args:
+        start_dt: datetime string or object for start of range
+        end_dt: datetime string or object for end of range
+        dt_format: output format for generated datetimes
+        unit: smallest unit of time that may change when generating random dates and times
+        rng: random number generator to use
+
+    Returns:
+        function returning list of random datetime strings within the specified range
+    """
+    if isinstance(start_dt, str):
+        start_dt = np.datetime64(start_dt)
+
+    if isinstance(end_dt, str):
+        end_dt = np.datetime64(end_dt)
+
+    if start_dt >= end_dt:
+        raise ValueError(
+            f"start datetime `{start_dt}` is greater than end datetime `{end_dt}`"
+        )
+
+    if rng is None:
+        rng = np.random.default_rng()
+
+    def _generate(count: int) -> list[pd.Series]:
+        delta_td = end_dt - start_dt
+        delta_amt = int(delta_td / np.timedelta64(1, unit))
+        random_vals = rng.integers(low=0, high=delta_amt, size=count, endpoint=True)
+        random_dts = start_dt + random_vals.astype(f"timedelta64[{unit}]")
+        dt_srs = pd.Series(random_dts)
+
+        return [dt_srs.dt.strftime(dt_format)]
 
     return _generate
 
