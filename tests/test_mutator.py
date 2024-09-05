@@ -485,7 +485,7 @@ def test_with_generator_raise_unaligned_indices():
 
 
 def test_with_regex_replacement_table_dob_day_month(rng):
-    chunk_size = 100
+    chunk_size = 10
 
     srs = pd.Series(
         ["2020-11-30"] * chunk_size

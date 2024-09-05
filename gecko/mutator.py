@@ -1447,19 +1447,33 @@ def with_regex_replacement_table(
         regexes.append(regex)
         regex_repl_fns.append(_new_regex_replacement_fn(row))
 
+    regex_count = len(regexes)
+
     def _mutate_series(srs: pd.Series) -> pd.Series:
-        # draw random indices for each row of the series
-        srs_regex_idx = pd.Series(
-            rng.choice(tuple(range(len(regexes))), size=len(srs)), index=srs.index
+        # count matching regexes for each row
+        srs_matching_regexes = pd.Series(np.zeros(len(srs), dtype=int), index=srs.index)
+
+        # increment for each row where regex applies
+        for i in range(regex_count):
+            srs_matching_regexes[srs.str.match(regexes[i])] += 1
+
+        # filter out all rows that do not have any matches
+        msk_eligible_rows = srs_matching_regexes != 0
+        srs_matching_regexes[msk_eligible_rows] = (
+            1 / srs_matching_regexes[msk_eligible_rows]
         )
 
+        # this is where the real mutation begins
         srs_out = srs.copy()
 
-        for i in range(len(regexes)):
-            this_regex_mask = srs_regex_idx == i
-            srs_out.loc[this_regex_mask] = srs.loc[this_regex_mask].str.replace(
-                regexes[i].pattern, regex_repl_fns[i], regex=True
+        for i in range(regex_count):
+            # apply substitution to all rows (including those that don't match, pandas will leave those untouched)
+            srs_mut = srs.str.replace(regexes[i], regex_repl_fns[i], regex=True)
+            # select the rows that have been changed and sample rows in case one row has more than one matching regex
+            msk_update = (srs != srs_mut) & (
+                rng.random(size=len(srs)) < srs_matching_regexes
             )
+            srs_out.loc[msk_update] = srs_mut.loc[msk_update]
 
         return srs_out
 
