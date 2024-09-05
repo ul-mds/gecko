@@ -376,6 +376,55 @@ print(uppercase_mutator([srs]))
 # => ["FOOBAR", "FOOBAZ", "FOOBAT"]
 ```
 
+### Date and time offsets
+
+Date and time information is prone to errors where single fields are offset by a couple units.
+This error source is implemented in the `with_datetime_offset` function.
+It requires a range in which time units can be offset by and the format of the data to mutate as expressed
+by [Python's format codes for datetime objects](https://docs.python.org/3/library/datetime.html#format-codes).
+It is possible to apply offsets in units of days (`D`), hours (`h`), minutes (`m`) and seconds (`s`).
+
+```python
+import numpy as np
+import pandas as pd
+
+from gecko import mutator
+
+srs = pd.Series(pd.date_range("2020-01-01", "2020-01-31", freq="D"))
+rng = np.random.default_rng(0xffd8)
+
+datetime_mutator = mutator.with_datetime_offset(
+   max_delta=5, unit="D", dt_format="%Y-%m-%d", rng=rng
+)
+
+print(datetime_mutator([srs]))
+# => ["2019-12-30", "2020-01-03", ..., "2020-01-25", "2020-02-01"]
+```
+
+When applying offsets, it might happen that the offset applied to a single field affects another field, e.g. subtracting
+a day from January 1st, 2020 will wrap around to December 31st, 2019.
+If this is not desired, Gecko offers an extra flag that prevents these types of wraparounds at the cost of leaving 
+affected rows untouched.
+Note how the first and last entry in the output of the snippet below remains unchanged when compared to the previous 
+snippet.
+
+```python
+import numpy as np
+import pandas as pd
+
+from gecko import mutator
+
+srs = pd.Series(pd.date_range("2020-01-01", "2020-01-31", freq="D"))
+rng = np.random.default_rng(0xffd8)
+
+datetime_mutator = mutator.with_datetime_offset(
+   max_delta=5, unit="D", dt_format="%Y-%m-%d", prevent_wraparound=True, rng=rng
+)
+
+print(datetime_mutator([srs]))
+# => ["2020-01-01", "2020-01-03", ..., "2020-01-25", "2020-01-31"]
+```
+
 ## Multiple mutators
 
 Using `mutate_data_frame`, you can apply multiple mutators on many columns at once.

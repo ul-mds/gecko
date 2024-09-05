@@ -156,6 +156,58 @@ print(normal_generator(100))
 # => [[23.77, 17.13, 22.08, 22.07, ..., 21.10, 22.67]]
 ```
 
+### Date and time information
+
+One of the most commonly collected pieces of identifying information are dates of birth.
+More technical sources of dates and times are record creation and update timestamps, as well as other applications of 
+tracing data entry.
+
+Gecko provides `from_datetime_range` to generate random timestamps from a uniform distribution.
+It can utilize any of [Python's built-in format codes for datetime objects](https://docs.python.org/3/library/datetime.html#format-codes)
+to output them to text.
+
+```python
+import numpy as np
+
+from gecko import generator
+
+
+rng = np.random.default_rng(0xcafebabe)
+datetime_generator = generator.from_datetime_range(
+    start_dt="1920-01-01", 
+    end_dt="2020-01-01", 
+    dt_format="%d.%m.%Y", 
+    unit="D", 
+    rng=rng
+)
+
+print(datetime_generator(100))
+# => [["05.05.1967", "07.06.1923", ..., "09.12.1986", "11.11.1943"]]
+```
+
+The "resolution" of the generated strings can be defined by setting the smallest unit of time to alter.
+Gecko can generate unique strings down to days (`D`), hours (`h`), minutes (`m`) and seconds (`s`) respectively.
+Months are years are currently unsupported since the underlying timespans are nonlinear.
+
+```python
+import numpy as np
+
+from gecko import generator
+
+
+rng = np.random.default_rng(0xdeadbeef)
+datetime_generator = generator.from_datetime_range(
+    start_dt="1920-01-01", 
+    end_dt="2020-01-01", 
+    dt_format="%d.%m.%Y %H:%M:%S", 
+    unit="m", 
+    rng=rng
+)
+
+print(datetime_generator(100))
+# => [["26.02.1933 17:57:00", "17.12.1954 03:01:00", ..., "15.02.1950 01:29:00", "24.06.1922 23:46:00"]]
+```
+
 ### Custom generators
 
 Any function that returns a string can be converted into a generator.
@@ -211,7 +263,7 @@ However, users of Faker are responsible for seeding their own RNG instances to a
 
 ```py
 from faker import Faker
-from geco import generator
+from gecko import generator
 
 fake = Faker("de_DE")
 fake.seed_instance(13579)

@@ -20,6 +20,7 @@ __all__ = [
     "with_permute",
     "with_lowercase",
     "with_uppercase",
+    "with_datetime_offset",
     "mutate_data_frame",
 ]
 
@@ -1208,6 +1209,85 @@ def with_uppercase() -> Mutator:
 
     def _mutate(srs_lst: list[pd.Series]) -> list[pd.Series]:
         return [srs.str.upper() for srs in srs_lst]
+
+    return _mutate
+
+
+def with_datetime_offset(
+    max_delta: int,
+    unit: Literal["D", "h", "m", "s"],
+    dt_format: str,
+    prevent_wraparound: bool = False,
+    rng: Optional[np.random.Generator] = None,
+) -> Mutator:
+    """
+    Mutate data from a series by treating it as datetime information and offsetting it by random amounts.
+    The delta and the unit specify which datetime field should be affected, where `D`, `h`, `m` and `s` can
+    be selected for days, hours, minutes and seconds respectively.
+    The datetime format must include the same format codes as specified in the `datetime` Python module for the
+    `strftime` function.
+    By setting `prevent_wraparound` to `True`, this mutator will not apply a mutation if it will cause an
+    unrelated field to change its value, e.g. when subtracting a day from July 1st, 2001.
+
+    Args:
+        max_delta: maximum amount of units to change by
+        unit: affected datetime field
+        dt_format: input and output datetime format
+        prevent_wraparound: `True` if unrelated fields should not be modified, `False` otherwise
+        rng: random number generator to use
+
+    Returns:
+        function returning list of datetime strings with random offsets applied to them
+    """
+    if max_delta <= 0:
+        raise ValueError(f"delta must be positive, is {max_delta}")
+
+    if rng is None:
+        rng = np.random.default_rng()
+
+    def _mutate_series(srs: pd.Series) -> pd.Series:
+        srs_dt = pd.to_datetime(srs, format=dt_format, errors="raise")
+        srs_dt_out = srs_dt.copy()
+
+        arr_rng_vals = rng.integers(
+            low=1, high=max_delta, size=len(srs_dt), endpoint=True
+        ) * rng.choice((-1, 1), size=len(srs_dt))
+
+        srs_vals = pd.Series(arr_rng_vals, copy=False, index=srs_dt.index)
+
+        for sgn in (-1, 1):
+            for val in range(1, max_delta + 1):
+                # compute the delta
+                this_delta = sgn * val
+                # wrap it into a timedelta
+                this_timedelta = pd.Timedelta(this_delta, unit)
+                # select all rows that have this delta applied to them
+                this_srs_mask = srs_vals == this_delta
+                # update rows
+                srs_dt_out.loc[this_srs_mask] += this_timedelta
+
+                # patch stuff if it wrapped around on accident
+                if prevent_wraparound:
+                    if unit == "D":
+                        wraparound_patch_mask = srs_dt_out.dt.month != srs_dt.dt.month
+                    elif unit == "h":
+                        wraparound_patch_mask = srs_dt_out.dt.day != srs_dt.dt.day
+                    elif unit == "m":
+                        wraparound_patch_mask = srs_dt_out.dt.hour != srs_dt.dt.hour
+                    elif unit == "s":
+                        wraparound_patch_mask = srs_dt_out.dt.minute != srs_dt.dt.minute
+                    else:
+                        raise ValueError(f"unrecognized unit: `{unit}`")
+
+                    # use original values (could probably be solved a bit more elegantly?)
+                    srs_dt_out.loc[wraparound_patch_mask] = srs_dt.loc[
+                        wraparound_patch_mask
+                    ]
+
+        return srs_dt_out.dt.strftime(dt_format)
+
+    def _mutate(srs_lst: list[pd.Series]) -> list[pd.Series]:
+        return [_mutate_series(srs) for srs in srs_lst]
 
     return _mutate
 

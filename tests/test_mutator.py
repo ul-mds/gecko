@@ -22,6 +22,7 @@ from gecko.mutator import (
     Mutator,
     with_lowercase,
     with_uppercase,
+    with_datetime_offset,
 )
 from tests.helpers import get_asset_path
 
@@ -342,6 +343,58 @@ def test_with_uppercase():
     assert len(srs) == len(srs_mutated)
     assert (srs != srs_mutated).all()
     assert (srs_mutated == "FOOBAR").all()
+
+
+@pytest.mark.parametrize("unit", ["D", "h", "m", "s"])
+def test_with_datetime_offset(rng, unit):
+    srs = pd.Series(
+        pd.date_range("2020-01-01", "2021-01-01", freq="h", inclusive="left")
+    )
+    mutate_datetime_offset = with_datetime_offset(5, unit, "%Y-%m-%d %H:%M:%S", rng=rng)
+    (srs_mutated,) = mutate_datetime_offset([srs])
+
+    assert (srs != srs_mutated).all()
+
+
+@pytest.mark.parametrize("unit", ["D", "h", "m", "s"])
+def test_with_datetime_offset_negative_wraparound(rng, unit):
+    srs = pd.Series(["2020-01-01 00:00:00"] * 100)
+    mutate_datetime_offset = with_datetime_offset(
+        5, unit, "%Y-%m-%d %H:%M:%S", prevent_wraparound=True, rng=rng
+    )
+    (srs_mutated,) = mutate_datetime_offset([srs])
+
+    assert (srs == srs_mutated).any()
+
+
+def test_with_datetime_offset_custom_format(rng):
+    srs = pd.Series(pd.date_range("2020-01-01", periods=28, freq="D")).dt.strftime(
+        "%d.%m.%Y"
+    )
+    mutate_datetime_offset = with_datetime_offset(5, "D", "%d.%m.%Y", rng=rng)
+    (srs_mutated,) = mutate_datetime_offset([srs])
+
+    assert (srs != srs_mutated).all()
+    assert srs_mutated.str.fullmatch(r"\d{2}.\d{2}.\d{4}").all()
+
+
+def test_with_datetime_offset_raise_invalid_format(rng):
+    srs = pd.Series(["2024-01-01", "02.01.2024"])
+    mutate_datetime_offset = with_datetime_offset(5, "D", "%Y-%m-%d", rng=rng)
+
+    with pytest.raises(ValueError) as e:
+        mutate_datetime_offset([srs])
+
+    assert str(e.value).startswith(
+        'time data "02.01.2024" doesn\'t match format "%Y-%m-%d"'
+    )
+
+
+def test_with_datetime_offset_raise_nonpositive_delta(rng):
+    with pytest.raises(ValueError) as e:
+        with_datetime_offset(0, "D", "%Y-%m-%d", rng=rng)
+
+    assert str(e.value) == "delta must be positive, is 0"
 
 
 def test_mutate_data_frame_single(rng):
