@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
+from gecko.generator import Generator
 from gecko.mutator import (
     with_insert,
     with_delete,
@@ -23,6 +24,7 @@ from gecko.mutator import (
     with_lowercase,
     with_uppercase,
     with_datetime_offset,
+    with_generator,
 )
 from tests.helpers import get_asset_path
 
@@ -397,6 +399,90 @@ def test_with_datetime_offset_raise_nonpositive_delta(rng):
     assert str(e.value) == "delta must be positive, is 0"
 
 
+def _generate_static(value: str) -> Generator:
+    def _generate(count: int) -> list[pd.Series]:
+        return [pd.Series([value] * count)]
+
+    return _generate
+
+
+def test_with_generator_replace():
+    srs = pd.Series(["foo"] * 100)
+    mutate_generator = with_generator(_generate_static("bar"), "replace")
+    (srs_mutated,) = mutate_generator([srs])
+
+    assert (srs_mutated == "bar").all()
+
+
+def test_with_generator_prepend():
+    srs = pd.Series(["foo"] * 100)
+    mutate_generator = with_generator(_generate_static("bar"), "prepend")
+    (srs_mutated,) = mutate_generator([srs])
+
+    assert (srs_mutated == "bar foo").all()
+
+
+def test_with_generator_append():
+    srs = pd.Series(["foo"] * 100)
+    mutate_generator = with_generator(_generate_static("bar"), "append")
+    (srs_mutated,) = mutate_generator([srs])
+
+    assert (srs_mutated == "foo bar").all()
+
+
+def test_with_generator_join_character():
+    srs = pd.Series(["foo"] * 100)
+    mutate_generator = with_generator(_generate_static("bar"), "append", join_with="-")
+    (srs_mutated,) = mutate_generator([srs])
+
+    assert (srs_mutated == "foo-bar").all()
+
+
+def test_with_generator_slice():
+    srs = pd.Series(["foo"] * 100)
+    srs_sub = srs.iloc[range(0, len(srs), 3)]
+    mutate_generator = with_generator(_generate_static("bar"), "append")
+    (srs_mutated,) = mutate_generator([srs_sub])
+
+    assert (srs_mutated == "foo bar").all()
+
+
+def test_with_generator_raise_series_different_length():
+    srs_1, srs_2 = pd.Series(["foo"] * 100), pd.Series(["bar"] * 200)
+    mutate_generator = with_generator(_generate_static("bar"), "append")
+
+    with pytest.raises(ValueError) as e:
+        mutate_generator([srs_1, srs_2])
+
+    assert str(e.value) == "series do not have the same length"
+
+
+def test_with_generator_raise_generator_incompatible():
+    srs_1, srs_2 = pd.Series(["foo"] * 100), pd.Series(["bar"] * 100)
+    mutate_generator = with_generator(_generate_static("bar"), "append")
+
+    with pytest.raises(ValueError) as e:
+        mutate_generator([srs_1, srs_2])
+
+    assert (
+        str(e.value)
+        == "generator must generate as many series as provided to the mutator: got 1, expected 2"
+    )
+
+
+def test_with_generator_raise_unaligned_indices():
+    srs_1, srs_2 = (
+        pd.Series(["foo"] * 3, index=[0, 1, 2]),
+        pd.Series(["bar"] * 3, index=[3, 4, 5]),
+    )
+    mutate_generator = with_generator(_generate_static("bar"), "append")
+
+    with pytest.raises(ValueError) as e:
+        mutate_generator([srs_1, srs_2])
+
+    assert str(e.value) == "indices of input series are not aligned"
+
+
 def test_mutate_data_frame_single(rng):
     df = pd.DataFrame({"foo": list(string.ascii_letters)})
     df_mut = mutate_data_frame(
@@ -591,6 +677,9 @@ __dummy_rng = np.random.default_rng(5432)
         (2, with_permute()),
         (1, with_lowercase()),
         (1, with_uppercase()),
+        (1, with_generator(_generate_static("foo"), "prepend")),
+        (1, with_generator(_generate_static("foo"), "append")),
+        (1, with_generator(_generate_static("foo"), "replace")),
     ],
 )
 def test_mutator_no_modify(num_srs: int, func: Mutator, rng):

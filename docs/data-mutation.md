@@ -425,6 +425,42 @@ print(datetime_mutator([srs]))
 # => ["2020-01-01", "2020-01-03", ..., "2020-01-25", "2020-01-31"]
 ```
 
+### Using generators
+
+`with_generator` can leverage Gecko's mutators to prepend, append or replace data.
+For instance, this can be used for emulating compound names for persons who have more than one given or last name.
+By default, this function adds a space when prepending or appending generated data, but this can be customized.
+
+```python
+import numpy as np
+import pandas as pd
+
+from gecko import mutator
+
+
+def generate_foobar_suffix(rand: np.random.Generator):
+    def _generate(count: int) -> list[pd.Series]:
+        return [pd.Series(rand.choice(("bar", "baz", "bat"), size=count))]
+
+    return _generate
+
+
+srs = pd.Series(["foo"] * 100)
+rng = np.random.default_rng(0x25504446)
+
+gen_prepend_mutator = mutator.with_generator(generate_foobar_suffix(rng), "prepend")
+print(gen_prepend_mutator([srs]))
+# => ["bat foo", "bar foo", ..., "baz foo", "baz foo"]
+
+gen_replace_mutator = mutator.with_generator(generate_foobar_suffix(rng), "replace")
+print(gen_replace_mutator([srs]))
+# => ["bar", "bar", ..., "baz", "bat"]
+
+gen_append_mutator = mutator.with_generator(generate_foobar_suffix(rng), "append", join_with="")
+print(gen_append_mutator([srs]))
+# => ["foobat", "foobat", ..., "foobat", "foobaz"]
+```
+
 ## Multiple mutators
 
 Using `mutate_data_frame`, you can apply multiple mutators on many columns at once.

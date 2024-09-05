@@ -21,6 +21,7 @@ __all__ = [
     "with_lowercase",
     "with_uppercase",
     "with_datetime_offset",
+    "with_generator",
     "mutate_data_frame",
 ]
 
@@ -37,6 +38,7 @@ from lxml import etree
 from typing_extensions import ParamSpec, Concatenate
 
 from gecko.cldr import decode_iso_kb_pos, unescape_kb_char, get_neighbor_kb_pos_for
+from gecko.generator import Generator
 
 Mutator = Callable[[list[pd.Series]], list[pd.Series]]
 _EditOp = Literal["ins", "del", "sub", "trs"]
@@ -1288,6 +1290,76 @@ def with_datetime_offset(
 
     def _mutate(srs_lst: list[pd.Series]) -> list[pd.Series]:
         return [_mutate_series(srs) for srs in srs_lst]
+
+    return _mutate
+
+
+def with_generator(
+    generator: Generator,
+    mode: Literal["prepend", "append", "replace"],
+    join_with: str = " ",
+) -> Mutator:
+    """
+    Mutate data from a series by appending, prepending or replacing it with data from another generator.
+    A character to join generated data with when appending or prepending can be provided.
+
+    Args:
+        generator: generator to source data from
+        mode: either append, prepend or replace
+        join_with: join character when appending or prepending
+
+    Returns:
+        function returning list of strings that have been appended, prepended or replaced with data from a generator
+    """
+
+    def _mutate(srs_lst: list[pd.Series]) -> list[pd.Series]:
+        # check that all series are of the same length
+        srs_lst_len_set = set([len(srs) for srs in srs_lst])
+
+        if len(srs_lst_len_set) != 1:
+            raise ValueError("series do not have the same length")
+
+        # use this length as a param for the generator later
+        srs_len = srs_lst_len_set.pop()
+
+        # check that the indices of all input series are aligned
+        if len(srs_lst) > 1:
+            indices_aligned = [
+                (srs_lst[0].index == srs_lst[i].index).all()
+                for i in range(1, len(srs_lst))
+            ]
+
+            if not all(indices_aligned):
+                raise ValueError("indices of input series are not aligned")
+
+        # call generator and align its index with the input series index. use ffill to
+        # avoid nas when reindexing.
+        srs_gen_lst = [
+            srs.reindex(srs_lst[i].index, method="ffill")
+            for i, srs in enumerate(generator(srs_len))
+        ]
+
+        # check that the generator returns as many series as provided to the mutator.
+        if len(srs_lst) != len(srs_gen_lst):
+            raise ValueError(
+                f"generator must generate as many series as provided to the mutator: "
+                f"got {len(srs_gen_lst)}, expected {len(srs_lst)}"
+            )
+
+        srs_lst_out = [srs.copy() for srs in srs_lst]
+
+        # perform the actual data mutation (this is where index alignment matters)
+        for i, srs_gen in enumerate(srs_gen_lst):
+            if mode == "replace":
+                srs_lst_out[i][:] = srs_gen
+            elif mode == "prepend":
+                srs_lst_out[i][:] = srs_gen + join_with + srs_lst_out[i][:]
+            elif mode == "append":
+                srs_lst_out[i][:] += join_with + srs_gen
+            else:
+                raise ValueError(f"invalid mode: `{mode}`")
+
+        return srs_lst_out
 
     return _mutate
 
