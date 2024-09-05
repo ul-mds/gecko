@@ -22,6 +22,7 @@ __all__ = [
     "with_uppercase",
     "with_datetime_offset",
     "with_generator",
+    "with_regex_replacement_table",
     "mutate_data_frame",
 ]
 
