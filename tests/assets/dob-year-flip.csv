@@ -1,0 +1,2 @@
+pattern,digit1,digit2
+"\d{2}(?P<digit1>\d)(?P<digit2>\d)-\d{2}-\d{2}","(?P<digit2>)","(?P<digit1>)"

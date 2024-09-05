@@ -25,6 +25,7 @@ from gecko.mutator import (
     with_uppercase,
     with_datetime_offset,
     with_generator,
+    with_regex_replacement_table,
 )
 from tests.helpers import get_asset_path
 
@@ -481,6 +482,41 @@ def test_with_generator_raise_unaligned_indices():
         mutate_generator([srs_1, srs_2])
 
     assert str(e.value) == "indices of input series are not aligned"
+
+
+def test_with_regex_replacement_table_dob_day_month(rng):
+    chunk_size = 100
+
+    srs = pd.Series(
+        ["2020-11-30"] * chunk_size
+        + ["2020-11-20"] * chunk_size
+        + ["2020-11-02"] * chunk_size
+        + ["2020-11-10"] * chunk_size
+        + ["2020-11-01"] * chunk_size
+        + ["2020-01-11"] * chunk_size
+        + ["2020-10-11"] * chunk_size
+    )
+
+    mutate_regex = with_regex_replacement_table(
+        get_asset_path("dob-day-month-flip.csv"), pattern_column="pattern", rng=rng
+    )
+
+    (srs_mutated,) = mutate_regex([srs])
+
+    for i in range(0, len(srs), chunk_size):
+        assert (
+            srs_mutated.iloc[i : i + chunk_size] != srs.iloc[i : i + chunk_size]
+        ).any()
+
+
+def test_with_regex_replacement_table(rng):
+    srs = pd.Series(["2020-01-10"] * 5 + ["2020-02-20"] * 5 + ["2020-01-30"] * 10)
+
+    mutate_regex = with_regex_replacement_table(
+        get_asset_path("dob-year-flip.csv"), pattern_column="pattern", rng=rng
+    )
+
+    (srs_mutated,) = mutate_regex([srs])
 
 
 def test_mutate_data_frame_single(rng):
