@@ -23,6 +23,7 @@ __all__ = [
     "with_datetime_offset",
     "with_generator",
     "with_regex_replacement_table",
+    "with_repeat",
     "mutate_data_frame",
 ]
 
@@ -1502,6 +1503,29 @@ def with_regex_replacement_table(
             srs_out.loc[msk_update] = srs_mut.loc[msk_update]
 
         return srs_out
+
+    def _mutate(srs_lst: list[pd.Series]) -> list[pd.Series]:
+        return [_mutate_series(srs) for srs in srs_lst]
+
+    return _mutate
+
+
+def with_repeat(join_with: str = " ") -> Mutator:
+    """
+    Mutate data in a series by repeating it.
+    By default, it is appended with a whitespace.
+
+    Args:
+        join_with: joining character to use, space by default
+
+    Returns:
+        function returning list with repeated series values
+    """
+
+    def _mutate_series(srs: pd.Series) -> pd.Series:
+        srs_out = srs.copy()
+
+        return srs_out + join_with + srs_out
 
     def _mutate(srs_lst: list[pd.Series]) -> list[pd.Series]:
         return [_mutate_series(srs) for srs in srs_lst]

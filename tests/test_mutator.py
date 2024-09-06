@@ -26,6 +26,7 @@ from gecko.mutator import (
     with_datetime_offset,
     with_generator,
     with_regex_replacement_table,
+    with_repeat,
 )
 from tests.helpers import get_asset_path
 
@@ -563,6 +564,22 @@ def test_with_regex_replacement_table_flags(rng):
     assert (srs_mutated == pd.Series(["foobaz", "Foobaz", "fOoBaz"])).all()
 
 
+def test_with_repeat():
+    srs = pd.Series(["foo"] * 100)
+    mutate_repeat = with_repeat()
+
+    (srs_mutated,) = mutate_repeat([srs])
+    assert (srs_mutated == "foo foo").all()
+
+
+def test_with_repeat_custom_join():
+    srs = pd.Series(["foo"] * 100)
+    mutate_repeat = with_repeat(join_with="")
+
+    (srs_mutated,) = mutate_repeat([srs])
+    assert (srs_mutated == "foofoo").all()
+
+
 def test_mutate_data_frame_single(rng):
     df = pd.DataFrame({"foo": list(string.ascii_letters)})
     df_mut = mutate_data_frame(
@@ -760,6 +777,7 @@ __dummy_rng = np.random.default_rng(5432)
         (1, with_generator(_generate_static("foo"), "prepend")),
         (1, with_generator(_generate_static("foo"), "append")),
         (1, with_generator(_generate_static("foo"), "replace")),
+        (1, with_repeat()),
     ],
 )
 def test_mutator_no_modify(num_srs: int, func: Mutator, rng):
