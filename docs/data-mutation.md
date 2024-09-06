@@ -567,6 +567,30 @@ print(datetime_mutator([srs]))
 # => ["2020-01-01", "2020-01-03", ..., "2020-01-25", "2020-01-31"]
 ```
 
+### Repeated values
+
+Erroneous copy-paste operations may yield an unwanted duplication of values.
+This is implemented in Gecko's `with_repeat` mutator.
+By default, it appends values with a space, but a custom joining character can be defined as well.
+
+```python
+import numpy as np
+import pandas as pd
+
+from gecko import mutator
+
+srs = pd.Series(["foo", "bar", "baz"])
+
+repeat_mutator = mutator.with_repeat()
+repeat_mutator_no_space = mutator.with_repeat(join_with="")
+
+print(repeat_mutator([srs]))
+# => ["foo foo", "bar bar", "baz baz"]
+
+print(repeat_mutator_no_space([srs]))
+# => ["foofoo", "barbar", "bazbaz"]
+```
+
 ### Using generators
 
 `with_generator` can leverage Gecko's mutators to prepend, append or replace data.
