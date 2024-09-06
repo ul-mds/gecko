@@ -509,14 +509,45 @@ def test_with_regex_replacement_table_dob_day_month(rng):
         ).any()
 
 
-def test_with_regex_replacement_table(rng):
-    srs = pd.Series(["2020-01-10"] * 5 + ["2020-02-20"] * 5 + ["2020-01-30"] * 10)
+def test_with_regex_replacement_table_year(rng):
+    chunk_size = 5
+    srs = pd.Series(
+        ["2020-01-10"] * chunk_size
+        + ["2030-02-20"] * chunk_size
+        + ["2040-01-30"] * chunk_size
+    )
 
     mutate_regex = with_regex_replacement_table(
         get_asset_path("dob-year-flip.csv"), pattern_column="pattern", rng=rng
     )
 
     (srs_mutated,) = mutate_regex([srs])
+
+    for i in range(0, len(srs), chunk_size):
+        assert (
+            srs_mutated.iloc[i : i + chunk_size] != srs.iloc[i : i + chunk_size]
+        ).any()
+
+
+def test_with_regex_replacement_table_six_nine(rng):
+    chunk_size = 10
+    srs = pd.Series(
+        ["2020-06-06"] * chunk_size
+        + ["2020-09-06"] * chunk_size
+        + ["2020-06-09"] * chunk_size
+        + ["2020-09-09"] * chunk_size
+    )
+
+    mutate_regex = with_regex_replacement_table(
+        get_asset_path("dob-six-nine.csv"), pattern_column="pattern", rng=rng
+    )
+
+    (srs_mutated,) = mutate_regex([srs])
+
+    for i in range(0, len(srs), chunk_size):
+        assert (
+            srs_mutated.iloc[i : i + chunk_size] != srs.iloc[i : i + chunk_size]
+        ).any()
 
 
 def test_mutate_data_frame_single(rng):

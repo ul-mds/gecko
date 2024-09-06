@@ -1372,7 +1372,7 @@ def _new_regex_replacement_fn(srs: pd.Series) -> Callable[[re.Match], str]:
 
         for i in range(len(match.groups())):
             span = match.span(i + 1)  # groups start at 1
-            span_to_repl_col_dict[span] = str(i)
+            span_to_repl_col_dict[span] = str(i + 1)
 
         # overwrite indexed groups with group names, if present
         for group_name in match.groupdict().keys():
@@ -1386,7 +1386,14 @@ def _new_regex_replacement_fn(srs: pd.Series) -> Callable[[re.Match], str]:
 
         for span in sorted_spans:
             out_str += match.string[last_idx : span[0]]
-            repl_value = srs[span_to_repl_col_dict[span]]
+            repl_col = span_to_repl_col_dict[span]
+
+            if repl_col not in srs.index:
+                raise ValueError(
+                    f"match group with index `{repl_col}` is not present in CSV file"
+                )
+
+            repl_value = srs[repl_col]
 
             for group_name in match.groupdict().keys():
                 repl_value = repl_value.replace(
