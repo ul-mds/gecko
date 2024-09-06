@@ -1422,12 +1422,30 @@ def _parse_regex_flags(regex_flags_val: str) -> int:
 
 def with_regex_replacement_table(
     csv_file_path: Union[PathLike, str],
-    pattern_column: Union[str, int] = 0,
-    flags_column: Optional[Union[str, int]] = None,
+    pattern_column: str = "pattern",
+    flags_column: Optional[str] = None,
     encoding: str = "utf-8",
     delimiter: str = ",",
     rng: Optional[np.random.Generator] = None,
 ) -> Mutator:
+    """
+    Mutate data by performing regex-based substitutions sourced from a CSV file.
+    This file must contain a column with the regex patterns to look for and columns for each capture group to look up
+    substitutions.
+    When using regular capture groups, the columns must be numbered starting with 1.
+    When using named capture groups, the columns must be named after the capture groups they are supposed to substitute.
+
+    Args:
+        csv_file_path: path to CSV file
+        pattern_column: name of regex pattern column
+        flags_column: name of regex flag column
+        encoding: character encoding of the CSV file
+        delimiter: column delimiter of the CSV file
+        rng: random number generator to use
+
+    Returns:
+        function returning list with strings mutated by regex-based substitutions
+    """
     if rng is None:
         rng = np.random.default_rng()
 
