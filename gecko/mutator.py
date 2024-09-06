@@ -1478,7 +1478,7 @@ def with_regex_replacement_table(
 
     def _mutate_series(srs: pd.Series) -> pd.Series:
         # count matching regexes for each row
-        srs_matching_regexes = pd.Series(np.zeros(len(srs), dtype=int), index=srs.index)
+        srs_matching_regexes = pd.Series(np.zeros(len(srs), dtype=np.float64), index=srs.index)
 
         # increment for each row where regex applies
         for i in range(regex_count):
