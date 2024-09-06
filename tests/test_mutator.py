@@ -550,6 +550,19 @@ def test_with_regex_replacement_table_six_nine(rng):
         ).any()
 
 
+def test_with_regex_replacement_table_flags(rng):
+    srs = pd.Series(["foobar", "Foobar", "fOoBaR"])
+    mutate_regex = with_regex_replacement_table(
+        get_asset_path("regex-foobar-case-insensitive.csv"),
+        pattern_column="pattern",
+        flags_column="flags",
+        rng=rng,
+    )
+
+    (srs_mutated,) = mutate_regex([srs])
+    assert (srs_mutated == pd.Series(["foobaz", "Foobaz", "fOoBaz"])).all()
+
+
 def test_mutate_data_frame_single(rng):
     df = pd.DataFrame({"foo": list(string.ascii_letters)})
     df_mut = mutate_data_frame(
