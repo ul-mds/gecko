@@ -22,10 +22,12 @@ __all__ = [
     "with_uppercase",
     "with_datetime_offset",
     "with_generator",
+    "with_regex_replacement_table",
     "mutate_data_frame",
 ]
 
 import itertools
+import re
 import string
 from dataclasses import dataclass, field
 from os import PathLike
@@ -1360,6 +1362,149 @@ def with_generator(
                 raise ValueError(f"invalid mode: `{mode}`")
 
         return srs_lst_out
+
+    return _mutate
+
+
+def _new_regex_replacement_fn(srs: pd.Series) -> Callable[[re.Match], str]:
+    def _replace(match: re.Match) -> str:
+        span_to_repl_col_dict: dict[tuple[int, int], str] = {}
+
+        for i in range(len(match.groups())):
+            span = match.span(i + 1)  # groups start at 1
+            span_to_repl_col_dict[span] = str(i + 1)
+
+        # overwrite indexed groups with group names, if present
+        for group_name in match.groupdict().keys():
+            span = match.span(group_name)
+            span_to_repl_col_dict[span] = group_name
+
+        # sort by starting index
+        sorted_spans = sorted(span_to_repl_col_dict.keys(), key=lambda t: t[0])
+
+        out_str, last_idx = "", 0
+
+        for span in sorted_spans:
+            out_str += match.string[last_idx : span[0]]
+            repl_col = span_to_repl_col_dict[span]
+
+            if repl_col not in srs.index:
+                raise ValueError(
+                    f"match group with index `{repl_col}` is not present in CSV file"
+                )
+
+            repl_value = srs[repl_col]
+
+            for group_name in match.groupdict().keys():
+                repl_value = repl_value.replace(
+                    f"(?P<{group_name}>)", match.group(group_name)
+                )
+
+            out_str += repl_value
+            last_idx = span[1]
+
+        return out_str + match.string[last_idx:]
+
+    return _replace
+
+
+def _parse_regex_flags(regex_flags_val: str) -> int:
+    _flags_lookup = {"a": re.ASCII, "i": re.IGNORECASE}
+
+    flags = 0
+
+    for regex_flag_char in list(regex_flags_val):
+        int_flag = _flags_lookup.get(regex_flag_char, 0)
+        flags |= int_flag
+
+    return flags
+
+
+def with_regex_replacement_table(
+    csv_file_path: Union[PathLike, str],
+    pattern_column: str = "pattern",
+    flags_column: Optional[str] = None,
+    encoding: str = "utf-8",
+    delimiter: str = ",",
+    rng: Optional[np.random.Generator] = None,
+) -> Mutator:
+    """
+    Mutate data by performing regex-based substitutions sourced from a CSV file.
+    This file must contain a column with the regex patterns to look for and columns for each capture group to look up
+    substitutions.
+    When using regular capture groups, the columns must be numbered starting with 1.
+    When using named capture groups, the columns must be named after the capture groups they are supposed to substitute.
+
+    Args:
+        csv_file_path: path to CSV file
+        pattern_column: name of regex pattern column
+        flags_column: name of regex flag column
+        encoding: character encoding of the CSV file
+        delimiter: column delimiter of the CSV file
+        rng: random number generator to use
+
+    Returns:
+        function returning list with strings mutated by regex-based substitutions
+    """
+    if rng is None:
+        rng = np.random.default_rng()
+
+    df = pd.read_csv(csv_file_path, encoding=encoding, sep=delimiter, dtype=str)
+
+    if pattern_column not in df.columns:
+        raise ValueError(f"CSV file at `{csv_file_path}` doesn't have a pattern column")
+
+    regexes: list[re.Pattern] = []
+    regex_repl_fns: list[Callable[[re.Match], str]] = []
+
+    for _, row in df.iterrows():
+        regex = re.compile(
+            row[pattern_column],
+            0 if flags_column is None else _parse_regex_flags(row[flags_column]),
+        )
+
+        for group_name in regex.groupindex.keys():
+            if group_name not in df.columns:
+                raise ValueError(
+                    f"regex pattern `{regex}` contains named group `{group_name}` which is "
+                    f"not present as a column in the CSV file"
+                )
+
+        regexes.append(regex)
+        regex_repl_fns.append(_new_regex_replacement_fn(row))
+
+    regex_count = len(regexes)
+
+    def _mutate_series(srs: pd.Series) -> pd.Series:
+        # count matching regexes for each row
+        srs_matching_regexes = pd.Series(np.zeros(len(srs), dtype=int), index=srs.index)
+
+        # increment for each row where regex applies
+        for i in range(regex_count):
+            srs_matching_regexes[srs.str.match(regexes[i])] += 1
+
+        # filter out all rows that do not have any matches
+        msk_eligible_rows = srs_matching_regexes != 0
+        srs_matching_regexes[msk_eligible_rows] = (
+            1 / srs_matching_regexes[msk_eligible_rows]
+        )
+
+        # this is where the real mutation begins
+        srs_out = srs.copy()
+
+        for i in range(regex_count):
+            # apply substitution to all rows (including those that don't match, pandas will leave those untouched)
+            srs_mut = srs.str.replace(regexes[i], regex_repl_fns[i], regex=True)
+            # select the rows that have been changed and sample rows in case one row has more than one matching regex
+            msk_update = (srs != srs_mut) & (
+                rng.random(size=len(srs)) < srs_matching_regexes
+            )
+            srs_out.loc[msk_update] = srs_mut.loc[msk_update]
+
+        return srs_out
+
+    def _mutate(srs_lst: list[pd.Series]) -> list[pd.Series]:
+        return [_mutate_series(srs) for srs in srs_lst]
 
     return _mutate
 

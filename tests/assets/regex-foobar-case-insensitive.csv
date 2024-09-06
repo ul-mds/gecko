@@ -1,0 +1,2 @@
+pattern,suffix,flags
+"fooba(?P<suffix>r)","z","i"

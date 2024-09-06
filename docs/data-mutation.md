@@ -354,6 +354,148 @@ print(replacement_mutator([srs]))
 # => ["lcick 0", "step |", "go z", "run s"]
 ```
 
+### Regex replacements
+
+Where the phonetic and generic replacement mutators do not fit the bill, replacements using regular expressions might
+come in handy.
+`with_regex_replacement_table` supports the application of mutations based on regular expressions.
+This mutator works off of CSV files which contain the regular expression patterns to look for and the substitutions 
+to perform as columns.
+
+!!! warning
+
+    Before using this mutator, make sure that `with_phonetic_replacement_table` and `with_replacement_table` are not
+    suitable for your use case. 
+    These functions are more optimised, whereas `with_regex_replacement_table` has to perform 
+    replacements on a mostly row-by-row basis which impacts performance.
+
+Let's assume that you want to perform mutations on a column containing dates where the digits of certain days
+should be flipped.
+A CSV file that is capable of these mutations could look as follows.
+
+=== "CSV"
+
+    ```csv
+    pattern,1
+    "\d{4}-\d{2}-(30)","03"
+    "\d{4}-\d{2}-(20)","02"
+    "\d{4}-\d{2}-(10)","01"
+    ```
+
+=== "Table"
+
+    | **Pattern** | **1** | 
+    | :-- | :-- |
+    | `\d{4}-\d{2}-(30)` | `03` |
+    | `\d{4}-\d{2}-(20)` | `02` |
+    | `\d{4}-\d{2}-(10)` | `01` |
+
+A mutator using the CSV file above would look for dates that have "10", "20" or "30" in their "day" field and flips
+the digits to "01", "02" and "03" respectively.
+This is done by placing a capture group around the "day" field in the regular expression.
+Since it is the first capture group, once a row matches, Gecko will look up the substitution in the column labelled "1"
+in the CSV file.
+This also works when using named capture groups, in which case Gecko will use the name of the capture group to look up 
+substitutions.
+
+=== "CSV"
+
+    ```csv
+    pattern,day
+    "\d{4}-\d{2}-(?P<day>30)","03"
+    "\d{4}-\d{2}-(?P<day>20)","02"
+    "\d{4}-\d{2}-(?P<day>10)","01"
+    ```
+
+=== "Table"
+
+    | **Pattern** | **Day** | 
+    | :-- | :-- |
+    | `\d{4}-\d{2}-(?P<day>30)` | `03` |
+    | `\d{4}-\d{2}-(?P<day>20)` | `02` |
+    | `\d{4}-\d{2}-(?P<day>10)` | `01` |
+
+Substitutions may also reference named capture groups.
+Suppose you want to flip the least significant digit of the "day" and "month" field under certain conditions.
+A CSV file capable of performing this type of substitution looks as follows.
+
+=== "CSV"
+
+    ```csv
+    pattern,month,day
+    "\d{4}-0(?P<month>[1-8])-[0-2](?P<day>[1-8])","(?P<day>)","(?P<month>)"
+    ```
+
+=== "Table"
+
+    | **Pattern** | **Month** | **Day** | 
+    | :-- | :-- | :-- |
+    | `\d{4}-0(?P<month>[1-8])-[0-2](?P<day>[1-8])` | `(?P<day>)` | `(?P<month>)` |
+
+`with_regex_replacement_table` works much like its "phonetic" and "common" siblings in that it requires a path to a CSV
+file as shown above and the name of the column containing the regex patterns to look for.
+The columns containing the substitution values are inferred at runtime.
+In the following snippet, the second example using named capture groups to flip the digits in the day field is shown.
+
+```python
+import numpy as np
+import pandas as pd
+
+from gecko import mutator
+
+rng = np.random.default_rng(0x2321)
+srs = pd.Series(["2020-01-30", "2020-01-20", "2020-01-10"])
+
+regex_mutator = mutator.with_regex_replacement_table(
+    "./dob-day-digit-flip.csv",
+    pattern_column="pattern",
+    rng=rng
+)
+
+print(regex_mutator([srs]))
+# => ["2020-01-03", "2020-01-02", "2020-01-01"]
+```
+
+It is also possible to define a column that contains [regex flags](https://docs.python.org/3/library/re.html#flags).
+At the time, Gecko supports the `ASCII` and `IGNORECASE` flags which can be applied by adding `a` and `i` respectively 
+to the flag column.
+
+=== "CSV"
+
+    ```csv
+    pattern,suffix,flags
+    "fooba(?P<suffix>r)","z","i"
+    ```
+
+=== "Table"
+
+    | **Pattern** | **Suffix** | **Flags** | 
+    | :-- | :-- | :-- |
+    | `fooba(?P<suffix>r)` | `z` | `i` |
+
+In the following snippet, case-insensitive matching will be performed.
+This causes all rows of the input series to be modified.
+
+```python
+import numpy as np
+import pandas as pd
+
+from gecko import mutator
+
+rng = np.random.default_rng(0xCAFED00D)
+srs = pd.Series(["foobar", "Foobar", "fOoBaR"])
+
+regex_mutator = mutator.with_regex_replacement_table(
+    "./foobar.csv",
+    pattern_column="pattern",
+    flags_column="flags",
+    rng=rng
+)
+
+print(regex_mutator([srs]))
+# => ["foobaz", "Foobaz", "fOoBaz"]
+```
+
 ### Case conversions
 
 During data entry or normalization, it may occur that text is converted to all lowercase or uppercase, by accident or on
