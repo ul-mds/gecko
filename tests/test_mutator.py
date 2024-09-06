@@ -504,6 +504,8 @@ def test_with_regex_replacement_table_dob_day_month(rng):
 
     (srs_mutated,) = mutate_regex([srs])
 
+    assert (srs_mutated != srs).any()
+
     for i in range(0, len(srs), chunk_size):
         assert (
             srs_mutated.iloc[i : i + chunk_size] != srs.iloc[i : i + chunk_size]
@@ -523,6 +525,8 @@ def test_with_regex_replacement_table_year(rng):
     )
 
     (srs_mutated,) = mutate_regex([srs])
+
+    assert (srs_mutated != srs).any()
 
     for i in range(0, len(srs), chunk_size):
         assert (
@@ -545,6 +549,8 @@ def test_with_regex_replacement_table_six_nine(rng):
 
     (srs_mutated,) = mutate_regex([srs])
 
+    assert (srs_mutated != srs).any()
+
     for i in range(0, len(srs), chunk_size):
         assert (
             srs_mutated.iloc[i : i + chunk_size] != srs.iloc[i : i + chunk_size]
@@ -561,6 +567,8 @@ def test_with_regex_replacement_table_flags(rng):
     )
 
     (srs_mutated,) = mutate_regex([srs])
+
+    assert (srs_mutated != srs).any()
     assert (srs_mutated == pd.Series(["foobaz", "Foobaz", "fOoBaz"])).all()
 
 
