@@ -1,5 +1,43 @@
 # Release notes
 
+## 0.4.0 (Sep 10, 2024)
+
+### Breaking changes
+
+- `mutate_data_frame` has a new call signature which ensures the order of mutation operations
+
+```python
+df_mutated = mutator.mutate_data_frame(
+    df_original,
+    [
+        ("gender", (0.1, mutator.with_categorical_values(
+            "./gender.csv",
+            value_column="gender",
+            rng=rng
+        ))),
+        (("given_name", "last_name"), (0.05, mutator.with_permute())),
+        ("postcode", [
+            mutator.with_delete(rng=rng),
+            mutator.with_substitute(charset="0123456789", rng=rng)
+        ])
+    ],
+    rng=rng
+)
+```
+
+### Features
+
+- Add `generator.from_datetime_range` for generating dates and times
+- Add `mutator.with_lowercase` and `mutator.with_uppercase` for case conversions
+- Add `mutator.with_datetime_offset` for applying arbitrary offsets to dates and times
+- Add `mutator.with_generator` for appending, prepending or replacing data in a series with values from a generator
+- Add `mutator.with_regex_replacement_table` for regex-based substitutions
+- Add `mutator.with_repeat` for repeated values
+
+### Fixes
+
+- Fix `mutate_data_frame` raising an error if probability is provided as an integer, not a float
+
 ## 0.3.2 (Jul 19, 2024)
 
 ### Fixes
