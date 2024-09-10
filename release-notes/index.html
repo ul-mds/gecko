@@ -564,6 +564,48 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#040-sep-10-2024" class="md-nav__link">
+    <span class="md-ellipsis">
+      0.4.0 (Sep 10, 2024)
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="0.4.0 (Sep 10, 2024)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#breaking-changes" class="md-nav__link">
+    <span class="md-ellipsis">
+      Breaking changes
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#features" class="md-nav__link">
+    <span class="md-ellipsis">
+      Features
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fixes" class="md-nav__link">
+    <span class="md-ellipsis">
+      Fixes
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#032-jul-19-2024" class="md-nav__link">
     <span class="md-ellipsis">
       0.3.2 (Jul 19, 2024)
@@ -574,7 +616,7 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#fixes" class="md-nav__link">
+  <a href="#fixes_1" class="md-nav__link">
     <span class="md-ellipsis">
       Fixes
     </span>
@@ -598,7 +640,7 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#fixes_1" class="md-nav__link">
+  <a href="#fixes_2" class="md-nav__link">
     <span class="md-ellipsis">
       Fixes
     </span>
@@ -649,7 +691,7 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#features" class="md-nav__link">
+  <a href="#features_1" class="md-nav__link">
     <span class="md-ellipsis">
       Features
     </span>
@@ -700,7 +742,7 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#features_1" class="md-nav__link">
+  <a href="#features_2" class="md-nav__link">
     <span class="md-ellipsis">
       Features
     </span>
@@ -775,6 +817,48 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#040-sep-10-2024" class="md-nav__link">
+    <span class="md-ellipsis">
+      0.4.0 (Sep 10, 2024)
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="0.4.0 (Sep 10, 2024)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#breaking-changes" class="md-nav__link">
+    <span class="md-ellipsis">
+      Breaking changes
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#features" class="md-nav__link">
+    <span class="md-ellipsis">
+      Features
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fixes" class="md-nav__link">
+    <span class="md-ellipsis">
+      Fixes
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#032-jul-19-2024" class="md-nav__link">
     <span class="md-ellipsis">
       0.3.2 (Jul 19, 2024)
@@ -785,7 +869,7 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#fixes" class="md-nav__link">
+  <a href="#fixes_1" class="md-nav__link">
     <span class="md-ellipsis">
       Fixes
     </span>
@@ -809,7 +893,7 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#fixes_1" class="md-nav__link">
+  <a href="#fixes_2" class="md-nav__link">
     <span class="md-ellipsis">
       Fixes
     </span>
@@ -860,7 +944,7 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#features" class="md-nav__link">
+  <a href="#features_1" class="md-nav__link">
     <span class="md-ellipsis">
       Features
     </span>
@@ -911,7 +995,7 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#features_1" class="md-nav__link">
+  <a href="#features_2" class="md-nav__link">
     <span class="md-ellipsis">
       Features
     </span>
@@ -970,13 +1054,48 @@
 
 
 <h1 id="release-notes">Release notes</h1>
-<h2 id="032-jul-19-2024">0.3.2 (Jul 19, 2024)</h2>
+<h2 id="040-sep-10-2024">0.4.0 (Sep 10, 2024)</h2>
+<h3 id="breaking-changes">Breaking changes</h3>
+<ul>
+<li><code>mutate_data_frame</code> has a new call signature which ensures the order of mutation operations</li>
+</ul>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">df_mutated</span> <span class="o">=</span> <span class="n">mutator</span><span class="o">.</span><span class="n">mutate_data_frame</span><span class="p">(</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">df_original</span><span class="p">,</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="p">[</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>        <span class="p">(</span><span class="s2">&quot;gender&quot;</span><span class="p">,</span> <span class="p">(</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">mutator</span><span class="o">.</span><span class="n">with_categorical_values</span><span class="p">(</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>            <span class="s2">&quot;./gender.csv&quot;</span><span class="p">,</span>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>            <span class="n">value_column</span><span class="o">=</span><span class="s2">&quot;gender&quot;</span><span class="p">,</span>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>            <span class="n">rng</span><span class="o">=</span><span class="n">rng</span>
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>        <span class="p">))),</span>
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>        <span class="p">((</span><span class="s2">&quot;given_name&quot;</span><span class="p">,</span> <span class="s2">&quot;last_name&quot;</span><span class="p">),</span> <span class="p">(</span><span class="mf">0.05</span><span class="p">,</span> <span class="n">mutator</span><span class="o">.</span><span class="n">with_permute</span><span class="p">())),</span>
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>        <span class="p">(</span><span class="s2">&quot;postcode&quot;</span><span class="p">,</span> <span class="p">[</span>
+</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>            <span class="n">mutator</span><span class="o">.</span><span class="n">with_delete</span><span class="p">(</span><span class="n">rng</span><span class="o">=</span><span class="n">rng</span><span class="p">),</span>
+</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>            <span class="n">mutator</span><span class="o">.</span><span class="n">with_substitute</span><span class="p">(</span><span class="n">charset</span><span class="o">=</span><span class="s2">&quot;0123456789&quot;</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">rng</span><span class="p">)</span>
+</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>        <span class="p">])</span>
+</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>    <span class="p">],</span>
+</span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>    <span class="n">rng</span><span class="o">=</span><span class="n">rng</span>
+</span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a><span class="p">)</span>
+</span></code></pre></div>
+<h3 id="features">Features</h3>
+<ul>
+<li>Add <code>generator.from_datetime_range</code> for generating dates and times</li>
+<li>Add <code>mutator.with_lowercase</code> and <code>mutator.with_uppercase</code> for case conversions</li>
+<li>Add <code>mutator.with_datetime_offset</code> for applying arbitrary offsets to dates and times</li>
+<li>Add <code>mutator.with_generator</code> for appending, prepending or replacing data in a series with values from a generator</li>
+<li>Add <code>mutator.with_regex_replacement_table</code> for regex-based substitutions</li>
+<li>Add <code>mutator.with_repeat</code> for repeated values</li>
+</ul>
 <h3 id="fixes">Fixes</h3>
+<ul>
+<li>Fix <code>mutate_data_frame</code> raising an error if probability is provided as an integer, not a float</li>
+</ul>
+<h2 id="032-jul-19-2024">0.3.2 (Jul 19, 2024)</h2>
+<h3 id="fixes_1">Fixes</h3>
 <ul>
 <li>Fix multiple mutators not being applied correctly when defined on the same column</li>
 </ul>
 <h2 id="031-mar-28-2024">0.3.1 (Mar 28, 2024)</h2>
-<h3 id="fixes_1">Fixes</h3>
+<h3 id="fixes_2">Fixes</h3>
 <ul>
 <li>Fix <code>IndexError</code> when calling <code>with_permute</code> on empty series</li>
 <li>Fix Python version range in <code>pyproject.toml</code></li>
@@ -996,7 +1115,7 @@
 <li>Reorganize dependencies into groups for tests, development and documentation</li>
 </ul>
 <h2 id="030-mar-18-2024">0.3.0 (Mar 18, 2024)</h2>
-<h3 id="features">Features</h3>
+<h3 id="features_1">Features</h3>
 <ul>
 <li>Allow <code>corruptor.with_permute</code> to work with more than two series at once</li>
 <li>Infer <code>header</code> parameter for functions reading CSV files</li>
@@ -1023,7 +1142,7 @@
 <li>Refine benchmark suite, add example based on <a href="../examples/german/">German population dataset</a></li>
 </ul>
 <h2 id="020-feb-16-2024">0.2.0 (Feb 16, 2024)</h2>
-<h3 id="features_1">Features</h3>
+<h3 id="features_2">Features</h3>
 <ul>
 <li>Add <code>generator.with_permute</code> for swapping values between series</li>
 <li>Set wider version ranges for dependencies</li>
@@ -1066,7 +1185,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1-2.1-2M12.5 7v5.2l4 2.4-1 1L11 13V7h1.5M11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2v1.8Z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date">September 6, 2024</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date">September 10, 2024</span>
   </span>
 
     
@@ -1076,7 +1195,7 @@
     <span class="md-icon" title="Created">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M14.47 15.08 11 13V7h1.5v5.25l3.08 1.83c-.41.28-.79.62-1.11 1m-1.39 4.84c-.36.05-.71.08-1.08.08-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8c0 .37-.03.72-.08 1.08.69.1 1.33.32 1.92.64.1-.56.16-1.13.16-1.72 0-5.5-4.5-10-10-10S2 6.5 2 12s4.47 10 10 10c.59 0 1.16-.06 1.72-.16-.32-.59-.54-1.23-.64-1.92M18 15v3h-3v2h3v3h2v-3h3v-2h-3v-3h-2Z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date">September 6, 2024</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date">September 10, 2024</span>
   </span>
 
     
