@@ -335,6 +335,7 @@ k,lc
 ```
 
 You can use this file the same way you can with many other generation and mutation functions in Gecko.
+Specifying the `inline` flag ensures that replacements are performed within words.
 
 ```python
 import numpy as np
@@ -347,11 +348,85 @@ srs = pd.Series(["kick 0", "step 1", "go 2", "run 5"])
 
 replacement_mutator = mutator.with_replacement_table(
     "./ocr.csv",
+    inline=True,
     rng=rng,
 )
 
 print(replacement_mutator([srs]))
 # => ["lcick 0", "step |", "go z", "run s"]
+```
+
+To only replace whole words, leave out the `inline` flag or set it to `False`.
+One use case is to replace names that sound or seem similar.
+
+=== "CSV"
+
+    ```csv
+    source,target
+    Jan,Jann
+    Jan,Jean
+    Jan,John
+    Jan,Juan
+    Jann,Jean
+    Jann,Johann
+    Jann,John
+    Jann,Juan
+    ```
+
+=== "Table"
+
+    | **Source** | **Target** | 
+    | :-- | :-- |
+    | Jan | Jann |
+    | Jan | Jean |
+    | Jan | John |
+    | Jan | Juan |
+    | Jann | Jean |
+    | Jann | Johann |
+    | Jann | John |
+    | Jann | Juan |
+
+Assuming the table shown above, one could perform randomized replacements using this mutator like so.
+
+```python
+import numpy as np
+import pandas as pd
+
+from gecko import mutator
+
+rng = np.random.default_rng(6379)
+srs = pd.Series(["Jan", "Jann", "Juan"])
+
+replacement_mutator = mutator.with_replacement_table(
+    "./given-names.csv",
+    rng=rng,
+)
+
+print(replacement_mutator([srs]))
+# => ["Jann", "John", "Juan"]
+```
+
+Note how "Juan" is not replaced since it is only present in the "target" column, not the "source" column.
+By default, this mutator only considers replacement from the "source" to the "target" column.
+If it should also consider reverse replacements, set the `reverse` flag.
+
+```python
+import numpy as np
+import pandas as pd
+
+from gecko import mutator
+
+rng = np.random.default_rng(6379)
+srs = pd.Series(["Jan", "Jann", "Juan"])
+
+replacement_mutator = mutator.with_replacement_table(
+    "./given-names.csv",
+    reverse=True,
+    rng=rng,
+)
+
+print(replacement_mutator([srs]))
+# => ["Jann", "Juan", "Jan"]
 ```
 
 ### Regex replacements
