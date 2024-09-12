@@ -1,5 +1,11 @@
 # Release notes
 
+## 0.4.1 (Sep 12, 2024)
+
+### Features
+
+- Add `inline` and `reverse` flags to `with_replacement_table` mutator
+
 ## 0.4.0 (Sep 10, 2024)
 
 ### Breaking changes
