@@ -264,6 +264,7 @@ def mutate_data_frame(df, rng):
         ("given_name", [
             (0.1, mutator.with_replacement_table(  # (2)!
                 "gecko-data/common/ocr.csv",
+                inline=True,
                 rng=rng,
             ))
         ])
@@ -297,6 +298,7 @@ def mutate_data_frame(df, rng):
         ("given_name", [
             (0.1, mutator.with_replacement_table(
                 "gecko-data/common/ocr.csv",
+                inline=True,
                 rng=rng,
             ))
         ]),
@@ -329,6 +331,7 @@ def mutate_data_frame(df, rng):
         ("given_name", [
             (0.1, mutator.with_replacement_table(
                 "gecko-data/common/ocr.csv",
+                inline=True,
                 rng=rng,
             ))
         ]),
@@ -372,6 +375,7 @@ def mutate_data_frame(df, rng):
         ("given_name", [
             (0.1, mutator.with_replacement_table(
                 "gecko-data/common/ocr.csv",
+                inline=True,
                 rng=rng,
             ))
         ]),
@@ -456,6 +460,7 @@ def mutate_data_frame(df, rng):
         ("given_name", [
             (0.1, mutator.with_replacement_table(
                 "gecko-data/common/ocr.csv",
+                inline=True,
                 rng=rng,
             ))
         ]),
