@@ -474,6 +474,8 @@ def with_replacement_table(
     csv_file_path: Union[PathLike, str],
     source_column: Union[str, int] = 0,
     target_column: Union[str, int] = 1,
+    inline: bool = False,
+    reverse: bool = False,
     encoding: str = "utf-8",
     delimiter: str = ",",
     rng: Optional[np.random.Generator] = None,
@@ -493,6 +495,8 @@ def with_replacement_table(
         csv_file_path: path to CSV file
         source_column: name or index of the source column
         target_column: name or index of the target column
+        inline: whether to perform replacements inline
+        reverse: whether to allow replacements from target to source column
         encoding: character encoding of the CSV file
         delimiter: column delimiter of the CSV file
         rng: random number generator to use
@@ -524,85 +528,76 @@ def with_replacement_table(
         encoding=encoding,
     )
 
-    srs_unique_source_values = df[source_column].unique()
+    if reverse:
+        # flip columns and concat
+        df = pd.concat(
+            [
+                df,
+                pd.DataFrame(
+                    data={
+                        source_column: df.loc[:, target_column],
+                        target_column: df.loc[:, source_column],
+                    }
+                ),
+            ],
+            ignore_index=True,
+        )
+
+    srs_unique_source_values = df.loc[:, source_column].unique()
 
     def _mutate_series(srs: pd.Series) -> pd.Series:
-        # create copy of input series
+        # create copy
         srs_out = srs.copy()
-        str_count = len(srs_out)
         # create series to compute probability of substitution for each row
         srs_str_sub_prob = pd.Series(dtype=float, index=srs_out.index)
         srs_str_sub_prob[:] = 0
 
         for source in srs_unique_source_values:
-            # increment absolute frequency for each string containing source value by one
-            srs_str_sub_prob[srs_out.str.contains(source)] += 1
+            if inline:
+                srs_str_sub_prob.loc[srs_out.str.contains(source)] += 1
+            else:
+                srs_str_sub_prob.loc[srs_out == source] += 1
 
-        # prevent division by zero
         mask_eligible_strs = srs_str_sub_prob != 0
-        # convert absolute frequencies into relative frequencies
-        srs_str_sub_prob[mask_eligible_strs] = 1 / srs_str_sub_prob[mask_eligible_strs]
-
-        # create dataframe to track source and target for each row
-        df_replacement = pd.DataFrame(
-            index=srs_out.index, columns=["source", "target"], dtype=str
+        srs_str_sub_prob.loc[mask_eligible_strs] = (
+            1 / srs_str_sub_prob.loc[mask_eligible_strs]
         )
 
         for source in srs_unique_source_values:
-            # select all rows that contain the source value
-            srs_str_contains_source = srs_out.str.contains(source)
-            # draw random numbers for each row
-            arr_rand_vals = rng.random(size=str_count)
-            # select only rows that contain the source string, have a random number drawn that's
-            # in range of its probability to be modified, and hasn't been marked for replacement yet
-            mask_strings_to_replace = (
-                srs_str_contains_source
-                & (arr_rand_vals < srs_str_sub_prob)
-                & pd.isna(df_replacement["source"])
-            )
-            # count all strings that meet the conditions above
-            replacement_count = mask_strings_to_replace.sum()
+            if inline:
+                srs_str_source = srs_out.str.contains(source)
+            else:
+                srs_str_source = srs_out == source
 
-            # skip if there are no replacements to be made
+            msk_update = (
+                (srs == srs_out)
+                & srs_str_source
+                & (rng.random(size=len(srs)) < srs_str_sub_prob)
+            )
+
+            replacement_count = msk_update.sum()
+
             if replacement_count == 0:
                 continue
 
-            # fill in the source column of the replacement table
-            df_replacement.loc[mask_strings_to_replace, "source"] = source
-
-            # select all target values that can be generated from the current source value
-            replacement_options = df[df[source_column] == source][
-                target_column
+            replacement_options = df.loc[
+                df[source_column] == source, target_column
             ].tolist()
 
-            # trivial case
-            if len(replacement_options) == 1:
-                target = replacement_options[0]
-                df_replacement.loc[mask_strings_to_replace, "target"] = target
-                continue
+            arr_target_rng = rng.choice(replacement_options, size=replacement_count)
 
-            # otherwise draw a random target value for each row
-            df_replacement.loc[mask_strings_to_replace, "target"] = rng.choice(
-                replacement_options, size=replacement_count
-            )
+            if inline:
+                srs_out_sub = srs_out.loc[msk_update]
 
-        # iterate over all unique source values
-        for source in df_replacement["source"].unique():
-            # skip nan
-            if pd.isna(source):
-                continue
+                for target in replacement_options:
+                    msk_this_target = arr_target_rng == target
+                    srs_out_sub.loc[msk_this_target] = srs_out_sub.loc[
+                        msk_this_target
+                    ].str.replace(source, target, n=1)
 
-            # for each unique source value, iterate over its unique target values
-            for target in df_replacement[df_replacement["source"] == source][
-                "target"
-            ].unique():
-                # select all rows that have this specific source -> target replacement going
-                mask = (df_replacement["source"] == source) & (
-                    df_replacement["target"] == target
-                )
-
-                # perform replacement of source -> target
-                srs_out[mask] = srs_out[mask].str.replace(source, target, n=1)
+                srs_out.update(srs_out_sub)
+            else:
+                srs_out.loc[msk_update] = arr_target_rng
 
         return srs_out
 

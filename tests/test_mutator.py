@@ -276,19 +276,55 @@ def test_with_cldr_keymap_file_no_replacement(rng):
 
 
 def test_with_replacement_table(rng):
-    srs = pd.Series(["k", "5", "2", "1", "g", "q", "l", "i"])
-    mutate_replacement = with_replacement_table(get_asset_path("ocr.csv"), rng=rng)
+    srs = pd.Series(["Jan", "Jann", "Juan"] * 10)
+    mutate_replacement = with_replacement_table(
+        get_asset_path("given-name.csv"),
+        source_column="source",
+        target_column="target",
+        rng=rng,
+    )
+    (srs_mutated,) = mutate_replacement([srs])
+
+    msk_juan = srs == "Juan"
+
+    assert len(srs) == len(srs_mutated)
+    assert (srs[~msk_juan] != srs_mutated[~msk_juan]).all()
+    assert (srs[msk_juan] == srs_mutated[msk_juan]).all()
+
+
+def test_with_replacement_table_reverse(rng):
+    srs = pd.Series(["Jan", "Jann", "Juan"] * 10)
+    mutate_replacement = with_replacement_table(
+        get_asset_path("given-name.csv"),
+        source_column="source",
+        target_column="target",
+        reverse=True,
+        rng=rng,
+    )
     (srs_mutated,) = mutate_replacement([srs])
 
     assert len(srs) == len(srs_mutated)
     assert (srs != srs_mutated).all()
 
 
-def test_with_replacement_table_multiple_options(rng):
+def test_with_replacement_table_inline(rng):
+    srs = pd.Series(["k", "5", "2", "1", "g", "q", "l", "i"])
+    mutate_replacement = with_replacement_table(
+        get_asset_path("ocr.csv"), inline=True, rng=rng
+    )
+    (srs_mutated,) = mutate_replacement([srs])
+
+    assert len(srs) == len(srs_mutated)
+    assert (srs != srs_mutated).all()
+
+
+def test_with_replacement_table_inline_multiple_options(rng):
     # `q` has more than one mapping in the replacement table, so running
     # 100 q's through the mutator should yield different results
     srs = pd.Series(["q"] * 100)
-    mutate_replacement = with_replacement_table(get_asset_path("ocr.csv"), rng=rng)
+    mutate_replacement = with_replacement_table(
+        get_asset_path("ocr.csv"), inline=True, rng=rng
+    )
     (srs_mutated,) = mutate_replacement([srs])
 
     assert len(srs) == len(srs_mutated)

@@ -253,6 +253,7 @@ def test_bench_mutate_replacement_table(benchmark, rng):
     gen_origin = __create_origin_single_column_generator(rng)
     mut_replacement = mutator.with_replacement_table(
         get_asset_path("ocr.csv"),
+        inline=True,
         rng=rng,
     )
 

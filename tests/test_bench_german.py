@@ -257,6 +257,7 @@ def test_bench_corrupt_replacement_table(benchmark, rng, gecko_data_path):
     gen_last_name = __create_last_name_generator(rng, gecko_data_path)
     mut_ocr = mutator.with_replacement_table(
         gecko_data_path / "common" / "ocr.csv",
+        inline=True,
         rng=rng,
     )
 
