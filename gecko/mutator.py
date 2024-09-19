@@ -335,7 +335,7 @@ def with_phonetic_replacement_table(
         usecols=[source_column, target_column, flags_column],
         sep=delimiter,
         encoding=encoding,
-    )
+    ).fillna("")
 
     # parse replacement rules
     phonetic_replacement_rules: list[_PhoneticReplacementRule] = []

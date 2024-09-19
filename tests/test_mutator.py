@@ -1004,3 +1004,21 @@ def test_with_regex_replacement_table_nan(tmp_path, rng):
     (srs_mut,) = mut_replace([srs])
 
     assert (srs_mut == ["foobar", "foobaz", "foobat"]).all()
+
+
+def test_with_phonetic_replacement_table_nan(tmp_path, rng):
+    replacement_table_file_path = tmp_path / "replacement.csv"
+    replacement_table_file_path.write_text('source,target,flags\n"-","","_"\n')
+
+    mut_replace = with_phonetic_replacement_table(
+        replacement_table_file_path,
+        source_column="source",
+        target_column="target",
+        flags_column="flags",
+        rng=rng,
+    )
+
+    srs = pd.Series(["foo-bar", "foo-baz", "foo-bat"])
+    (srs_mut,) = mut_replace([srs])
+
+    assert (srs_mut == ["foobar", "foobaz", "foobat"]).all()
