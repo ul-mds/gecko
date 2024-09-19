@@ -526,7 +526,7 @@ def with_replacement_table(
         usecols=[source_column, target_column],
         sep=delimiter,
         encoding=encoding,
-    )
+    ).fillna("")
 
     if reverse:
         # flip columns and concat

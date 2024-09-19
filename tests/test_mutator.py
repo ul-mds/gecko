@@ -968,3 +968,23 @@ def test_mutate_data_frame_order_generates_different_results(rng_factory):
     )
 
     assert not (df_out_1["foo"] == df_out_2["foo"]).all()
+
+
+# see https://github.com/ul-mds/gecko/issues/69
+# CSV files containing empty cells will be evaluated to NaN, which causes this to raise an error
+def test_with_replacement_table_nan(tmp_path, rng):
+    replacement_table_file_path = tmp_path / "replacement.csv"
+    replacement_table_file_path.write_text('source,target\n"-",""\n')
+
+    mut_replace = with_replacement_table(
+        replacement_table_file_path,
+        source_column="source",
+        target_column="target",
+        inline=True,
+        rng=rng,
+    )
+
+    srs = pd.Series(["foo-bar", "foo-baz", "foo-bat"])
+    (srs_mut,) = mut_replace([srs])
+
+    assert (srs_mut == ["foobar", "foobaz", "foobat"]).all()
