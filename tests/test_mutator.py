@@ -988,3 +988,19 @@ def test_with_replacement_table_nan(tmp_path, rng):
     (srs_mut,) = mut_replace([srs])
 
     assert (srs_mut == ["foobar", "foobaz", "foobat"]).all()
+
+
+def test_with_regex_replacement_table_nan(tmp_path, rng):
+    replacement_table_file_path = tmp_path / "replacement.csv"
+    replacement_table_file_path.write_text('pattern,dash\n".*(?P<dash>-).*",""\n')
+
+    mut_replace = with_regex_replacement_table(
+        replacement_table_file_path,
+        pattern_column="pattern",
+        rng=rng,
+    )
+
+    srs = pd.Series(["foo-bar", "foo-baz", "foo-bat"])
+    (srs_mut,) = mut_replace([srs])
+
+    assert (srs_mut == ["foobar", "foobaz", "foobat"]).all()

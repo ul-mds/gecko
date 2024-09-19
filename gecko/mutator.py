@@ -1445,7 +1445,9 @@ def with_regex_replacement_table(
     if rng is None:
         rng = np.random.default_rng()
 
-    df = pd.read_csv(csv_file_path, encoding=encoding, sep=delimiter, dtype=str)
+    df = pd.read_csv(csv_file_path, encoding=encoding, sep=delimiter, dtype=str).fillna(
+        ""
+    )
 
     if pattern_column not in df.columns:
         raise ValueError(f"CSV file at `{csv_file_path}` doesn't have a pattern column")
