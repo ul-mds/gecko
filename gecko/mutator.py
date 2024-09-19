@@ -1074,10 +1074,10 @@ def with_categorical_values(
         usecols=[value_column],
         sep=delimiter,
         encoding=encoding,
-    )
+    ).fillna("")
 
     # fetch unique values
-    unique_values = pd.Series(df[value_column].dropna().unique())
+    unique_values = pd.Series(df[value_column].unique())
 
     def _mutate_series(srs: pd.Series) -> pd.Series:
         nonlocal unique_values

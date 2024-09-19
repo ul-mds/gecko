@@ -1022,3 +1022,19 @@ def test_with_phonetic_replacement_table_nan(tmp_path, rng):
     (srs_mut,) = mut_replace([srs])
 
     assert (srs_mut == ["foobar", "foobaz", "foobat"]).all()
+
+
+def test_with_categorical_values_nan(tmp_path, rng):
+    cat_file_path = tmp_path / "gender.csv"
+    cat_file_path.write_text('gender\nf\n""\n')
+
+    mut_categorical = with_categorical_values(
+        cat_file_path,
+        value_column="gender",
+        rng=rng,
+    )
+
+    srs = pd.Series(["f"] * 10)
+    (srs_mut,) = mut_categorical([srs])
+
+    assert (srs_mut == "").all()
