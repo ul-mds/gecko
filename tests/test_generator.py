@@ -228,3 +228,36 @@ def test_to_dataframe(rng):
 
     for col in ["fruit", "type", "num"]:
         assert col in df.columns
+
+
+def test_from_frequency_table_nan(tmp_path, rng):
+    freq_file_path = tmp_path / "freq.csv"
+    freq_file_path.write_text('value,freq\n"",1\n"foobar",1\n')
+
+    gen_freq_table = generator.from_frequency_table(
+        freq_file_path,
+        value_column="value",
+        freq_column="freq",
+        rng=rng,
+    )
+
+    (srs,) = gen_freq_table(100)
+
+    assert pd.notna(srs).all()
+
+
+def test_from_multicolumn_frequency_table_nan(tmp_path, rng):
+    freq_file_path = tmp_path / "freq.csv"
+    freq_file_path.write_text('value1,value2,freq\n"","bar",1\n"foo","baz",1\n')
+
+    gen_freq_table = generator.from_multicolumn_frequency_table(
+        freq_file_path,
+        value_columns=["value1", "value2"],
+        freq_column="freq",
+        rng=rng,
+    )
+
+    (srs1, srs2) = gen_freq_table(100)
+
+    assert pd.notna(srs1).all()
+    assert pd.notna(srs2).all()

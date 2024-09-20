@@ -333,6 +333,7 @@ def with_phonetic_replacement_table(
         header=0 if header else None,
         dtype=str,
         usecols=[source_column, target_column, flags_column],
+        keep_default_na=False,
         sep=delimiter,
         encoding=encoding,
     )
@@ -524,6 +525,7 @@ def with_replacement_table(
         header=0 if header else None,
         dtype=str,
         usecols=[source_column, target_column],
+        keep_default_na=False,
         sep=delimiter,
         encoding=encoding,
     )
@@ -1072,12 +1074,13 @@ def with_categorical_values(
         header=0 if header else None,
         dtype=str,
         usecols=[value_column],
+        keep_default_na=False,
         sep=delimiter,
         encoding=encoding,
     )
 
     # fetch unique values
-    unique_values = pd.Series(df[value_column].dropna().unique())
+    unique_values = pd.Series(df[value_column].unique())
 
     def _mutate_series(srs: pd.Series) -> pd.Series:
         nonlocal unique_values
@@ -1445,7 +1448,13 @@ def with_regex_replacement_table(
     if rng is None:
         rng = np.random.default_rng()
 
-    df = pd.read_csv(csv_file_path, encoding=encoding, sep=delimiter, dtype=str)
+    df = pd.read_csv(
+        csv_file_path,
+        encoding=encoding,
+        keep_default_na=False,
+        sep=delimiter,
+        dtype=str,
+    )
 
     if pattern_column not in df.columns:
         raise ValueError(f"CSV file at `{csv_file_path}` doesn't have a pattern column")

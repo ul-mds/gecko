@@ -153,6 +153,7 @@ def from_frequency_table(
         header=0 if header else None,  # header row index (`None` if not present)
         usecols=[value_column, freq_column],
         dtype={freq_column: "int", value_column: "str"},
+        keep_default_na=False,
         sep=delimiter,
         encoding=encoding,
     )
@@ -233,6 +234,7 @@ def from_multicolumn_frequency_table(
             freq_column: "int",
             **{value_column: "str" for value_column in value_columns},
         },
+        keep_default_na=False,
         sep=delimiter,
         encoding=encoding,
     )

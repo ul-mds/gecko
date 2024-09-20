@@ -968,3 +968,73 @@ def test_mutate_data_frame_order_generates_different_results(rng_factory):
     )
 
     assert not (df_out_1["foo"] == df_out_2["foo"]).all()
+
+
+# see https://github.com/ul-mds/gecko/issues/69
+# CSV files containing empty cells will be evaluated to NaN, which causes this to raise an error
+def test_with_replacement_table_nan(tmp_path, rng):
+    replacement_table_file_path = tmp_path / "replacement.csv"
+    replacement_table_file_path.write_text('source,target\n"-",""\n')
+
+    mut_replace = with_replacement_table(
+        replacement_table_file_path,
+        source_column="source",
+        target_column="target",
+        inline=True,
+        rng=rng,
+    )
+
+    srs = pd.Series(["foo-bar", "foo-baz", "foo-bat"])
+    (srs_mut,) = mut_replace([srs])
+
+    assert (srs_mut == ["foobar", "foobaz", "foobat"]).all()
+
+
+def test_with_regex_replacement_table_nan(tmp_path, rng):
+    replacement_table_file_path = tmp_path / "replacement.csv"
+    replacement_table_file_path.write_text('pattern,dash\n".*(?P<dash>-).*",""\n')
+
+    mut_replace = with_regex_replacement_table(
+        replacement_table_file_path,
+        pattern_column="pattern",
+        rng=rng,
+    )
+
+    srs = pd.Series(["foo-bar", "foo-baz", "foo-bat"])
+    (srs_mut,) = mut_replace([srs])
+
+    assert (srs_mut == ["foobar", "foobaz", "foobat"]).all()
+
+
+def test_with_phonetic_replacement_table_nan(tmp_path, rng):
+    replacement_table_file_path = tmp_path / "replacement.csv"
+    replacement_table_file_path.write_text('source,target,flags\n"-","","_"\n')
+
+    mut_replace = with_phonetic_replacement_table(
+        replacement_table_file_path,
+        source_column="source",
+        target_column="target",
+        flags_column="flags",
+        rng=rng,
+    )
+
+    srs = pd.Series(["foo-bar", "foo-baz", "foo-bat"])
+    (srs_mut,) = mut_replace([srs])
+
+    assert (srs_mut == ["foobar", "foobaz", "foobat"]).all()
+
+
+def test_with_categorical_values_nan(tmp_path, rng):
+    cat_file_path = tmp_path / "gender.csv"
+    cat_file_path.write_text('gender\nf\n""\n')
+
+    mut_categorical = with_categorical_values(
+        cat_file_path,
+        value_column="gender",
+        rng=rng,
+    )
+
+    srs = pd.Series(["f"] * 10)
+    (srs_mut,) = mut_categorical([srs])
+
+    assert (srs_mut == "").all()
