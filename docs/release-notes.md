@@ -1,5 +1,11 @@
 # Release notes
 
+## 0.4.2 (Sep 20, 2024)
+
+### Fixes
+
+- Fix `NaN`s produced by generators and mutators that take in CSV files with empty cells
+
 ## 0.4.1 (Sep 12, 2024)
 
 ### Features
