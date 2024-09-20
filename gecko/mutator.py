@@ -333,9 +333,10 @@ def with_phonetic_replacement_table(
         header=0 if header else None,
         dtype=str,
         usecols=[source_column, target_column, flags_column],
+        keep_default_na=False,
         sep=delimiter,
         encoding=encoding,
-    ).fillna("")
+    )
 
     # parse replacement rules
     phonetic_replacement_rules: list[_PhoneticReplacementRule] = []
@@ -524,9 +525,10 @@ def with_replacement_table(
         header=0 if header else None,
         dtype=str,
         usecols=[source_column, target_column],
+        keep_default_na=False,
         sep=delimiter,
         encoding=encoding,
-    ).fillna("")
+    )
 
     if reverse:
         # flip columns and concat
@@ -1072,9 +1074,10 @@ def with_categorical_values(
         header=0 if header else None,
         dtype=str,
         usecols=[value_column],
+        keep_default_na=False,
         sep=delimiter,
         encoding=encoding,
-    ).fillna("")
+    )
 
     # fetch unique values
     unique_values = pd.Series(df[value_column].unique())
@@ -1445,8 +1448,12 @@ def with_regex_replacement_table(
     if rng is None:
         rng = np.random.default_rng()
 
-    df = pd.read_csv(csv_file_path, encoding=encoding, sep=delimiter, dtype=str).fillna(
-        ""
+    df = pd.read_csv(
+        csv_file_path,
+        encoding=encoding,
+        keep_default_na=False,
+        sep=delimiter,
+        dtype=str,
     )
 
     if pattern_column not in df.columns:
