@@ -3,7 +3,6 @@ import pandas as pd
 import pytest
 
 from gecko import generator
-from gecko.generator import from_frequency_table, from_multicolumn_frequency_table
 from tests.helpers import get_asset_path
 
 
@@ -235,7 +234,7 @@ def test_from_frequency_table_nan(tmp_path, rng):
     freq_file_path = tmp_path / "freq.csv"
     freq_file_path.write_text('value,freq\n"",1\n"foobar",1\n')
 
-    gen_freq_table = from_frequency_table(
+    gen_freq_table = generator.from_frequency_table(
         freq_file_path,
         value_column="value",
         freq_column="freq",
@@ -251,7 +250,7 @@ def test_from_multicolumn_frequency_table_nan(tmp_path, rng):
     freq_file_path = tmp_path / "freq.csv"
     freq_file_path.write_text('value1,value2,freq\n"","bar",1\n"foo","baz",1\n')
 
-    gen_freq_table = from_multicolumn_frequency_table(
+    gen_freq_table = generator.from_multicolumn_frequency_table(
         freq_file_path,
         value_columns=["value1", "value2"],
         freq_column="freq",
