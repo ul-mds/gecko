@@ -1602,11 +1602,6 @@ def with_group(
                 f"weight of mutator at index {mut_idx} must be higher than zero, is {p}"
             )
 
-        if p > 1:
-            raise ValueError(
-                f"weight of mutator at index {mut_idx} must be less than one, is {p}"
-            )
-
     def _mutate(srs_lst: list[pd.Series]) -> list[pd.Series]:
         # check that all series have the same length
         if len(set(len(s) for s in srs_lst)) != 1:
