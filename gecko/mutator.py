@@ -1540,7 +1540,9 @@ def with_repeat(join_with: str = " ") -> Mutator:
     return _mutate
 
 
-def _is_weighted_mutator_tuple(x: object) -> TypeGuard[tuple[float | int, Mutator]]:
+def _is_weighted_mutator_tuple(
+    x: object,
+) -> TypeGuard[tuple[Union[float, int], Mutator]]:
     return (
         isinstance(x, tuple)
         and len(x) == 2
@@ -1550,7 +1552,7 @@ def _is_weighted_mutator_tuple(x: object) -> TypeGuard[tuple[float | int, Mutato
 
 
 def with_group(
-    mutator_lst: Union[list[Mutator], list[tuple[float | int, Mutator]]],
+    mutator_lst: Union[list[Mutator], list[tuple[Union[float, int], Mutator]]],
     rng: Optional[np.random.Generator] = None,
 ) -> Mutator:
     """
