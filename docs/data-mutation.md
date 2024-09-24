@@ -702,6 +702,43 @@ print(gen_append_mutator([srs]))
 # => ["foobat", "foobat", ..., "foobat", "foobaz"]
 ```
 
+### Grouped mutators
+
+When applying mutators that are mutually exclusive, `with_group` can be used.
+It can take a list of mutators or a list of weighted mutators as arguments.
+When providing a list of mutators, all mutators are applied with equal probability.
+When using weighted mutators, each mutator is applied with its assigned probability.
+
+```python
+import numpy as np
+import pandas as pd
+
+from gecko import mutator
+
+rng = np.random.default_rng(123)
+srs = pd.Series(["a"] * 100)
+
+equal_prob_mutator = mutator.with_group([
+   mutator.with_insert(rng=rng),
+   mutator.with_delete(rng=rng),
+], rng=rng)
+
+(srs_mut_1,) = equal_prob_mutator([srs])
+print(srs_mut_1.str.len().value_counts())
+# => { 0: 45, 2: 55 }
+# no more single character values remain
+
+weighted_prob_mutator = mutator.with_group([
+   (.25, mutator.with_insert(rng=rng)),
+   (.25, mutator.with_delete(rng=rng)),
+], rng=rng)
+
+(srs_mut_2,) = weighted_prob_mutator([srs])
+print(srs_mut_2.str.len().value_counts())
+# => { 0: 24, 1: 50, 2: 26 }
+# half of the original single character values remain
+```
+
 ## Multiple mutators
 
 Using `mutate_data_frame`, you can apply multiple mutators on many columns at once.

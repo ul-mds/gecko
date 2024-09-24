@@ -1553,6 +1553,21 @@ def with_group(
     mutator_lst: Union[list[Mutator], list[tuple[float | int, Mutator]]],
     rng: Optional[np.random.Generator] = None,
 ) -> Mutator:
+    """
+    Mutate data by applying multiple mutators on it.
+    The mutators are applied in the order that they are provided in to this function.
+    When providing a list of mutators, each row will be affected by each mutator with an equal probability.
+    When providing a list of weighted mutators, each row will be affected by ecah mutator with the
+    specified probabilities.
+    If the probabilities do not sum up to 1, an additional mutator is added which does not modify input data.
+
+    Args:
+        mutator_lst: list of mutators or weighted mutators
+        rng: random number generator to use
+
+    Returns:
+        function returning list with strings modified by mutators as specified
+    """
     if all(callable(m) for m in mutator_lst):
         p = 1.0 / len(mutator_lst)
         mutator_lst = [(p, m) for m in mutator_lst]
