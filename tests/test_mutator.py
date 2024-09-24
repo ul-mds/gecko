@@ -27,6 +27,7 @@ from gecko.mutator import (
     with_generator,
     with_regex_replacement_table,
     with_repeat,
+    with_group,
 )
 from tests.helpers import get_asset_path
 
@@ -822,6 +823,20 @@ __dummy_rng = np.random.default_rng(5432)
         (1, with_generator(_generate_static("foo"), "append")),
         (1, with_generator(_generate_static("foo"), "replace")),
         (1, with_repeat()),
+        (
+            1,
+            with_group(
+                [with_delete(rng=__dummy_rng), with_insert(rng=__dummy_rng)],
+                rng=__dummy_rng,
+            ),
+        ),
+        (
+            2,
+            with_group(
+                [with_delete(rng=__dummy_rng), with_insert(rng=__dummy_rng)],
+                rng=__dummy_rng,
+            ),
+        ),
     ],
 )
 def test_mutator_no_modify(num_srs: int, func: Mutator, rng):
@@ -1038,3 +1053,119 @@ def test_with_categorical_values_nan(tmp_path, rng):
     (srs_mut,) = mut_categorical([srs])
 
     assert (srs_mut == "").all()
+
+
+def test_with_group_no_weight(rng):
+    srs = pd.Series(["a"] * 100)
+    mut_group = with_group([with_insert(rng=rng), with_delete(rng)], rng=rng)
+
+    (srs_mut,) = mut_group([srs])
+    srs_mut_str_len = srs_mut.str.len()
+
+    assert (srs_mut_str_len == 2).any()
+    assert (srs_mut_str_len == 0).any()
+    assert not (srs_mut_str_len == 1).all()
+
+
+def test_with_group_no_weight_multicolumn(rng):
+    srs_orig = [pd.Series(["a"] * 100), pd.Series(["b"] * 100)]
+    mut_group = with_group([with_insert(rng=rng), with_delete(rng)], rng=rng)
+
+    (srs_mut_1, srs_mut_2) = mut_group(srs_orig)
+    assert (srs_mut_1.str.len() == srs_mut_2.str.len()).all()
+
+    for srs in (srs_mut_1, srs_mut_2):
+        assert (srs.str.len() == 2).any()
+        assert (srs.str.len() == 0).any()
+        assert not (srs.str.len() == 1).all()
+
+
+def test_with_group_with_weight(rng):
+    srs = pd.Series(["a"] * 100)
+    # 50% should be padded out
+    mut_group = with_group(
+        [
+            (0.25, with_insert(rng=rng)),
+            (0.25, with_delete(rng=rng)),
+        ],
+        rng=rng,
+    )
+
+    (srs_mut,) = mut_group([srs])
+    srs_mut_str_len = srs_mut.str.len()
+
+    for str_len in (0, 1, 2):
+        assert (srs_mut_str_len == str_len).any()
+
+
+def test_with_group_with_weight_multicolumn(rng):
+    srs_orig = [pd.Series(["a"] * 100), pd.Series(["b"] * 100)]
+    mut_group = with_group(
+        [
+            (0.25, with_insert(rng=rng)),
+            (0.25, with_delete(rng=rng)),
+        ],
+        rng=rng,
+    )
+
+    (srs_mut_1, srs_mut_2) = mut_group(srs_orig)
+    assert (srs_mut_1.str.len() == srs_mut_2.str.len()).all()
+
+    for srs in (srs_mut_1, srs_mut_2):
+        for str_len in (0, 1, 2):
+            assert (srs.str.len() == str_len).any()
+
+
+def test_with_group_raise_invalid_list_item(rng):
+    with pytest.raises(ValueError) as e:
+        with_group(
+            [
+                with_delete(rng=rng),
+                None,
+            ],
+            rng=rng,
+        )
+
+    assert (
+        str(e.value)
+        == "invalid argument, must be a list of mutators or weighted mutators"
+    )
+
+
+def test_with_group_raise_p_sum_too_high(rng):
+    with pytest.raises(ValueError) as e:
+        with_group(
+            [
+                (0.6, with_delete(rng=rng)),
+                (0.41, with_insert(rng=rng)),
+            ],
+            rng=rng,
+        )
+
+    assert str(e.value) == f"sum of weights must not be higher than 1, is {.6 + .41}"
+
+
+def test_with_group_raise_p_sum_too_low(rng):
+    with pytest.raises(ValueError) as e:
+        with_group(
+            [
+                (0, with_insert(rng=rng)),
+                (0, with_delete(rng=rng)),
+            ],
+            rng=rng,
+        )
+
+    assert str(e.value) == "sum of weights must be higher than 0, is 0"
+
+
+def test_with_group_raise_mut_p_too_low(rng):
+    with pytest.raises(ValueError) as e:
+        with_group(
+            [
+                (0.25, with_insert(rng=rng)),
+                (0, with_delete(rng=rng)),
+            ],
+            rng=rng,
+        )
+
+    assert str(e.value) == "weight of mutator at index 1 must be higher than zero, is 0"

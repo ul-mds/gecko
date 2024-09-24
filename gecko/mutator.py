@@ -24,6 +24,7 @@ __all__ = [
     "with_generator",
     "with_regex_replacement_table",
     "with_repeat",
+    "with_group",
     "mutate_data_frame",
 ]
 
@@ -38,7 +39,7 @@ from typing import Callable, Optional, Union, Literal, NamedTuple
 import numpy as np
 import pandas as pd
 from lxml import etree
-from typing_extensions import ParamSpec, Concatenate
+from typing_extensions import ParamSpec, Concatenate, TypeGuard
 
 from gecko.cldr import decode_iso_kb_pos, unescape_kb_char, get_neighbor_kb_pos_for
 from gecko.generator import Generator
@@ -1535,6 +1536,97 @@ def with_repeat(join_with: str = " ") -> Mutator:
 
     def _mutate(srs_lst: list[pd.Series]) -> list[pd.Series]:
         return [_mutate_series(srs) for srs in srs_lst]
+
+    return _mutate
+
+
+def _is_weighted_mutator_tuple(
+    x: object,
+) -> TypeGuard[tuple[Union[float, int], Mutator]]:
+    return (
+        isinstance(x, tuple)
+        and len(x) == 2
+        and isinstance(x[0], (float, int))
+        and callable(x[1])
+    )
+
+
+def with_group(
+    mutator_lst: Union[list[Mutator], list[tuple[Union[float, int], Mutator]]],
+    rng: Optional[np.random.Generator] = None,
+) -> Mutator:
+    """
+    Mutate data by applying multiple mutators on it.
+    The mutators are applied in the order that they are provided in to this function.
+    When providing a list of mutators, each row will be affected by each mutator with an equal probability.
+    When providing a list of weighted mutators, each row will be affected by ecah mutator with the
+    specified probabilities.
+    If the probabilities do not sum up to 1, an additional mutator is added which does not modify input data.
+
+    Args:
+        mutator_lst: list of mutators or weighted mutators
+        rng: random number generator to use
+
+    Returns:
+        function returning list with strings modified by mutators as specified
+    """
+    if all(callable(m) for m in mutator_lst):
+        p = 1.0 / len(mutator_lst)
+        mutator_lst = [(p, m) for m in mutator_lst]
+
+    if not all(_is_weighted_mutator_tuple(m) for m in mutator_lst):
+        raise ValueError(
+            "invalid argument, must be a list of mutators or weighted mutators"
+        )
+
+    p_sum = sum(t[0] for t in mutator_lst)
+
+    if p_sum > 1:
+        raise ValueError(f"sum of weights must not be higher than 1, is {p_sum}")
+
+    if p_sum <= 0:
+        raise ValueError(f"sum of weights must be higher than 0, is {p_sum}")
+
+    # pad probabilities
+    if p_sum != 1:
+        mutator_lst.append((1 - p_sum, with_noop()))
+
+    if rng is None:
+        rng = np.random.default_rng()
+
+    p_vals: tuple[Union[int, float], ...]
+    mut_lst: tuple[Mutator, ...]
+    p_vals, mut_lst = zip(*mutator_lst)
+
+    for mut_idx, p in enumerate(p_vals):
+        if p <= 0:
+            raise ValueError(
+                f"weight of mutator at index {mut_idx} must be higher than zero, is {p}"
+            )
+
+    def _mutate(srs_lst: list[pd.Series]) -> list[pd.Series]:
+        # check that all series have the same length
+        if len(set(len(s) for s in srs_lst)) != 1:
+            raise ValueError("series do not have the same length")
+
+        srs_len = len(srs_lst[0])
+        srs_lst_out = [srs.copy() for srs in srs_lst]
+
+        # each row gets an index of the applied mutator
+        arr_mut_idx = np.arange(len(mutator_lst))
+        arr_mut_per_row = rng.choice(arr_mut_idx, p=p_vals, size=srs_len)
+
+        # iterate over each mutator
+        for i in arr_mut_idx:
+            mutator = mut_lst[i]
+            # select all rows that have this mutator applied to it
+            msk_this_mut = arr_mut_per_row == i
+            srs_mut_lst = mutator([srs[msk_this_mut] for srs in srs_lst_out])
+
+            for j, srs_mut in enumerate(srs_mut_lst):
+                srs_lst_out[j].update(srs_mut)
+
+        return srs_lst_out
 
     return _mutate
 
