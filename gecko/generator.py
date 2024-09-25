@@ -306,8 +306,12 @@ def from_datetime_range(
     return _generate
 
 
+_ColumnDef = Union[str, tuple[str, ...]]
+_ColumnToGeneratorDef = tuple[_ColumnDef, Generator]
+
+
 def to_data_frame(
-    column_to_generator_dict: dict[Union[str, tuple[str, ...]], Generator],
+    generator_lst: list[_ColumnToGeneratorDef],
     count: int,
 ) -> pd.DataFrame:
     """
@@ -317,13 +321,13 @@ def to_data_frame(
     that the generator returns.
 
     Args:
-        column_to_generator_dict: mapping of column names to generators
+        generator_lst: list of column names to generators
         count: amount of records to generate
 
     Returns:
         data frame with columns and rows generated as specified
     """
-    if len(column_to_generator_dict) == 0:
+    if len(generator_lst) == 0:
         raise ValueError("generator dict may not be empty")
 
     if count <= 0:
@@ -331,7 +335,10 @@ def to_data_frame(
 
     col_to_srs_dict: dict[str, pd.Series] = {}
 
-    for gen_col_names, gen in column_to_generator_dict.items():
+    # for gen_col_names, gen in column_to_generator_dict.items():
+    for col_to_gen_def in generator_lst:
+        gen_col_names, gen = col_to_gen_def
+
         # if a single string is provided, concat by wrapping it into a list
         if isinstance(gen_col_names, str):
             gen_col_names = (gen_col_names,)
