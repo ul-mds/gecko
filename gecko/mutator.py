@@ -1706,7 +1706,7 @@ def mutate_data_frame(
             )
 
         # if the list contains functions only, create them into tuples with equal probability
-        if all(isinstance(c, Callable) for c in mutator_spec):
+        if all(callable(c) for c in mutator_spec):
             mutator_spec = [
                 (1.0 / len(mutator_spec), mutator) for mutator in mutator_spec
             ]
