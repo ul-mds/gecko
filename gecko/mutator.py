@@ -1540,9 +1540,12 @@ def with_repeat(join_with: str = " ") -> Mutator:
     return _mutate
 
 
+_WeightedMutatorDef = tuple[Union[int, float], Mutator]
+
+
 def _is_weighted_mutator_tuple(
     x: object,
-) -> TypeGuard[tuple[Union[float, int], Mutator]]:
+) -> TypeGuard[_WeightedMutatorDef]:
     return (
         isinstance(x, tuple)
         and len(x) == 2
@@ -1551,8 +1554,17 @@ def _is_weighted_mutator_tuple(
     )
 
 
+def _is_weighted_mutator_tuple_list(
+    x: object,
+) -> TypeGuard[list[_WeightedMutatorDef]]:
+    if not isinstance(x, list):
+        return False
+
+    return all(_is_weighted_mutator_tuple(d) for d in x)
+
+
 def with_group(
-    mutator_lst: Union[list[Mutator], list[tuple[Union[float, int], Mutator]]],
+    mutator_lst: Union[list[Mutator], list[_WeightedMutatorDef]],
     rng: Optional[np.random.Generator] = None,
 ) -> Mutator:
     """
@@ -1574,7 +1586,7 @@ def with_group(
         p = 1.0 / len(mutator_lst)
         mutator_lst = [(p, m) for m in mutator_lst]
 
-    if not all(_is_weighted_mutator_tuple(m) for m in mutator_lst):
+    if not _is_weighted_mutator_tuple_list(mutator_lst):
         raise ValueError(
             "invalid argument, must be a list of mutators or weighted mutators"
         )
@@ -1631,19 +1643,16 @@ def with_group(
     return _mutate
 
 
+_ColumnDef = Union[str, tuple[str, ...]]
+_ColumnToMutatorDef = tuple[
+    _ColumnDef,
+    Union[Mutator, _WeightedMutatorDef, list[Mutator], list[_WeightedMutatorDef]],
+]
+
+
 def mutate_data_frame(
     df_in: pd.DataFrame,
-    column_to_mutator_list: list[
-        tuple[
-            Union[str, tuple[str, ...]],
-            Union[
-                Mutator,
-                list[Mutator],
-                tuple[float, Mutator],
-                list[tuple[float, Mutator]],
-            ],
-        ],
-    ],
+    mutator_lst: list[_ColumnToMutatorDef],
     rng: Optional[np.random.Generator] = None,
 ) -> pd.DataFrame:
     """
@@ -1654,28 +1663,20 @@ def mutate_data_frame(
 
     Args:
         df_in: data frame to mutate
-        column_to_mutator_list: list of columns with their mutator assignments
+        mutator_lst: list of columns with their mutator assignments
         rng: random number generator to use
 
     Returns:
         data frame with columns mutated as specified
     """
 
-    def __is_weighted_mutator_tuple(x: object):
-        return (
-            isinstance(x, tuple)
-            and len(x) == 2
-            and isinstance(x[0], (float, int))
-            and isinstance(x[1], Callable)
-        )
-
     if rng is None:
         rng = np.random.default_rng()
 
     df_out = df_in.copy()
 
-    for column_to_mutator_entry in column_to_mutator_list:
-        column_spec, mutator_spec = column_to_mutator_entry
+    for col_to_mut_def in mutator_lst:
+        column_spec, mutator_spec = col_to_mut_def
 
         # convert to list if there is only one column specified
         if isinstance(column_spec, str):
@@ -1689,11 +1690,11 @@ def mutate_data_frame(
                 )
 
         # if the column is assigned a mutator, assign it a 100% weight and wrap it into a list
-        if isinstance(mutator_spec, Callable):
+        if callable(mutator_spec):
             mutator_spec = [(1.0, mutator_spec)]
 
         # if the column is assigned a tuple, wrap it into a list
-        if __is_weighted_mutator_tuple(mutator_spec):
+        if _is_weighted_mutator_tuple(mutator_spec):
             mutator_spec = [mutator_spec]
 
         # next step is to check the entries of the list. so if the spec has not been converted
@@ -1711,50 +1712,22 @@ def mutate_data_frame(
             ]
 
         # if the end result is not a list of weighted mutators for each column, abort
-        if not all(__is_weighted_mutator_tuple(c) for c in mutator_spec):
+        if not _is_weighted_mutator_tuple_list(mutator_spec):
             raise ValueError("malformed mutator definition")
 
-        # mutator_spec is a list of tuples, which contain a float and a mutator func.
-        # this one-liner collects all floats and mutator funcs into their own lists.
-        p_values, mutator_funcs = list(zip(*mutator_spec))
-        p_sum = sum(p_values)
+        srs_lst_out = [df_out[column_name] for column_name in column_spec]
 
-        if p_sum > 1:
-            raise ValueError(
-                f"sum of probabilities may not be higher than 1.0, is {p_sum}"
-            )
+        for weighted_mut in mutator_spec:
+            mut_p, mut_fn = weighted_mut
 
-        # pad probabilities to sum up to 1.0
-        if p_sum < 1:
-            p_values = (*p_values, 1 - p_sum)
-            mutator_funcs = (*mutator_funcs, with_noop())
+            if mut_p <= 0 or mut_p > 1:
+                raise ValueError("probability for mutator must be in range of (0, 1]")
 
-        try:
-            # sanity check
-            rng.choice([i for i in range(len(p_values))], p=p_values)
-        except ValueError:
-            column_str = f"column{'s' if len(column_spec) > 1 else ''} `{', '.join(column_spec)}`"
-            raise ValueError(f"probabilities for {column_str} must sum up to 1.0")
+            mut_grp = with_group([weighted_mut], rng=rng)
+            srs_lst_out = mut_grp(srs_lst_out)
 
-        mutator_count = len(mutator_funcs)
-        # generate a series where each row gets an index of the mutator in mutator_funcs to apply.
-        arr_mutator_idx = np.arange(mutator_count)
-        arr_mutator_per_row = rng.choice(arr_mutator_idx, p=p_values, size=len(df_out))
-        srs_mutator_idx = pd.Series(data=arr_mutator_per_row, index=df_out.index)
-        srs_columns = [df_out[column_name] for column_name in column_spec]
-
-        for i in arr_mutator_idx:
-            mutator = mutator_funcs[i]
-            mask_this_mutator = srs_mutator_idx == i
-            srs_mutated_lst = mutator([srs[mask_this_mutator] for srs in srs_columns])
-
-            # i would've liked to use .loc[mask_this_mutator, column_spec] = mutator(...) here
-            # but there is apparently a shape mismatch that happens here. so instead i'm manually
-            # iterating over each mutated series until i find a better solution.
-            for j in range(len(column_spec)):
-                column_name = column_spec[j]
-                srs_mutated = srs_mutated_lst[j]
-
-                df_out.loc[mask_this_mutator, column_name] = srs_mutated
+        for mut_srs_idx, mut_srs in enumerate(srs_lst_out):
+            col_name = column_spec[mut_srs_idx]
+            df_out[col_name].update(mut_srs)
 
     return df_out
