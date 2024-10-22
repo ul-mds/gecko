@@ -184,11 +184,11 @@ def test_from_datetime_range_end_before_start(rng):
     )
 
 
-def test_to_dataframe_error_empty_dict():
+def test_to_dataframe_error_empty_list():
     with pytest.raises(ValueError) as e:
-        generator.to_data_frame({}, 1000)
+        generator.to_data_frame([], 1000)
 
-    assert str(e.value) == "generator dict may not be empty"
+    assert str(e.value) == "generator list may not be empty"
 
 
 def test_to_dataframe_error_count_not_positive():
