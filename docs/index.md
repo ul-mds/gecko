@@ -95,20 +95,17 @@ from gecko import generator, mutator
 rng = np.random.default_rng(727)  # (1)!
 gecko_data_dir = Path(__file__).parent / "gecko-data"  # (2)!
 
-df_generated = generator.to_data_frame(  # (3)!
-    {
-        ("given_name", "gender"): generator.from_multicolumn_frequency_table(  # (4)!
-            gecko_data_dir / "de_DE" / "given-name-gender.csv",
-            value_columns=["given_name", "gender"],
-            freq_column="count",
-            rng=rng,
-        ),
-        "age": generator.from_uniform_distribution(  # (5)!
-            low=18, high=120, precision=0, rng=rng,
-        ),
-    },
-    10_000,  # (6)!
-)
+df_generated = generator.to_data_frame([  # (3)!
+    (("given_name", "gender"), generator.from_multicolumn_frequency_table(  # (4)!
+        gecko_data_dir / "de_DE" / "given-name-gender.csv",
+        value_columns=["given_name", "gender"],
+        freq_column="count",
+        rng=rng,
+    )),
+    ("age", generator.from_uniform_distribution(  # (5)!
+        low=18, high=120, precision=0, rng=rng,
+    ))
+], 10_000)  # (6)!
 
 df_mutated = mutator.mutate_data_frame(  # (7)!
     df_generated,

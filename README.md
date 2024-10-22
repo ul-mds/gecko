@@ -57,14 +57,14 @@ gecko_data_dir = Path(__file__).parent / "gecko-data"
 # create a data frame with 10,000 rows and a single column called "last_name" 
 # which sources its values from the frequency table with the same name
 df_generated = generator.to_data_frame(
-    {
-        "last_name": generator.from_frequency_table(
+    [
+        ("last_name", generator.from_frequency_table(
             gecko_data_dir / "de_DE" / "last-name.csv",
             value_column="last_name",
             freq_column="count",
             rng=rng,
-        ),
-    },
+        )),
+    ],
     10_000,
 )
 

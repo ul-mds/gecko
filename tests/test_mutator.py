@@ -648,8 +648,8 @@ def test_mutate_data_frame_multiple(rng):
             (
                 "foo",
                 [
-                    with_missing_value(strategy="all"),
-                    with_missing_value(value="bar", strategy="all"),
+                    (0.2, with_missing_value(strategy="all")),
+                    (0.2, with_missing_value(value="bar", strategy="all")),
                 ],
             )
         ],
@@ -694,26 +694,6 @@ def test_mutate_data_frame_incorrect_column():
         mutate_data_frame(df, [("foobar", with_noop())])
 
     assert str(e.value) == "column `foobar` does not exist, must be one of `foo`"
-
-
-def test_mutate_data_frame_probability_sum_too_high():
-    df = pd.DataFrame(data={"foo": ["bar", "baz"]})
-
-    with pytest.raises(ValueError) as e:
-        mutate_data_frame(
-            df,
-            [
-                (
-                    "foo",
-                    [
-                        (0.8, with_noop()),
-                        (0.3, with_missing_value()),
-                    ],
-                )
-            ],
-        )
-
-    assert str(e.value) == "sum of probabilities may not be higher than 1.0, is 1.1"
 
 
 def test_mutate_data_frame_pad_probability():

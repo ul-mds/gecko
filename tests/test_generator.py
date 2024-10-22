@@ -184,19 +184,17 @@ def test_from_datetime_range_end_before_start(rng):
     )
 
 
-def test_to_dataframe_error_empty_dict():
+def test_to_dataframe_error_empty_list():
     with pytest.raises(ValueError) as e:
-        generator.to_data_frame({}, 1000)
+        generator.to_data_frame([], 1000)
 
-    assert str(e.value) == "generator dict may not be empty"
+    assert str(e.value) == "generator list may not be empty"
 
 
 def test_to_dataframe_error_count_not_positive():
     with pytest.raises(ValueError) as e:
         generator.to_data_frame(
-            {
-                "foo": generator.from_uniform_distribution(),
-            },
+            [("foo", generator.from_uniform_distribution())],
             0,
         )
 
@@ -217,10 +215,10 @@ def test_to_dataframe(rng):
 
     df_row_count = 1000
     df = generator.to_data_frame(
-        {
-            ("fruit", "type"): gen_fruit_types,
-            "num": gen_numbers,
-        },
+        [
+            (("fruit", "type"), gen_fruit_types),
+            ("num", gen_numbers),
+        ],
         df_row_count,
     )
 

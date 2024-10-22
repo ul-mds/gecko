@@ -328,12 +328,12 @@ grade_generator = generator.from_function(
 )
 
 df = generator.to_data_frame(
-    {
-        ("fruit", "type"): fruit_generator,
-        "weight_in_grams": weight_generator,
-        "amount": amount_generator,
-        "grade": grade_generator,
-    },
+    [
+        (("fruit", "type"), fruit_generator),
+        ("weight_in_grams", weight_generator),
+        ("amount", amount_generator),
+        ("grade", grade_generator),
+    ],
     1_000,
 )
 

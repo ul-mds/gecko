@@ -15,17 +15,20 @@ __all__ = [
 ]
 
 from os import PathLike
-from typing import Callable, Optional, Union, Literal
+import typing as _t
 
 import numpy as np
 import pandas as pd
-from typing_extensions import ParamSpec  # required for 3.9 backport
 
-P = ParamSpec("P")
-Generator = Callable[[int], list[pd.Series]]
+import typing_extensions as _te
+
+_P = _te.ParamSpec("_P")
+Generator = _t.Callable[[int], list[pd.Series]]
 
 
-def from_function(func: Callable[P, str], *args: object, **kwargs: object) -> Generator:
+def from_function(
+    func: _t.Callable[_P, str], *args: object, **kwargs: object
+) -> Generator:
     """
     Generate data from an arbitrary function that returns a single value at a time.
 
@@ -49,10 +52,10 @@ def from_function(func: Callable[P, str], *args: object, **kwargs: object) -> Ge
 
 
 def from_uniform_distribution(
-    low: Union[int, float] = 0,
-    high: Union[int, float] = 1,
+    low: _t.Union[int, float] = 0,
+    high: _t.Union[int, float] = 1,
     precision: int = 6,
-    rng: Optional[np.random.Generator] = None,
+    rng: _t.Optional[np.random.Generator] = None,
 ) -> Generator:
     """
     Generate data from a uniform distribution.
@@ -81,7 +84,7 @@ def from_normal_distribution(
     mean: float = 0,
     sd: float = 1,
     precision: int = 6,
-    rng: Optional[np.random.Generator] = None,
+    rng: _t.Optional[np.random.Generator] = None,
 ) -> Generator:
     """
     Generate data from a normal distribution.
@@ -107,12 +110,12 @@ def from_normal_distribution(
 
 
 def from_frequency_table(
-    csv_file_path: Union[str, PathLike[str]],
-    value_column: Union[str, int] = 0,
-    freq_column: Union[str, int] = 1,
+    csv_file_path: _t.Union[str, PathLike[str]],
+    value_column: _t.Union[str, int] = 0,
+    freq_column: _t.Union[str, int] = 1,
     encoding: str = "utf-8",
     delimiter: str = ",",
-    rng: Optional[np.random.Generator] = None,
+    rng: _t.Optional[np.random.Generator] = None,
 ) -> Generator:
     """
     Generate data from a frequency table.
@@ -169,12 +172,12 @@ def from_frequency_table(
 
 
 def from_multicolumn_frequency_table(
-    csv_file_path: Union[str, PathLike[str]],
-    value_columns: Union[int, str, list[int], list[str]] = 0,
-    freq_column: Union[int, str] = 1,
+    csv_file_path: _t.Union[str, PathLike[str]],
+    value_columns: _t.Union[int, str, list[int], list[str]] = 0,
+    freq_column: _t.Union[int, str] = 1,
     encoding: str = "utf-8",
     delimiter: str = ",",
-    rng: Optional[np.random.Generator] = None,
+    rng: _t.Optional[np.random.Generator] = None,
 ) -> Generator:
     """
     Generate data from a frequency table with multiple interdependent columns..
@@ -254,11 +257,11 @@ def from_multicolumn_frequency_table(
 
 
 def from_datetime_range(
-    start_dt: Union[str, np.datetime64],
-    end_dt: Union[str, np.datetime64],
+    start_dt: _t.Union[str, np.datetime64],
+    end_dt: _t.Union[str, np.datetime64],
     dt_format: str,
-    unit: Literal["D", "h", "m", "s"],
-    rng: Optional[np.random.Generator] = None,
+    unit: _t.Literal["D", "h", "m", "s"],
+    rng: _t.Optional[np.random.Generator] = None,
 ) -> Generator:
     """
     Generate data from a range of dates and times.
@@ -306,8 +309,11 @@ def from_datetime_range(
     return _generate
 
 
+_GeneratorSpec = list[tuple[_t.Union[str, tuple[str, ...]], Generator]]
+
+
 def to_data_frame(
-    column_to_generator_dict: dict[Union[str, tuple[str, ...]], Generator],
+    generator_lst: _GeneratorSpec,
     count: int,
 ) -> pd.DataFrame:
     """
@@ -317,21 +323,23 @@ def to_data_frame(
     that the generator returns.
 
     Args:
-        column_to_generator_dict: mapping of column names to generators
+        generator_lst: list of column names to generators
         count: amount of records to generate
 
     Returns:
         data frame with columns and rows generated as specified
     """
-    if len(column_to_generator_dict) == 0:
-        raise ValueError("generator dict may not be empty")
+    if len(generator_lst) == 0:
+        raise ValueError("generator list may not be empty")
 
     if count <= 0:
         raise ValueError(f"amount of rows must be positive, is {count}")
 
     col_to_srs_dict: dict[str, pd.Series] = {}
 
-    for gen_col_names, gen in column_to_generator_dict.items():
+    for col_to_gen_def in generator_lst:
+        gen_col_names, gen = col_to_gen_def
+
         # if a single string is provided, concat by wrapping it into a list
         if isinstance(gen_col_names, str):
             gen_col_names = (gen_col_names,)
