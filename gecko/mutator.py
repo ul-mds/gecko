@@ -34,21 +34,21 @@ import string
 from dataclasses import dataclass, field
 from os import PathLike
 from pathlib import Path
-from typing import Callable, Optional, Union, Literal, NamedTuple
+import typing as _t
 
 import numpy as np
 import pandas as pd
 from lxml import etree
-from typing_extensions import ParamSpec, Concatenate, TypeGuard
+import typing_extensions as _te
 
 from gecko.cldr import decode_iso_kb_pos, unescape_kb_char, get_neighbor_kb_pos_for
 from gecko.generator import Generator
 
-Mutator = Callable[[list[pd.Series]], list[pd.Series]]
-_EditOp = Literal["ins", "del", "sub", "trs"]
+Mutator = _t.Callable[[list[pd.Series]], list[pd.Series]]
+_EditOp = _t.Literal["ins", "del", "sub", "trs"]
 
 
-class _PhoneticReplacementRule(NamedTuple):
+class _PhoneticReplacementRule(_t.NamedTuple):
     pattern: str
     replacement: str
     flags: str
@@ -65,11 +65,11 @@ class KeyMutation:
     col: list[str] = field(default_factory=list)
 
 
-P = ParamSpec("P")
+P = _te.ParamSpec("P")
 
 
 def with_function(
-    func: Callable[Concatenate[str, P], str],
+    func: _t.Callable[_te.Concatenate[str, P], str],
     *args: object,
     **kwargs: object,
 ) -> Mutator:
@@ -104,9 +104,9 @@ def with_function(
 
 
 def with_cldr_keymap_file(
-    cldr_path: Union[PathLike, str],
-    charset: Optional[str] = None,
-    rng: Optional[np.random.Generator] = None,
+    cldr_path: _t.Union[PathLike, str],
+    charset: _t.Optional[str] = None,
+    rng: _t.Optional[np.random.Generator] = None,
 ) -> Mutator:
     """
     Mutate data by randomly introducing typos.
@@ -262,13 +262,13 @@ def with_cldr_keymap_file(
 
 
 def with_phonetic_replacement_table(
-    csv_file_path: Union[PathLike, str],
-    source_column: Union[int, str] = 0,
-    target_column: Union[int, str] = 1,
-    flags_column: Union[int, str] = 2,
+    csv_file_path: _t.Union[PathLike, str],
+    source_column: _t.Union[int, str] = 0,
+    target_column: _t.Union[int, str] = 1,
+    flags_column: _t.Union[int, str] = 2,
     encoding: str = "utf-8",
     delimiter: str = ",",
-    rng: Optional[np.random.Generator] = None,
+    rng: _t.Optional[np.random.Generator] = None,
 ) -> Mutator:
     """
     Mutate data by randomly replacing characters with others that sound similar.
@@ -298,7 +298,7 @@ def with_phonetic_replacement_table(
     # list of all flags. needs to be sorted for rng.
     _all_flags = "".join(sorted("^$_"))
 
-    def _validate_flags(flags_str: Optional[str]) -> str:
+    def _validate_flags(flags_str: _t.Optional[str]) -> str:
         """Check a string for valid flags. Returns all flags if string is empty, `NaN` or `None`."""
         if pd.isna(flags_str) or flags_str == "" or flags_str is None:
             return _all_flags
@@ -473,14 +473,14 @@ def with_phonetic_replacement_table(
 
 
 def with_replacement_table(
-    csv_file_path: Union[PathLike, str],
-    source_column: Union[str, int] = 0,
-    target_column: Union[str, int] = 1,
+    csv_file_path: _t.Union[PathLike, str],
+    source_column: _t.Union[str, int] = 0,
+    target_column: _t.Union[str, int] = 1,
     inline: bool = False,
     reverse: bool = False,
     encoding: str = "utf-8",
     delimiter: str = ",",
-    rng: Optional[np.random.Generator] = None,
+    rng: _t.Optional[np.random.Generator] = None,
 ) -> Mutator:
     """
     Mutate data by randomly substituting sequences from a replacement table.
@@ -681,7 +681,7 @@ def _mutate_only_blank_from_value(value: str) -> Mutator:
 
 def with_missing_value(
     value: str = "",
-    strategy: Literal["all", "blank", "empty"] = "blank",
+    strategy: _t.Literal["all", "blank", "empty"] = "blank",
 ) -> Mutator:
     """
     Mutate data by replacing select entries with a representative "missing" value.
@@ -710,7 +710,7 @@ def with_missing_value(
 
 def with_insert(
     charset: str = string.ascii_letters,
-    rng: Optional[np.random.Generator] = None,
+    rng: _t.Optional[np.random.Generator] = None,
 ) -> Mutator:
     """
     Mutate data by inserting random characters.
@@ -765,7 +765,7 @@ def with_insert(
     return _mutate
 
 
-def with_delete(rng: Optional[np.random.Generator] = None) -> Mutator:
+def with_delete(rng: _t.Optional[np.random.Generator] = None) -> Mutator:
     """
     Mutate data by randomly deleting characters.
 
@@ -814,7 +814,7 @@ def with_delete(rng: Optional[np.random.Generator] = None) -> Mutator:
     return _mutate
 
 
-def with_transpose(rng: Optional[np.random.Generator] = None) -> Mutator:
+def with_transpose(rng: _t.Optional[np.random.Generator] = None) -> Mutator:
     """
     Mutate data by randomly swapping neighboring characters.
 
@@ -873,7 +873,7 @@ def with_transpose(rng: Optional[np.random.Generator] = None) -> Mutator:
 
 def with_substitute(
     charset: str = string.ascii_letters,
-    rng: Optional[np.random.Generator] = None,
+    rng: _t.Optional[np.random.Generator] = None,
 ) -> Mutator:
     """
     Mutate data by replacing single characters with a new one.
@@ -942,7 +942,7 @@ def with_edit(
     p_substitute: float = 0.25,
     p_transpose: float = 0.25,
     charset: str = string.ascii_letters,
-    rng: Optional[np.random.Generator] = None,
+    rng: _t.Optional[np.random.Generator] = None,
 ) -> Mutator:
     """
     Mutate data by randomly applying insertion, deletion, substitution or transposition of characters.
@@ -1038,11 +1038,11 @@ def with_noop() -> Mutator:
 
 
 def with_categorical_values(
-    csv_file_path: Union[PathLike, str],
-    value_column: Union[str, int] = 0,
+    csv_file_path: _t.Union[PathLike, str],
+    value_column: _t.Union[str, int] = 0,
     encoding: str = "utf-8",
     delimiter: str = ",",
-    rng: Optional[np.random.Generator] = None,
+    rng: _t.Optional[np.random.Generator] = None,
 ) -> Mutator:
     """
     Mutate data by replacing it with another from a list of categorical values.
@@ -1124,7 +1124,7 @@ def with_categorical_values(
     return _mutate
 
 
-def with_permute(rng: Optional[np.random.Generator] = None) -> Mutator:
+def with_permute(rng: _t.Optional[np.random.Generator] = None) -> Mutator:
     """
     Mutate data from series by permuting their contents.
     This function ensures that for each row there is at least one permutation happening.
@@ -1219,10 +1219,10 @@ def with_uppercase() -> Mutator:
 
 def with_datetime_offset(
     max_delta: int,
-    unit: Literal["D", "h", "m", "s"],
+    unit: _t.Literal["D", "h", "m", "s"],
     dt_format: str,
     prevent_wraparound: bool = False,
-    rng: Optional[np.random.Generator] = None,
+    rng: _t.Optional[np.random.Generator] = None,
 ) -> Mutator:
     """
     Mutate data from a series by treating it as datetime information and offsetting it by random amounts.
@@ -1298,7 +1298,7 @@ def with_datetime_offset(
 
 def with_generator(
     generator: Generator,
-    mode: Literal["prepend", "append", "replace"],
+    mode: _t.Literal["prepend", "append", "replace"],
     join_with: str = " ",
 ) -> Mutator:
     """
@@ -1366,7 +1366,7 @@ def with_generator(
     return _mutate
 
 
-def _new_regex_replacement_fn(srs: pd.Series) -> Callable[[re.Match], str]:
+def _new_regex_replacement_fn(srs: pd.Series) -> _t.Callable[[re.Match], str]:
     def _replace(match: re.Match) -> str:
         span_to_repl_col_dict: dict[tuple[int, int], str] = {}
 
@@ -1421,12 +1421,12 @@ def _parse_regex_flags(regex_flags_val: str) -> int:
 
 
 def with_regex_replacement_table(
-    csv_file_path: Union[PathLike, str],
+    csv_file_path: _t.Union[PathLike, str],
     pattern_column: str = "pattern",
-    flags_column: Optional[str] = None,
+    flags_column: _t.Optional[str] = None,
     encoding: str = "utf-8",
     delimiter: str = ",",
-    rng: Optional[np.random.Generator] = None,
+    rng: _t.Optional[np.random.Generator] = None,
 ) -> Mutator:
     """
     Mutate data by performing regex-based substitutions sourced from a CSV file.
@@ -1461,7 +1461,7 @@ def with_regex_replacement_table(
         raise ValueError(f"CSV file at `{csv_file_path}` doesn't have a pattern column")
 
     regexes: list[re.Pattern] = []
-    regex_repl_fns: list[Callable[[re.Match], str]] = []
+    regex_repl_fns: list[_t.Callable[[re.Match], str]] = []
 
     for _, row in df.iterrows():
         regex = re.compile(
@@ -1540,12 +1540,12 @@ def with_repeat(join_with: str = " ") -> Mutator:
     return _mutate
 
 
-_WeightedMutatorDef = tuple[Union[int, float], Mutator]
+_WeightedMutatorDef = tuple[_t.Union[int, float], Mutator]
 
 
 def _is_weighted_mutator_tuple(
     x: object,
-) -> TypeGuard[_WeightedMutatorDef]:
+) -> _te.TypeGuard[_WeightedMutatorDef]:
     return (
         isinstance(x, tuple)
         and len(x) == 2
@@ -1556,7 +1556,7 @@ def _is_weighted_mutator_tuple(
 
 def _is_weighted_mutator_tuple_list(
     x: object,
-) -> TypeGuard[list[_WeightedMutatorDef]]:
+) -> _te.TypeGuard[list[_WeightedMutatorDef]]:
     if not isinstance(x, list):
         return False
 
@@ -1564,14 +1564,14 @@ def _is_weighted_mutator_tuple_list(
 
 
 def with_group(
-    mutator_lst: Union[list[Mutator], list[_WeightedMutatorDef]],
-    rng: Optional[np.random.Generator] = None,
+    mutator_lst: _t.Union[list[Mutator], list[_WeightedMutatorDef]],
+    rng: _t.Optional[np.random.Generator] = None,
 ) -> Mutator:
     """
     Mutate data by applying multiple mutators on it.
     The mutators are applied in the order that they are provided in to this function.
     When providing a list of mutators, each row will be affected by each mutator with an equal probability.
-    When providing a list of weighted mutators, each row will be affected by ecah mutator with the
+    When providing a list of weighted mutators, each row will be affected by each mutator with the
     specified probabilities.
     If the probabilities do not sum up to 1, an additional mutator is added which does not modify input data.
 
@@ -1606,7 +1606,7 @@ def with_group(
     if rng is None:
         rng = np.random.default_rng()
 
-    p_vals: tuple[Union[int, float], ...]
+    p_vals: tuple[_t.Union[int, float], ...]
     mut_lst: tuple[Mutator, ...]
     p_vals, mut_lst = zip(*mutator_lst)
 
@@ -1643,17 +1643,16 @@ def with_group(
     return _mutate
 
 
-_ColumnDef = Union[str, tuple[str, ...]]
-_ColumnToMutatorDef = tuple[
-    _ColumnDef,
-    Union[Mutator, _WeightedMutatorDef, list[Mutator], list[_WeightedMutatorDef]],
+_MutatorDef = _t.Union[Mutator, tuple[_t.Union[int, float], Mutator]]
+_MutatorSpec = list[
+    tuple[_t.Union[str, tuple[str, ...]], _t.Union[_MutatorDef, list[_MutatorDef]]]
 ]
 
 
 def mutate_data_frame(
     df_in: pd.DataFrame,
-    mutator_lst: list[_ColumnToMutatorDef],
-    rng: Optional[np.random.Generator] = None,
+    mutator_lst: _MutatorSpec,
+    rng: _t.Optional[np.random.Generator] = None,
 ) -> pd.DataFrame:
     """
     Mutate a data frame by applying several mutators on select columns.
@@ -1728,6 +1727,6 @@ def mutate_data_frame(
 
         for mut_srs_idx, mut_srs in enumerate(srs_lst_out):
             col_name = column_spec[mut_srs_idx]
-            df_out[col_name].update(mut_srs)
+            df_out[col_name] = mut_srs
 
     return df_out

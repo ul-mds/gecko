@@ -696,27 +696,6 @@ def test_mutate_data_frame_incorrect_column():
     assert str(e.value) == "column `foobar` does not exist, must be one of `foo`"
 
 
-@pytest.mark.skip
-def test_mutate_data_frame_probability_sum_too_high():
-    df = pd.DataFrame(data={"foo": ["bar", "baz"]})
-
-    with pytest.raises(ValueError) as e:
-        mutate_data_frame(
-            df,
-            [
-                (
-                    "foo",
-                    [
-                        (0.8, with_noop()),
-                        (0.3, with_missing_value()),
-                    ],
-                )
-            ],
-        )
-
-    assert str(e.value) == "sum of probabilities may not be higher than 1.0, is 1.1"
-
-
 def test_mutate_data_frame_pad_probability():
     df_in = pd.DataFrame(data={"foo": ["a"] * 100})
     df_out = mutate_data_frame(
