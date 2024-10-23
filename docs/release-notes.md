@@ -1,5 +1,39 @@
 # Release notes
 
+## 0.5.0 (Oct 23, 2024)
+
+### Breaking changes
+
+- `to_data_frame` has a new call signature that ensures that it's consistent with `mutate_data_frame`
+
+```python
+df_generated = generator.to_data_frame(
+    [
+        (("fruit", "type"), generator.from_multicolumn_frequency_table(
+            "fruit-types.csv",
+            value_columns=["fruit", "type"],
+            freq_column="count",
+            rng=rng,
+        )),
+        ("weight", generator.from_uniform_distribution(
+            low=20,
+            high=100,
+            rng=rng,
+        )),
+    ], 
+    10_000
+)
+```
+
+### Features
+
+- Add `mutator.with_group` for grouping multiple mutators together
+- Add support for Python 3.13
+
+### Documentation
+
+- Fix creation and modification timestamps in documentation
+
 ## 0.4.2 (Sep 20, 2024)
 
 ### Fixes
