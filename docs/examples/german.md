@@ -223,17 +223,17 @@ def generate_data_frame(count, rng):
         rng=rng,
     )
 
-    return generator.to_data_frame({
-        ("given_name", "gender"): gen_given_name_gender,
-        "last_name": gen_last_name,
-        ("street_name", "municipality", "postcode"): gen_street_municip_postcode,
-    }, count)
+    return generator.to_data_frame([  # (1)!
+        (("given_name", "gender"), gen_given_name_gender),  # (2)!
+        ("last_name", gen_last_name),  # (3)!
+        (("street_name", "municipality", "postcode"), gen_street_municip_postcode),
+    ], count)
 ```
 
 1. The `to_data_frame` function takes two arguments: a list of generators and column names, and the number of records to
    generate.
 2. You must provide one or multiple column names for each generator, depending on how many columns a generator creates.
-3. If a generator returns only a single column, you can provide a single string. Otherwise, you must provide a list of
+3. If a generator returns only a single column, you can provide a single string. Otherwise, you must provide a tuple of
    strings.
 
 ## Mutating data
@@ -448,11 +448,11 @@ def generate_data_frame(count, rng):
         rng=rng,
     )
 
-    return generator.to_data_frame({
-        ("given_name", "gender"): gen_given_name_gender,
-        "last_name": gen_last_name,
-        ("street_name", "municipality", "postcode"): gen_street_municip_postcode,
-    }, count)
+    return generator.to_data_frame([
+        (("given_name", "gender"), gen_given_name_gender),
+        ("last_name", gen_last_name),
+        (("street_name", "municipality", "postcode"), gen_street_municip_postcode),
+    ], count)
 
 
 def mutate_data_frame(df, rng):
@@ -724,12 +724,12 @@ def generate_data_frame(count, rng):
 
     gen_date_of_birth = create_date_of_birth_generator(rng=rng)  # (1)!
 
-    return generator.to_data_frame({
-        ("given_name", "gender"): gen_given_name_gender,
-        "last_name": gen_last_name,
-        ("street_name", "municipality", "postcode"): gen_street_municip_postcode,
-        "date_of_birth": gen_date_of_birth,
-    }, count)
+    return generator.to_data_frame([
+        (("given_name", "gender"), gen_given_name_gender),
+        ("last_name", gen_last_name),
+        (("street_name", "municipality", "postcode"), gen_street_municip_postcode),
+        ("date_of_birth", gen_date_of_birth)
+    ], count)
 ```
 
 1. Now you have a reusable generator with a configurable start and end date. As long as a function returns a generator,
