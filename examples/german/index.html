@@ -908,17 +908,17 @@ your specification.</p>
 </span><span id="__span-7-23"><a id="__codelineno-7-23" name="__codelineno-7-23" href="#__codelineno-7-23"></a>        <span class="n">rng</span><span class="o">=</span><span class="n">rng</span><span class="p">,</span>
 </span><span id="__span-7-24"><a id="__codelineno-7-24" name="__codelineno-7-24" href="#__codelineno-7-24"></a>    <span class="p">)</span>
 </span><span id="__span-7-25"><a id="__codelineno-7-25" name="__codelineno-7-25" href="#__codelineno-7-25"></a>
-</span><span id="__span-7-26"><a id="__codelineno-7-26" name="__codelineno-7-26" href="#__codelineno-7-26"></a>    <span class="k">return</span> <span class="n">generator</span><span class="o">.</span><span class="n">to_data_frame</span><span class="p">({</span>
-</span><span id="__span-7-27"><a id="__codelineno-7-27" name="__codelineno-7-27" href="#__codelineno-7-27"></a>        <span class="p">(</span><span class="s2">&quot;given_name&quot;</span><span class="p">,</span> <span class="s2">&quot;gender&quot;</span><span class="p">):</span> <span class="n">gen_given_name_gender</span><span class="p">,</span>
-</span><span id="__span-7-28"><a id="__codelineno-7-28" name="__codelineno-7-28" href="#__codelineno-7-28"></a>        <span class="s2">&quot;last_name&quot;</span><span class="p">:</span> <span class="n">gen_last_name</span><span class="p">,</span>
-</span><span id="__span-7-29"><a id="__codelineno-7-29" name="__codelineno-7-29" href="#__codelineno-7-29"></a>        <span class="p">(</span><span class="s2">&quot;street_name&quot;</span><span class="p">,</span> <span class="s2">&quot;municipality&quot;</span><span class="p">,</span> <span class="s2">&quot;postcode&quot;</span><span class="p">):</span> <span class="n">gen_street_municip_postcode</span><span class="p">,</span>
-</span><span id="__span-7-30"><a id="__codelineno-7-30" name="__codelineno-7-30" href="#__codelineno-7-30"></a>    <span class="p">},</span> <span class="n">count</span><span class="p">)</span>
+</span><span id="__span-7-26"><a id="__codelineno-7-26" name="__codelineno-7-26" href="#__codelineno-7-26"></a>    <span class="k">return</span> <span class="n">generator</span><span class="o">.</span><span class="n">to_data_frame</span><span class="p">([</span>  <span class="c1"># (1)!</span>
+</span><span id="__span-7-27"><a id="__codelineno-7-27" name="__codelineno-7-27" href="#__codelineno-7-27"></a>        <span class="p">((</span><span class="s2">&quot;given_name&quot;</span><span class="p">,</span> <span class="s2">&quot;gender&quot;</span><span class="p">),</span> <span class="n">gen_given_name_gender</span><span class="p">),</span>  <span class="c1"># (2)!</span>
+</span><span id="__span-7-28"><a id="__codelineno-7-28" name="__codelineno-7-28" href="#__codelineno-7-28"></a>        <span class="p">(</span><span class="s2">&quot;last_name&quot;</span><span class="p">,</span> <span class="n">gen_last_name</span><span class="p">),</span>  <span class="c1"># (3)!</span>
+</span><span id="__span-7-29"><a id="__codelineno-7-29" name="__codelineno-7-29" href="#__codelineno-7-29"></a>        <span class="p">((</span><span class="s2">&quot;street_name&quot;</span><span class="p">,</span> <span class="s2">&quot;municipality&quot;</span><span class="p">,</span> <span class="s2">&quot;postcode&quot;</span><span class="p">),</span> <span class="n">gen_street_municip_postcode</span><span class="p">),</span>
+</span><span id="__span-7-30"><a id="__codelineno-7-30" name="__codelineno-7-30" href="#__codelineno-7-30"></a>    <span class="p">],</span> <span class="n">count</span><span class="p">)</span>
 </span></code></pre></div>
 <ol>
 <li>The <code>to_data_frame</code> function takes two arguments: a list of generators and column names, and the number of records to
    generate.</li>
 <li>You must provide one or multiple column names for each generator, depending on how many columns a generator creates.</li>
-<li>If a generator returns only a single column, you can provide a single string. Otherwise, you must provide a list of
+<li>If a generator returns only a single column, you can provide a single string. Otherwise, you must provide a tuple of
    strings.</li>
 </ol>
 <h2 id="mutating-data">Mutating data</h2>
@@ -1115,11 +1115,11 @@ Your final script should look something like this.</p>
 </span><span id="__span-12-25"><a id="__codelineno-12-25" name="__codelineno-12-25" href="#__codelineno-12-25"></a>        <span class="n">rng</span><span class="o">=</span><span class="n">rng</span><span class="p">,</span>
 </span><span id="__span-12-26"><a id="__codelineno-12-26" name="__codelineno-12-26" href="#__codelineno-12-26"></a>    <span class="p">)</span>
 </span><span id="__span-12-27"><a id="__codelineno-12-27" name="__codelineno-12-27" href="#__codelineno-12-27"></a>
-</span><span id="__span-12-28"><a id="__codelineno-12-28" name="__codelineno-12-28" href="#__codelineno-12-28"></a>    <span class="k">return</span> <span class="n">generator</span><span class="o">.</span><span class="n">to_data_frame</span><span class="p">({</span>
-</span><span id="__span-12-29"><a id="__codelineno-12-29" name="__codelineno-12-29" href="#__codelineno-12-29"></a>        <span class="p">(</span><span class="s2">&quot;given_name&quot;</span><span class="p">,</span> <span class="s2">&quot;gender&quot;</span><span class="p">):</span> <span class="n">gen_given_name_gender</span><span class="p">,</span>
-</span><span id="__span-12-30"><a id="__codelineno-12-30" name="__codelineno-12-30" href="#__codelineno-12-30"></a>        <span class="s2">&quot;last_name&quot;</span><span class="p">:</span> <span class="n">gen_last_name</span><span class="p">,</span>
-</span><span id="__span-12-31"><a id="__codelineno-12-31" name="__codelineno-12-31" href="#__codelineno-12-31"></a>        <span class="p">(</span><span class="s2">&quot;street_name&quot;</span><span class="p">,</span> <span class="s2">&quot;municipality&quot;</span><span class="p">,</span> <span class="s2">&quot;postcode&quot;</span><span class="p">):</span> <span class="n">gen_street_municip_postcode</span><span class="p">,</span>
-</span><span id="__span-12-32"><a id="__codelineno-12-32" name="__codelineno-12-32" href="#__codelineno-12-32"></a>    <span class="p">},</span> <span class="n">count</span><span class="p">)</span>
+</span><span id="__span-12-28"><a id="__codelineno-12-28" name="__codelineno-12-28" href="#__codelineno-12-28"></a>    <span class="k">return</span> <span class="n">generator</span><span class="o">.</span><span class="n">to_data_frame</span><span class="p">([</span>
+</span><span id="__span-12-29"><a id="__codelineno-12-29" name="__codelineno-12-29" href="#__codelineno-12-29"></a>        <span class="p">((</span><span class="s2">&quot;given_name&quot;</span><span class="p">,</span> <span class="s2">&quot;gender&quot;</span><span class="p">),</span> <span class="n">gen_given_name_gender</span><span class="p">),</span>
+</span><span id="__span-12-30"><a id="__codelineno-12-30" name="__codelineno-12-30" href="#__codelineno-12-30"></a>        <span class="p">(</span><span class="s2">&quot;last_name&quot;</span><span class="p">,</span> <span class="n">gen_last_name</span><span class="p">),</span>
+</span><span id="__span-12-31"><a id="__codelineno-12-31" name="__codelineno-12-31" href="#__codelineno-12-31"></a>        <span class="p">((</span><span class="s2">&quot;street_name&quot;</span><span class="p">,</span> <span class="s2">&quot;municipality&quot;</span><span class="p">,</span> <span class="s2">&quot;postcode&quot;</span><span class="p">),</span> <span class="n">gen_street_municip_postcode</span><span class="p">),</span>
+</span><span id="__span-12-32"><a id="__codelineno-12-32" name="__codelineno-12-32" href="#__codelineno-12-32"></a>    <span class="p">],</span> <span class="n">count</span><span class="p">)</span>
 </span><span id="__span-12-33"><a id="__codelineno-12-33" name="__codelineno-12-33" href="#__codelineno-12-33"></a>
 </span><span id="__span-12-34"><a id="__codelineno-12-34" name="__codelineno-12-34" href="#__codelineno-12-34"></a>
 </span><span id="__span-12-35"><a id="__codelineno-12-35" name="__codelineno-12-35" href="#__codelineno-12-35"></a><span class="k">def</span> <span class="nf">mutate_data_frame</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">rng</span><span class="p">):</span>
@@ -1374,12 +1374,12 @@ Expand the <code>generate_data_frame</code> function by adding your own generato
 </span><span id="__span-17-54"><a id="__codelineno-17-54" name="__codelineno-17-54" href="#__codelineno-17-54"></a>
 </span><span id="__span-17-55"><a id="__codelineno-17-55" name="__codelineno-17-55" href="#__codelineno-17-55"></a>    <span class="n">gen_date_of_birth</span> <span class="o">=</span> <span class="n">create_date_of_birth_generator</span><span class="p">(</span><span class="n">rng</span><span class="o">=</span><span class="n">rng</span><span class="p">)</span>  <span class="c1"># (1)!</span>
 </span><span id="__span-17-56"><a id="__codelineno-17-56" name="__codelineno-17-56" href="#__codelineno-17-56"></a>
-</span><span id="__span-17-57"><a id="__codelineno-17-57" name="__codelineno-17-57" href="#__codelineno-17-57"></a>    <span class="k">return</span> <span class="n">generator</span><span class="o">.</span><span class="n">to_data_frame</span><span class="p">({</span>
-</span><span id="__span-17-58"><a id="__codelineno-17-58" name="__codelineno-17-58" href="#__codelineno-17-58"></a>        <span class="p">(</span><span class="s2">&quot;given_name&quot;</span><span class="p">,</span> <span class="s2">&quot;gender&quot;</span><span class="p">):</span> <span class="n">gen_given_name_gender</span><span class="p">,</span>
-</span><span id="__span-17-59"><a id="__codelineno-17-59" name="__codelineno-17-59" href="#__codelineno-17-59"></a>        <span class="s2">&quot;last_name&quot;</span><span class="p">:</span> <span class="n">gen_last_name</span><span class="p">,</span>
-</span><span id="__span-17-60"><a id="__codelineno-17-60" name="__codelineno-17-60" href="#__codelineno-17-60"></a>        <span class="p">(</span><span class="s2">&quot;street_name&quot;</span><span class="p">,</span> <span class="s2">&quot;municipality&quot;</span><span class="p">,</span> <span class="s2">&quot;postcode&quot;</span><span class="p">):</span> <span class="n">gen_street_municip_postcode</span><span class="p">,</span>
-</span><span id="__span-17-61"><a id="__codelineno-17-61" name="__codelineno-17-61" href="#__codelineno-17-61"></a>        <span class="s2">&quot;date_of_birth&quot;</span><span class="p">:</span> <span class="n">gen_date_of_birth</span><span class="p">,</span>
-</span><span id="__span-17-62"><a id="__codelineno-17-62" name="__codelineno-17-62" href="#__codelineno-17-62"></a>    <span class="p">},</span> <span class="n">count</span><span class="p">)</span>
+</span><span id="__span-17-57"><a id="__codelineno-17-57" name="__codelineno-17-57" href="#__codelineno-17-57"></a>    <span class="k">return</span> <span class="n">generator</span><span class="o">.</span><span class="n">to_data_frame</span><span class="p">([</span>
+</span><span id="__span-17-58"><a id="__codelineno-17-58" name="__codelineno-17-58" href="#__codelineno-17-58"></a>        <span class="p">((</span><span class="s2">&quot;given_name&quot;</span><span class="p">,</span> <span class="s2">&quot;gender&quot;</span><span class="p">),</span> <span class="n">gen_given_name_gender</span><span class="p">),</span>
+</span><span id="__span-17-59"><a id="__codelineno-17-59" name="__codelineno-17-59" href="#__codelineno-17-59"></a>        <span class="p">(</span><span class="s2">&quot;last_name&quot;</span><span class="p">,</span> <span class="n">gen_last_name</span><span class="p">),</span>
+</span><span id="__span-17-60"><a id="__codelineno-17-60" name="__codelineno-17-60" href="#__codelineno-17-60"></a>        <span class="p">((</span><span class="s2">&quot;street_name&quot;</span><span class="p">,</span> <span class="s2">&quot;municipality&quot;</span><span class="p">,</span> <span class="s2">&quot;postcode&quot;</span><span class="p">),</span> <span class="n">gen_street_municip_postcode</span><span class="p">),</span>
+</span><span id="__span-17-61"><a id="__codelineno-17-61" name="__codelineno-17-61" href="#__codelineno-17-61"></a>        <span class="p">(</span><span class="s2">&quot;date_of_birth&quot;</span><span class="p">,</span> <span class="n">gen_date_of_birth</span><span class="p">)</span>
+</span><span id="__span-17-62"><a id="__codelineno-17-62" name="__codelineno-17-62" href="#__codelineno-17-62"></a>    <span class="p">],</span> <span class="n">count</span><span class="p">)</span>
 </span></code></pre></div>
 <ol>
 <li>Now you have a reusable generator with a configurable start and end date. As long as a function returns a generator,
@@ -1409,7 +1409,7 @@ Expand the <code>generate_data_frame</code> function by adding your own generato
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date">September 12, 2024</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date">October 23, 2024</span>
   </span>
 
     
