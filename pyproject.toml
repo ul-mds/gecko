@@ -38,6 +38,7 @@ gitpython = "^3.1.42"
 mkdocs-material = "^9.5.13"
 mkdocstrings = { extras = ["python"], version = "^0.24.1" }
 mkdocs-git-revision-date-localized-plugin = "^1.2.4"
+griffe = "<1.0.0"
 
 [build-system]
 requires = ["poetry-core"]
