@@ -674,10 +674,12 @@ def test_mutate_data_frame_multiple_weighted(rng):
         [
             (
                 "foo",
-                [
-                    (0.2, with_missing_value(strategy="all")),
-                    (0.8, with_missing_value("bar", strategy="all")),
-                ],
+                with_group(
+                    [
+                        (0.2, with_missing_value(strategy="all")),
+                        (0.8, with_missing_value("bar", strategy="all")),
+                    ]
+                ),
             )
         ],
     )
