@@ -151,11 +151,6 @@ def from_frequency_table(
     if isinstance(data_source, pd.DataFrame):
         df = data_source
     else:
-        if encoding is None or delimiter is None:
-            raise ValueError(
-                "when reading from a CSV file, `encoding` and `delimiter must be set`"
-            )
-
         header = isinstance(freq_column, str)
 
         # read csv file
@@ -238,11 +233,6 @@ def from_multicolumn_frequency_table(
     if isinstance(data_source, pd.DataFrame):
         df = data_source
     else:
-        if encoding is None or delimiter is None:
-            raise ValueError(
-                "when reading from a CSV file, `encoding` and `delimiter must be set`"
-            )
-
         header = isinstance(freq_column, str)
 
         df = pd.read_csv(
