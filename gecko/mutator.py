@@ -262,7 +262,7 @@ def with_cldr_keymap_file(
 
 
 def with_phonetic_replacement_table(
-    csv_file_path: _t.Union[PathLike, str],
+    data_source: _t.Union[PathLike, str, pd.DataFrame],
     source_column: _t.Union[int, str] = 0,
     target_column: _t.Union[int, str] = 1,
     flags_column: _t.Union[int, str] = 2,
@@ -283,7 +283,7 @@ def with_phonetic_replacement_table(
     has a header row.
 
     Args:
-        csv_file_path: path to CSV file containing phonetic replacement rules
+        data_source: path to CSV file or data frame containing phonetic replacement rules
         source_column: name or index of source column
         target_column: name or index of target column
         flags_column: name or index of flag column
@@ -326,18 +326,21 @@ def with_phonetic_replacement_table(
             "source, target and flags columns must be either a string or an integer"
         )
 
-    header = isinstance(flags_column, str)
+    if isinstance(data_source, pd.DataFrame):
+        df = data_source
+    else:
+        header = isinstance(flags_column, str)
 
-    # read csv file
-    df = pd.read_csv(
-        csv_file_path,
-        header=0 if header else None,
-        dtype=str,
-        usecols=[source_column, target_column, flags_column],
-        keep_default_na=False,
-        sep=delimiter,
-        encoding=encoding,
-    )
+        # read csv file
+        df = pd.read_csv(
+            data_source,
+            header=0 if header else None,
+            dtype=str,
+            usecols=[source_column, target_column, flags_column],
+            keep_default_na=False,
+            sep=delimiter,
+            encoding=encoding,
+        )
 
     # parse replacement rules
     phonetic_replacement_rules: list[_PhoneticReplacementRule] = []
@@ -473,7 +476,7 @@ def with_phonetic_replacement_table(
 
 
 def with_replacement_table(
-    csv_file_path: _t.Union[PathLike, str],
+    data_source: _t.Union[PathLike, str, pd.DataFrame],
     source_column: _t.Union[str, int] = 0,
     target_column: _t.Union[str, int] = 1,
     inline: bool = False,
@@ -494,7 +497,7 @@ def with_replacement_table(
     has a header row.
 
     Args:
-        csv_file_path: path to CSV file
+        data_source: path to CSV file or data frame containing replacement table
         source_column: name or index of the source column
         target_column: name or index of the target column
         inline: whether to perform replacements inline
@@ -519,17 +522,20 @@ def with_replacement_table(
             "source and target columns must be either a string or an integer"
         )
 
-    header = isinstance(target_column, str)
+    if isinstance(data_source, pd.DataFrame):
+        df = data_source
+    else:
+        header = isinstance(target_column, str)
 
-    df = pd.read_csv(
-        csv_file_path,
-        header=0 if header else None,
-        dtype=str,
-        usecols=[source_column, target_column],
-        keep_default_na=False,
-        sep=delimiter,
-        encoding=encoding,
-    )
+        df = pd.read_csv(
+            data_source,
+            header=0 if header else None,
+            dtype=str,
+            usecols=[source_column, target_column],
+            keep_default_na=False,
+            sep=delimiter,
+            encoding=encoding,
+        )
 
     if reverse:
         # flip columns and concat
@@ -1038,7 +1044,7 @@ def with_noop() -> Mutator:
 
 
 def with_categorical_values(
-    csv_file_path: _t.Union[PathLike, str],
+    data_source: _t.Union[PathLike, str, pd.DataFrame],
     value_column: _t.Union[str, int] = 0,
     encoding: str = "utf-8",
     delimiter: str = ",",
@@ -1052,7 +1058,7 @@ def with_categorical_values(
     has a header row.
 
     Args:
-        csv_file_path: path to CSV file
+        data_source: path to CSV file or data frame containing values
         value_column: name or index of value column
         encoding: character encoding of the CSV file
         delimiter: column delimiter of the CSV file
@@ -1067,18 +1073,21 @@ def with_categorical_values(
     if not isinstance(value_column, str) and not isinstance(value_column, int):
         raise ValueError("value column must be either a string or an integer")
 
-    header = isinstance(value_column, str)
+    if isinstance(data_source, pd.DataFrame):
+        df = data_source
+    else:
+        header = isinstance(value_column, str)
 
-    # read csv file
-    df = pd.read_csv(
-        csv_file_path,
-        header=0 if header else None,
-        dtype=str,
-        usecols=[value_column],
-        keep_default_na=False,
-        sep=delimiter,
-        encoding=encoding,
-    )
+        # read csv file
+        df = pd.read_csv(
+            data_source,
+            header=0 if header else None,
+            dtype=str,
+            usecols=[value_column],
+            keep_default_na=False,
+            sep=delimiter,
+            encoding=encoding,
+        )
 
     # fetch unique values
     unique_values = pd.Series(df[value_column].unique())
@@ -1421,7 +1430,7 @@ def _parse_regex_flags(regex_flags_val: str) -> int:
 
 
 def with_regex_replacement_table(
-    csv_file_path: _t.Union[PathLike, str],
+    data_source: _t.Union[PathLike, str, pd.DataFrame],
     pattern_column: str = "pattern",
     flags_column: _t.Optional[str] = None,
     encoding: str = "utf-8",
@@ -1436,7 +1445,7 @@ def with_regex_replacement_table(
     When using named capture groups, the columns must be named after the capture groups they are supposed to substitute.
 
     Args:
-        csv_file_path: path to CSV file
+        data_source: path to CSV file or data frame
         pattern_column: name of regex pattern column
         flags_column: name of regex flag column
         encoding: character encoding of the CSV file
@@ -1449,16 +1458,19 @@ def with_regex_replacement_table(
     if rng is None:
         rng = np.random.default_rng()
 
-    df = pd.read_csv(
-        csv_file_path,
-        encoding=encoding,
-        keep_default_na=False,
-        sep=delimiter,
-        dtype=str,
-    )
+    if isinstance(data_source, pd.DataFrame):
+        df = data_source
+    else:
+        df = pd.read_csv(
+            data_source,
+            encoding=encoding,
+            keep_default_na=False,
+            sep=delimiter,
+            dtype=str,
+        )
 
     if pattern_column not in df.columns:
-        raise ValueError(f"CSV file at `{csv_file_path}` doesn't have a pattern column")
+        raise ValueError(f"CSV file at `{data_source}` doesn't have a pattern column")
 
     regexes: list[re.Pattern] = []
     regex_repl_fns: list[_t.Callable[[re.Match], str]] = []

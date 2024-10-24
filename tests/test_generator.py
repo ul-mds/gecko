@@ -244,6 +244,20 @@ def test_from_frequency_table_nan(tmp_path, rng):
     assert pd.notna(srs).all()
 
 
+def test_from_frequency_table_df(rng):
+    df = pd.DataFrame.from_dict({"freq": [10, 5], "value": ["foo", "bar"]})
+
+    gen_freq_table = generator.from_frequency_table(
+        df, value_column="value", freq_column="freq", rng=rng
+    )
+
+    (srs,) = gen_freq_table(100)
+    assert pd.notna(srs).all()
+
+    value_counts = srs.value_counts()
+    assert value_counts["bar"] < value_counts["foo"]
+
+
 def test_from_multicolumn_frequency_table_nan(tmp_path, rng):
     freq_file_path = tmp_path / "freq.csv"
     freq_file_path.write_text('value1,value2,freq\n"","bar",1\n"foo","baz",1\n')
@@ -259,3 +273,30 @@ def test_from_multicolumn_frequency_table_nan(tmp_path, rng):
 
     assert pd.notna(srs1).all()
     assert pd.notna(srs2).all()
+
+
+def test_from_multicolumn_frequency_table_df(rng):
+    df = pd.DataFrame.from_dict(
+        {
+            "freq": [10, 5, 20, 10],
+            "value1": ["foo", "foo", "bar", "bar"],
+            "value2": ["baz", "bat", "baz", "bat"],
+        }
+    )
+
+    gen_freq_table = generator.from_multicolumn_frequency_table(
+        df,
+        value_columns=["value1", "value2"],
+        freq_column="freq",
+        rng=rng,
+    )
+
+    (srs_1, srs_2) = gen_freq_table(100)
+    assert pd.notna(srs_1).all()
+    assert pd.notna(srs_2).all()
+
+    counts_1 = srs_1.value_counts()
+    assert counts_1["bar"] > counts_1["foo"]
+
+    counts_2 = srs_2.value_counts()
+    assert counts_2["baz"] > counts_2["bat"]
