@@ -113,8 +113,8 @@ def from_frequency_table(
     data_source: _t.Union[str, PathLike[str], pd.DataFrame],
     value_column: _t.Union[str, int] = 0,
     freq_column: _t.Union[str, int] = 1,
-    encoding: _t.Optional[str] = "utf-8",
-    delimiter: _t.Optional[str] = ",",
+    encoding: str = "utf-8",
+    delimiter: str = ",",
     rng: _t.Optional[np.random.Generator] = None,
 ) -> Generator:
     """
@@ -181,10 +181,10 @@ def from_frequency_table(
 
 def from_multicolumn_frequency_table(
     data_source: _t.Union[str, PathLike[str], pd.DataFrame],
-    value_columns: _t.Optional[_t.Union[int, str, list[int], list[str]]] = 0,
-    freq_column: _t.Optional[_t.Union[int, str]] = 1,
-    encoding: _t.Optional[str] = "utf-8",
-    delimiter: _t.Optional[str] = ",",
+    value_columns: _t.Union[int, str, list[int], list[str]] = 0,
+    freq_column: _t.Union[int, str] = 1,
+    encoding: str = "utf-8",
+    delimiter: str = ",",
     rng: _t.Optional[np.random.Generator] = None,
 ) -> Generator:
     """
