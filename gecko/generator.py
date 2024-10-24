@@ -110,11 +110,11 @@ def from_normal_distribution(
 
 
 def from_frequency_table(
-    csv_file_path: _t.Union[str, PathLike[str]],
+    data_source: _t.Union[str, PathLike[str], pd.DataFrame],
     value_column: _t.Union[str, int] = 0,
     freq_column: _t.Union[str, int] = 1,
-    encoding: str = "utf-8",
-    delimiter: str = ",",
+    encoding: _t.Optional[str] = "utf-8",
+    delimiter: _t.Optional[str] = ",",
     rng: _t.Optional[np.random.Generator] = None,
 ) -> Generator:
     """
@@ -126,7 +126,7 @@ def from_frequency_table(
     has a header row.
 
     Args:
-        csv_file_path: path to CSV file
+        data_source: path to CSV file or data frame to use as frequency table
         value_column: name or index of the value column
         freq_column: name or index of the frequency column
         encoding: character encoding of the CSV file
@@ -143,23 +143,31 @@ def from_frequency_table(
         raise ValueError("value and frequency columns must be of the same type")
 
     # skip check for value_column bc they are both of the same type already
-    if not isinstance(freq_column, str) and not isinstance(freq_column, int):
+    if not isinstance(freq_column, (str, int)):
         raise ValueError(
             "value and frequency columns must be either a string or an integer"
         )
 
-    header = isinstance(freq_column, str)
+    if isinstance(data_source, pd.DataFrame):
+        df = data_source
+    else:
+        if encoding is None or delimiter is None:
+            raise ValueError(
+                "when reading from a CSV file, `encoding` and `delimiter must be set`"
+            )
 
-    # read csv file
-    df = pd.read_csv(
-        csv_file_path,
-        header=0 if header else None,  # header row index (`None` if not present)
-        usecols=[value_column, freq_column],
-        dtype={freq_column: "int", value_column: "str"},
-        keep_default_na=False,
-        sep=delimiter,
-        encoding=encoding,
-    )
+        header = isinstance(freq_column, str)
+
+        # read csv file
+        df = pd.read_csv(
+            data_source,
+            header=0 if header else None,  # header row index (`None` if not present)
+            usecols=[value_column, freq_column],
+            dtype={freq_column: "int", value_column: "str"},
+            keep_default_na=False,
+            sep=delimiter,
+            encoding=encoding,
+        )
 
     # convert absolute to relative frequencies
     srs_value = df[value_column]
@@ -172,11 +180,11 @@ def from_frequency_table(
 
 
 def from_multicolumn_frequency_table(
-    csv_file_path: _t.Union[str, PathLike[str]],
-    value_columns: _t.Union[int, str, list[int], list[str]] = 0,
-    freq_column: _t.Union[int, str] = 1,
-    encoding: str = "utf-8",
-    delimiter: str = ",",
+    data_source: _t.Union[str, PathLike[str], pd.DataFrame],
+    value_columns: _t.Optional[_t.Union[int, str, list[int], list[str]]] = 0,
+    freq_column: _t.Optional[_t.Union[int, str]] = 1,
+    encoding: _t.Optional[str] = "utf-8",
+    delimiter: _t.Optional[str] = ",",
     rng: _t.Optional[np.random.Generator] = None,
 ) -> Generator:
     """
@@ -188,7 +196,7 @@ def from_multicolumn_frequency_table(
     has a header row.
 
     Args:
-        csv_file_path: path to CSV file
+        data_source: path to CSV file or data frame to use as frequency table
         value_columns: names or indices of the value columns
         freq_column: name or index of the frequency column
         encoding: character encoding of the CSV file
@@ -227,20 +235,28 @@ def from_multicolumn_frequency_table(
                 "value and frequency column must be either a string or an integer"
             )
 
-    header = isinstance(freq_column, str)
+    if isinstance(data_source, pd.DataFrame):
+        df = data_source
+    else:
+        if encoding is None or delimiter is None:
+            raise ValueError(
+                "when reading from a CSV file, `encoding` and `delimiter must be set`"
+            )
 
-    df = pd.read_csv(
-        csv_file_path,
-        header=0 if header else None,
-        usecols=value_columns + [freq_column],
-        dtype={
-            freq_column: "int",
-            **{value_column: "str" for value_column in value_columns},
-        },
-        keep_default_na=False,
-        sep=delimiter,
-        encoding=encoding,
-    )
+        header = isinstance(freq_column, str)
+
+        df = pd.read_csv(
+            data_source,
+            header=0 if header else None,
+            usecols=value_columns + [freq_column],
+            dtype={
+                freq_column: "int",
+                **{value_column: "str" for value_column in value_columns},
+            },
+            keep_default_na=False,
+            sep=delimiter,
+            encoding=encoding,
+        )
 
     # sum of absolute frequencies
     freq_total = df[freq_column].sum()
