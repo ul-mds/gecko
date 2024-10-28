@@ -189,6 +189,30 @@ def test_with_categorical_values(rng):
     assert ~(srs == srs_mutated).all()
 
 
+def test_with_categorical_values_df(rng):
+    def _generate_gender_list():
+        nonlocal rng
+        return rng.choice(["m", "f", "d", "x"], size=1000)
+
+    df_categorical = pd.DataFrame.from_dict(
+        {"id": list(range(16)), "gender": list("mfdx") * 4}, dtype=str
+    )
+
+    mutate_categorical = with_categorical_values(
+        df_categorical,
+        value_column="gender",
+        rng=rng,
+    )
+
+    srs = pd.Series(_generate_gender_list())
+    (srs_mutated,) = mutate_categorical([srs])
+
+    # same length
+    assert len(srs) == len(srs_mutated)
+    # different items
+    assert ~(srs == srs_mutated).all()
+
+
 def test_with_edit(rng):
     def _new_string():
         nonlocal rng
@@ -230,6 +254,40 @@ def test_with_phonetic_replacement_table(rng):
     mutate_phonetic = with_phonetic_replacement_table(
         get_asset_path("homophone-de.csv"), rng=rng
     )
+    (srs_mutated_actual,) = mutate_phonetic([srs_original])
+
+    assert (srs_mutated_actual == srs_mutated_expected).all()
+
+
+def test_with_phonetic_replacement_table_df(rng):
+    df_phonetic_in_out = pd.read_csv(get_asset_path("phonetic-test.csv"))
+    srs_original = df_phonetic_in_out["original"]
+    srs_mutated_expected = df_phonetic_in_out["corrupt"]
+
+    df_phonetic_rules = pd.DataFrame.from_records(
+        [
+            ("sch", "sh", ""),
+            ("ie", "i", ""),
+            ("ß", "ss", ""),
+            ("fi", "vi", ""),
+            ("ee", "eh", ""),
+            ("dt", "tt", "$"),
+            ("ah", "a", ""),
+            ("ph", "f", ""),
+            ("co", "ko", ""),
+            ("fe", "ve", "^"),
+            ("ei", "ai", ""),
+            ("uhr", "ur", ""),
+            ("ur", "uhr", ""),
+            ("ied", "id", ""),
+            ("ca", "ka", ""),
+            ("ci", "zi", ""),
+            ("ka", "ca", ""),
+            ("zi", "ci", ""),
+        ]
+    )
+
+    mutate_phonetic = with_phonetic_replacement_table(df_phonetic_rules, rng=rng)
     (srs_mutated_actual,) = mutate_phonetic([srs_original])
 
     assert (srs_mutated_actual == srs_mutated_expected).all()
@@ -280,6 +338,39 @@ def test_with_replacement_table(rng):
     srs = pd.Series(["Jan", "Jann", "Juan"] * 10)
     mutate_replacement = with_replacement_table(
         get_asset_path("given-name.csv"),
+        source_column="source",
+        target_column="target",
+        rng=rng,
+    )
+    (srs_mutated,) = mutate_replacement([srs])
+
+    msk_juan = srs == "Juan"
+
+    assert len(srs) == len(srs_mutated)
+    assert (srs[~msk_juan] != srs_mutated[~msk_juan]).all()
+    assert (srs[msk_juan] == srs_mutated[msk_juan]).all()
+
+
+def test_with_replacement_table_df(rng):
+    srs = pd.Series(["Jan", "Jann", "Juan"] * 10)
+    df_replacement = pd.DataFrame.from_dict(
+        {
+            "source": ["Jan"] * 4 + ["Jann"] * 4,
+            "target": [
+                "Jann",
+                "Jean",
+                "John",
+                "Juan",
+                "Jean",
+                "Johann",
+                "John",
+                "Juan",
+            ],
+        }
+    )
+
+    mutate_replacement = with_replacement_table(
+        df_replacement,
         source_column="source",
         target_column="target",
         rng=rng,
@@ -978,6 +1069,23 @@ def test_with_replacement_table_nan(tmp_path, rng):
         source_column="source",
         target_column="target",
         inline=True,
+        rng=rng,
+    )
+
+    srs = pd.Series(["foo-bar", "foo-baz", "foo-bat"])
+    (srs_mut,) = mut_replace([srs])
+
+    assert (srs_mut == ["foobar", "foobaz", "foobat"]).all()
+
+
+def test_with_regex_replacement_table(rng):
+    df_regex = pd.DataFrame.from_dict(
+        {"pattern": [".*(?P<dash>-).*"], "dash": [""]}, dtype=str
+    )
+
+    mut_replace = with_regex_replacement_table(
+        df_regex,
+        pattern_column="pattern",
         rng=rng,
     )
 
