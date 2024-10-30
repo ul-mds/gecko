@@ -300,3 +300,18 @@ def test_from_multicolumn_frequency_table_df(rng):
 
     counts_2 = srs_2.value_counts()
     assert counts_2["baz"] > counts_2["bat"]
+
+
+def test_from_group_single_column_same_weight(rng):
+    gen_a = generator.from_function(lambda: "a")
+    gen_b = generator.from_function(lambda: "b")
+
+    gen_group = generator.from_group([gen_a, gen_b], rng=rng)
+    count = 100_000
+
+    (srs,) = gen_group(count)
+    assert len(srs) == count
+
+    # check that the generated values are roughly equally distributed (<0.01%)
+    df_value_counts = srs.value_counts()
+    assert abs(df_value_counts["a"] - df_value_counts["b"]) / count < 0.0001

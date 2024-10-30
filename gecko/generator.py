@@ -11,6 +11,7 @@ __all__ = [
     "from_frequency_table",
     "from_multicolumn_frequency_table",
     "from_datetime_range",
+    "from_group",
     "to_data_frame",
 ]
 
@@ -328,7 +329,7 @@ def _is_weighted_generator(x: object) -> _te.TypeGuard[_WeightedGenerator]:
 
 def from_group(
     generator_lst: _t.Union[list[Generator], list[_WeightedGenerator]],
-    rng: _t.Optional[np.random.Generator],
+    rng: _t.Optional[np.random.Generator] = None,
 ) -> Generator:
     if all(callable(g) for g in generator_lst):
         p_per_generator = 1 / len(generator_lst)
