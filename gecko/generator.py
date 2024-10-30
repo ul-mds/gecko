@@ -14,6 +14,7 @@ __all__ = [
     "to_data_frame",
 ]
 
+from multiprocessing.managers import Value
 from os import PathLike
 import typing as _t
 
@@ -311,6 +312,45 @@ def from_datetime_range(
         dt_srs = pd.Series(random_dts)
 
         return [dt_srs.dt.strftime(dt_format)]
+
+    return _generate
+
+
+_WeightedGenerator = tuple[_t.Union[int, float], Generator]
+
+
+def _is_weighted_generator(x: object) -> _te.TypeGuard[_WeightedGenerator]:
+    return (
+        isinstance(x, tuple)
+        and len(x) == 2
+        and isinstance(x[0], (float, int))
+        and callable(x[1])
+    )
+
+
+def from_group(
+    generator_lst: _t.Union[list[Generator], list[_WeightedGenerator]],
+    rng: _t.Optional[np.random.Generator],
+) -> Generator:
+    if all(callable(g) for g in generator_lst):
+        p_per_generator = 1 / len(generator_lst)
+        generator_lst = [(p_per_generator, g) for g in generator_lst]
+
+    if not all(_is_weighted_generator(g) for g in generator_lst):
+        raise ValueError(
+            "invalid argument, must be a list of generators or weighted generators"
+        )
+
+    p_sum = sum(g[0] for g in generator_lst)
+
+    if p_sum != 1:
+        raise ValueError(f"sum of weights must be 1, is {p_sum}")
+
+    if rng is None:
+        rng = np.random.default_rng()
+
+    def _generate(count: int) -> list[pd.Series]:
+        pass
 
     return _generate
 
