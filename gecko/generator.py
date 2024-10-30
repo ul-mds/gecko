@@ -14,13 +14,11 @@ __all__ = [
     "to_data_frame",
 ]
 
-from multiprocessing.managers import Value
-from os import PathLike
 import typing as _t
+from os import PathLike
 
 import numpy as np
 import pandas as pd
-
 import typing_extensions as _te
 
 _P = _te.ParamSpec("_P")
@@ -350,7 +348,51 @@ def from_group(
         rng = np.random.default_rng()
 
     def _generate(count: int) -> list[pd.Series]:
-        pass
+        p_vals = tuple(g[0] for g in generator_lst)  # get percentage for each generator
+        count_per_generator = tuple(
+            count * p for p in p_vals
+        )  # get absolute counts for each generator
+        count_sum = sum(count_per_generator)
+
+        if count_sum != count:
+            raise ValueError(
+                f"sum of values per generator does not equal amount of desired rows: expected {count}, "
+                f"is {count_sum} - this is likely due to rounding errors and cannot be compensated "
+                f"for automatically"
+            )
+
+        generated_series_lsts: list[list[pd.Series]] = []
+
+        for i, weighted_generator in enumerate(generator_lst):
+            _, gen = (
+                weighted_generator  # drop first argument since we won't be needing the p for this generator
+            )
+            generated_series_lsts.append(gen(count_per_generator[i]))
+
+        column_counts = set(len(srs_lst) for srs_lst in generated_series_lsts)
+
+        if len(column_counts) != 1:
+            raise ValueError(
+                f"generators returned different amounts of columns: "
+                f"got {', '.join(str(c) for c in column_counts)}"
+            )
+
+        column_count = column_counts.pop()  # get column count
+
+        srs_lst_out = [
+            pd.concat(
+                [srs_lst[i] for srs_lst in generated_series_lsts],
+                axis=0,
+                ignore_index=True,
+            )
+            for i in range(column_count)
+        ]
+
+        # reindex randomly
+        rand_idx = np.arange(0, count)
+        rng.shuffle(rand_idx)
+
+        return [srs.iloc[rand_idx].reset_index(drop=True) for srs in srs_lst_out]
 
     return _generate
 
