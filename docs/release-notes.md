@@ -1,5 +1,11 @@
 # Release notes
 
+## 0.5.1 (Oct 30, 2024)
+
+### Features
+
+- Add the option to use data frames for all generators and mutators that accept paths to CSV files
+
 ## 0.5.0 (Oct 23, 2024)
 
 ### Breaking changes
