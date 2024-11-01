@@ -11,15 +11,15 @@ __all__ = [
     "from_frequency_table",
     "from_multicolumn_frequency_table",
     "from_datetime_range",
+    "from_group",
     "to_data_frame",
 ]
 
-from os import PathLike
 import typing as _t
+from os import PathLike
 
 import numpy as np
 import pandas as pd
-
 import typing_extensions as _te
 
 _P = _te.ParamSpec("_P")
@@ -311,6 +311,135 @@ def from_datetime_range(
         dt_srs = pd.Series(random_dts)
 
         return [dt_srs.dt.strftime(dt_format)]
+
+    return _generate
+
+
+_WeightedGenerator = tuple[_t.Union[int, float], Generator]
+
+
+def _is_weighted_generator(x: object) -> _te.TypeGuard[_WeightedGenerator]:
+    return (
+        isinstance(x, tuple)
+        and len(x) == 2
+        and isinstance(x[0], (float, int))
+        and callable(x[1])
+    )
+
+
+def from_group(
+    generator_lst: _t.Union[list[Generator], list[_WeightedGenerator]],
+    max_rounding_adjustment: int = 0,
+    rng: _t.Optional[np.random.Generator] = None,
+) -> Generator:
+    """
+    Generate data from multiple generators.
+    Unless explicitly specified, all generators will generate data with equal probability.
+    Alternatively generators can be assigned fixed probabilities.
+    The output of each generator is then shuffled.
+    If all generators generate multiple series, then all series are shuffled the same.
+    Due to rounding errors, it may occur that the computed amount of rows to generate for each generator does
+    not exactly sum up to the desired amount of rows.
+    To compensate, this generator allows the specification of a maximum amount of rows that may be added or removed
+    to random generators to match the target amount of rows.
+
+    Args:
+        generator_lst: list of (weighted) generators
+        max_rounding_adjustment: maximum amount of rows to add or remove if the computed amount of total rows does not match the desired amount of rows
+        rng: random number generator to use
+
+    Returns:
+        function returning list of random data generated using supplied generators
+    """
+    if max_rounding_adjustment < 0:
+        raise ValueError(
+            f"rounding adjustment must not be negative, is {max_rounding_adjustment}"
+        )
+
+    if all(callable(g) for g in generator_lst):
+        p_per_generator = 1 / len(generator_lst)
+        generator_lst = [(p_per_generator, g) for g in generator_lst]
+
+    if not all(_is_weighted_generator(g) for g in generator_lst):
+        raise ValueError(
+            "invalid argument, must be a list of generators or weighted generators"
+        )
+
+    p_vals = tuple(g[0] for g in generator_lst)
+    p_sum = sum(p_vals)
+
+    try:
+        rng.choice(np.arange(0, len(generator_lst)), p=p_vals)
+    except ValueError:
+        raise ValueError(f"sum of weights must be 1, is {p_sum}")
+
+    if rng is None:
+        rng = np.random.default_rng()
+
+    def _generate(count: int) -> list[pd.Series]:
+        count_per_generator = list(
+            round(count * p) for p in p_vals
+        )  # get absolute counts for each generator
+        count_sum = sum(count_per_generator)
+
+        if count_sum != count:
+            if max_rounding_adjustment == 0:
+                raise ValueError(
+                    f"sum of values per generator does not equal amount of desired rows: expected {count}, "
+                    f"is {count_sum} - this is likely due to rounding errors and can be compensated for "
+                    "by adjusting `max_rounding_adjustment`"
+                )
+
+            count_diff = count - count_sum
+
+            if abs(count_diff) > max_rounding_adjustment:
+                raise ValueError(
+                    f"sum of values per generator does not equal amount of desired rows: expected {count}, "
+                    f"is {count_sum} - this is likely due to rounding errors, but `max_rounding_adjustment` "
+                    "is set so it cannot account for this difference"
+                )
+
+            # draw random indices to adjust
+            adjustment = np.sign(count_diff)
+            idx_to_adjust = rng.choice(
+                np.arange(0, len(count_per_generator)), size=abs(count_diff)
+            )
+
+            for idx in idx_to_adjust:
+                count_per_generator[idx] += adjustment
+
+        generated_series_lsts: list[list[pd.Series]] = []
+
+        for i, weighted_generator in enumerate(generator_lst):
+            _, gen = (
+                weighted_generator  # drop first argument since we won't be needing the p for this generator
+            )
+            generated_series_lsts.append(gen(count_per_generator[i]))
+
+        column_counts = set(len(srs_lst) for srs_lst in generated_series_lsts)
+
+        if len(column_counts) != 1:
+            raise ValueError(
+                f"generators returned different amounts of columns: "
+                f"got {', '.join(str(c) for c in sorted(column_counts))}"
+            )
+
+        column_count = column_counts.pop()  # get column count
+
+        srs_lst_out = [
+            pd.concat(
+                [srs_lst[i] for srs_lst in generated_series_lsts],
+                axis=0,
+                ignore_index=True,
+            )
+            for i in range(column_count)
+        ]
+
+        # reindex randomly
+        rand_idx = np.arange(0, count)
+        rng.shuffle(rand_idx)
+
+        return [srs.iloc[rand_idx].reset_index(drop=True) for srs in srs_lst_out]
 
     return _generate
 
