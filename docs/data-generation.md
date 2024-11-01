@@ -208,6 +208,44 @@ print(datetime_generator(100))
 # => [["26.02.1933 17:57:00", "17.12.1954 03:01:00", ..., "15.02.1950 01:29:00", "24.06.1922 23:46:00"]]
 ```
 
+### Grouped generators
+
+Multiple generators can be grouped into one single generator using `with_group`.
+For instance, this could be used for generating data collected from several data sources that cannot be modeled using 
+any of the other generators.
+
+```python
+import numpy as np
+
+from gecko import generator
+
+rng = np.random.default_rng(1234)
+
+dt_format = "%d.%m.%Y"
+dt_source_1_gen = generator.from_datetime_range(
+    start_dt="1920-01-01",
+    end_dt="1960-01-01",
+    dt_format=dt_format,
+    unit="D",
+    rng=rng
+)
+dt_source_2_gen = generator.from_datetime_range(
+    start_dt="1980-01-01",
+    end_dt="2010-01-01",
+    dt_format=dt_format,
+    unit="D",
+    rng=rng
+)
+
+group_gen = generator.from_group([
+    (.6, dt_source_1_gen),
+    (.4, dt_source_2_gen),
+], rng=rng)
+
+print(group_gen(100))
+# => [["20.10.1986", "13.12.1941", ..., "25.05.1946"]]
+```
+
 ### Custom generators
 
 Any function that returns a string can be converted into a generator.

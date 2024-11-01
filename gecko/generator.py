@@ -329,9 +329,28 @@ def _is_weighted_generator(x: object) -> _te.TypeGuard[_WeightedGenerator]:
 
 def from_group(
     generator_lst: _t.Union[list[Generator], list[_WeightedGenerator]],
-    rng: _t.Optional[np.random.Generator] = None,
     max_rounding_adjustment: int = 0,
+    rng: _t.Optional[np.random.Generator] = None,
 ) -> Generator:
+    """
+    Generate data from multiple generators.
+    Unless explicitly specified, all generators will generate data with equal probability.
+    Alternatively generators can be assigned fixed probabilities.
+    The output of each generator is then shuffled.
+    If all generators generate multiple series, then all series are shuffled the same.
+    Due to rounding errors, it may occur that the computed amount of rows to generate for each generator does
+    not exactly sum up to the desired amount of rows.
+    To compensate, this generator allows the specification of a maximum amount of rows that may be added or removed
+    to random generators to match the target amount of rows.
+
+    Args:
+        generator_lst: list of (weighted) generators
+        max_rounding_adjustment: maximum amount of rows to add or remove if the computed amount of total rows does not match the desired amount of rows
+        rng: random number generator to use
+
+    Returns:
+        function returning list of random data generated using supplied generators
+    """
     if max_rounding_adjustment < 0:
         raise ValueError(
             f"rounding adjustment must not be negative, is {max_rounding_adjustment}"
