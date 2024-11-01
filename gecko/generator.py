@@ -346,16 +346,18 @@ def from_group(
             "invalid argument, must be a list of generators or weighted generators"
         )
 
-    p_sum = sum(g[0] for g in generator_lst)
+    p_vals = tuple(g[0] for g in generator_lst)
+    p_sum = sum(p_vals)
 
-    if p_sum != 1:
+    try:
+        rng.choice(np.arange(0, len(generator_lst)), p=p_vals)
+    except ValueError:
         raise ValueError(f"sum of weights must be 1, is {p_sum}")
 
     if rng is None:
         rng = np.random.default_rng()
 
     def _generate(count: int) -> list[pd.Series]:
-        p_vals = tuple(g[0] for g in generator_lst)  # get percentage for each generator
         count_per_generator = list(
             round(count * p) for p in p_vals
         )  # get absolute counts for each generator
@@ -371,20 +373,21 @@ def from_group(
 
             count_diff = count - count_sum
 
-            if count - count_sum > max_rounding_adjustment:
+            if abs(count_diff) > max_rounding_adjustment:
                 raise ValueError(
                     f"sum of values per generator does not equal amount of desired rows: expected {count}, "
                     f"is {count_sum} - this is likely due to rounding errors, but `max_rounding_adjustment` "
                     "is set so it cannot account for this difference"
                 )
 
-            # draw random indices to increment
-            idx_to_increment = rng.choice(
-                np.arange(0, len(count_per_generator)), size=count_diff
+            # draw random indices to adjust
+            adjustment = np.sign(count_diff)
+            idx_to_adjust = rng.choice(
+                np.arange(0, len(count_per_generator)), size=abs(count_diff)
             )
 
-            for idx in idx_to_increment:
-                count_per_generator[idx] += 1
+            for idx in idx_to_adjust:
+                count_per_generator[idx] += adjustment
 
         generated_series_lsts: list[list[pd.Series]] = []
 

@@ -424,14 +424,63 @@ def test_from_group_raise_row_count(rng):
     )
 
 
-def test_from_group_rounding_adjustment(rng):
+def test_from_group_rounding_adjustment_positive(rng):
     gen_a = generator.from_function(lambda: "a")
     gen_b = generator.from_function(lambda: "b")
     gen_c = generator.from_function(lambda: "c")
 
+    # this would otherwise generate 99999 rows but with the rounding adjustment,
+    # all series should now have 100000
     gen = generator.from_group(
         [gen_a, gen_b, gen_c], rng=rng, max_rounding_adjustment=1
     )
 
     # this should work without error
-    _ = gen(100_000)
+    count = 100_000
+    srs_lst = gen(count)
+
+    assert all(len(srs) == count for srs in srs_lst)
+
+
+def test_from_group_weight_sanity_check(rng):
+    # having generators with p=1/7 for example will not exactly sum up to 1. this is where a
+    # sum(p_vals) == 1 check will fail, but numpy should account for that.
+    _ = generator.from_group(
+        [generator.from_function(lambda: "a")] * 7,
+        rng=rng,
+        max_rounding_adjustment=2,  # will generate 100002 values otherwise
+    )
+
+
+def test_from_group_rounding_adjustment_negative(rng):
+    # 7 generators with equal p will result in 100002 rows
+    gen = generator.from_group(
+        [generator.from_function(lambda: "a")] * 7,
+        rng=rng,
+        max_rounding_adjustment=2,
+    )
+
+    count = 100_000
+    srs_lst = gen(count)
+
+    assert all(len(srs) == count for srs in srs_lst)
+
+
+def test_from_group_raise_rounding_adjustment_not_high_enough(rng):
+    # similar tests as above but this time the rounding adjustment is set too low
+    gen = generator.from_group(
+        [generator.from_function(lambda: "a")] * 7,
+        rng=rng,
+        max_rounding_adjustment=1,
+    )
+
+    count = 100_000
+
+    with pytest.raises(ValueError) as e:
+        srs_lst = gen(count)
+
+    assert str(e.value) == (
+        "sum of values per generator does not equal amount of desired rows: expected 100000, "
+        "is 100002 - this is likely due to rounding errors, but `max_rounding_adjustment` "
+        "is set so it cannot account for this difference"
+    )
