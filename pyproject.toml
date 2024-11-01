@@ -40,6 +40,9 @@ mkdocstrings = { extras = ["python"], version = "^0.24.1" }
 mkdocs-git-revision-date-localized-plugin = "^1.2.4"
 griffe = "<1.0.0"
 
+[tool.ruff.lint.per-file-ignores]
+"**/tests/*" = ["E731"]
+
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
