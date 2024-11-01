@@ -477,7 +477,7 @@ def test_from_group_raise_rounding_adjustment_not_high_enough(rng):
     count = 100_000
 
     with pytest.raises(ValueError) as e:
-        srs_lst = gen(count)
+        _ = gen(count)
 
     assert str(e.value) == (
         "sum of values per generator does not equal amount of desired rows: expected 100000, "
