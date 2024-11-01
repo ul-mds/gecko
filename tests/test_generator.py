@@ -385,3 +385,53 @@ def test_from_group_multiple_column_different_weight(rng):
         abs(0.5 - abs((df_value_counts_2["a2"] - df_value_counts_2["b2"]) / count))
         < 0.0001
     )
+
+
+def test_from_group_raise_different_column_counts(rng):
+    gen_a = generator.from_function(lambda: "a")
+    gen_b = lambda c: [pd.Series(["b1"] * c), pd.Series(["b2"] * c)]
+
+    with pytest.raises(ValueError) as e:
+        gen = generator.from_group([gen_a, gen_b], rng=rng)
+        gen(100_000)
+
+    assert str(e.value) == "generators returned different amounts of columns: got 1, 2"
+
+
+def test_from_group_raise_p_sum_not_1(rng):
+    gen_a = generator.from_function(lambda: "a")
+    gen_b = generator.from_function(lambda: "b")
+
+    with pytest.raises(ValueError) as e:
+        generator.from_group([(0.2, gen_a), (0.3, gen_b)], rng=rng)
+
+    assert str(e.value) == "sum of weights must be 1, is 0.5"
+
+
+def test_from_group_raise_row_count(rng):
+    gen_a = generator.from_function(lambda: "a")
+    gen_b = generator.from_function(lambda: "b")
+    gen_c = generator.from_function(lambda: "c")
+
+    with pytest.raises(ValueError) as e:
+        gen = generator.from_group([gen_a, gen_b, gen_c], rng=rng)
+        gen(100_000)
+
+    assert str(e.value) == (
+        "sum of values per generator does not equal amount of desired rows: expected 100000, is 99999 - "
+        "this is likely due to rounding errors and can be compensated for by adjusting "
+        "`max_rounding_adjustment`"
+    )
+
+
+def test_from_group_rounding_adjustment(rng):
+    gen_a = generator.from_function(lambda: "a")
+    gen_b = generator.from_function(lambda: "b")
+    gen_c = generator.from_function(lambda: "c")
+
+    gen = generator.from_group(
+        [gen_a, gen_b, gen_c], rng=rng, max_rounding_adjustment=1
+    )
+
+    # this should work without error
+    _ = gen(100_000)

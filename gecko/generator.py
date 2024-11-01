@@ -330,7 +330,13 @@ def _is_weighted_generator(x: object) -> _te.TypeGuard[_WeightedGenerator]:
 def from_group(
     generator_lst: _t.Union[list[Generator], list[_WeightedGenerator]],
     rng: _t.Optional[np.random.Generator] = None,
+    max_rounding_adjustment: int = 0,
 ) -> Generator:
+    if max_rounding_adjustment < 0:
+        raise ValueError(
+            f"rounding adjustment must not be negative, is {max_rounding_adjustment}"
+        )
+
     if all(callable(g) for g in generator_lst):
         p_per_generator = 1 / len(generator_lst)
         generator_lst = [(p_per_generator, g) for g in generator_lst]
@@ -350,17 +356,35 @@ def from_group(
 
     def _generate(count: int) -> list[pd.Series]:
         p_vals = tuple(g[0] for g in generator_lst)  # get percentage for each generator
-        count_per_generator = tuple(
+        count_per_generator = list(
             round(count * p) for p in p_vals
         )  # get absolute counts for each generator
         count_sum = sum(count_per_generator)
 
         if count_sum != count:
-            raise ValueError(
-                f"sum of values per generator does not equal amount of desired rows: expected {count}, "
-                f"is {count_sum} - this is likely due to rounding errors and cannot be compensated "
-                f"for automatically"
+            if max_rounding_adjustment == 0:
+                raise ValueError(
+                    f"sum of values per generator does not equal amount of desired rows: expected {count}, "
+                    f"is {count_sum} - this is likely due to rounding errors and can be compensated for "
+                    "by adjusting `max_rounding_adjustment`"
+                )
+
+            count_diff = count - count_sum
+
+            if count - count_sum > max_rounding_adjustment:
+                raise ValueError(
+                    f"sum of values per generator does not equal amount of desired rows: expected {count}, "
+                    f"is {count_sum} - this is likely due to rounding errors, but `max_rounding_adjustment` "
+                    "is set so it cannot account for this difference"
+                )
+
+            # draw random indices to increment
+            idx_to_increment = rng.choice(
+                np.arange(0, len(count_per_generator)), size=count_diff
             )
+
+            for idx in idx_to_increment:
+                count_per_generator[idx] += 1
 
         generated_series_lsts: list[list[pd.Series]] = []
 
@@ -375,7 +399,7 @@ def from_group(
         if len(column_counts) != 1:
             raise ValueError(
                 f"generators returned different amounts of columns: "
-                f"got {', '.join(str(c) for c in column_counts)}"
+                f"got {', '.join(str(c) for c in sorted(column_counts))}"
             )
 
         column_count = column_counts.pop()  # get column count
