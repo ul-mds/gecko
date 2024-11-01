@@ -315,3 +315,42 @@ def test_from_group_single_column_same_weight(rng):
     # check that the generated values are roughly equally distributed (<0.01%)
     df_value_counts = srs.value_counts()
     assert abs(df_value_counts["a"] - df_value_counts["b"]) / count < 0.0001
+
+
+def test_from_group_single_column_different_weight(rng):
+    gen_a = generator.from_function(lambda: "a")
+    gen_b = generator.from_function(lambda: "b")
+
+    count = 100_000
+    gen_group = generator.from_group(
+        [
+            (0.25, gen_a),
+            (0.75, gen_b),
+        ],
+        rng=rng,
+    )
+
+    (srs,) = gen_group(count)
+    assert len(srs) == count
+
+    # check that the difference in relative frequency (50%) is present
+    df_value_counts = srs.value_counts()
+    assert (
+        abs(0.5 - abs((df_value_counts["a"] - df_value_counts["b"]) / count)) < 0.0001
+    )
+
+
+def test_from_group_multiple_column_same_weight(rng):
+    gen_a = lambda c: [pd.Series(["a1"] * c), pd.Series(["a2"] * c)]
+    gen_b = lambda c: [pd.Series(["b1"] * c), pd.Series(["b2"] * c)]
+
+    count = 100_000
+    gen_group = generator.from_group([gen_a, gen_b], rng=rng)
+
+    (srs_1, srs_2) = gen_group(count)
+
+    df_value_counts_1 = srs_1.value_counts()
+    assert abs(df_value_counts_1["a1"] - df_value_counts_1["b1"]) / count < 0.0001
+
+    df_value_counts_2 = srs_2.value_counts()
+    assert abs(df_value_counts_2["a2"] - df_value_counts_2["b2"]) / count < 0.0001

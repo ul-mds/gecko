@@ -351,7 +351,7 @@ def from_group(
     def _generate(count: int) -> list[pd.Series]:
         p_vals = tuple(g[0] for g in generator_lst)  # get percentage for each generator
         count_per_generator = tuple(
-            count * p for p in p_vals
+            round(count * p) for p in p_vals
         )  # get absolute counts for each generator
         count_sum = sum(count_per_generator)
 
