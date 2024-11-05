@@ -1,5 +1,15 @@
 # Release notes
 
+## 0.5.2 (Nov 5, 2024)
+
+### Features
+
+- Add `generator.with_group` for grouping multiple (weighted) generators together
+
+### Internal
+
+- Remove automated benchmarks
+
 ## 0.5.1 (Oct 30, 2024)
 
 ### Features
