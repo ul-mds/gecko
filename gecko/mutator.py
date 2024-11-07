@@ -26,11 +26,13 @@ __all__ = [
     "with_repeat",
     "with_group",
     "mutate_data_frame",
+    "PNotMetWarning",
 ]
 
 import itertools
 import re
 import string
+import warnings
 from dataclasses import dataclass, field
 from os import PathLike
 from pathlib import Path
@@ -44,7 +46,7 @@ import typing_extensions as _te
 from gecko.cldr import decode_iso_kb_pos, unescape_kb_char, get_neighbor_kb_pos_for
 from gecko.generator import Generator
 
-Mutator = _t.Callable[[list[pd.Series]], list[pd.Series]]
+Mutator = _t.Callable[[list[pd.Series], _t.Optional[float]], list[pd.Series]]
 _EditOp = _t.Literal["ins", "del", "sub", "trs"]
 
 
@@ -66,6 +68,10 @@ class KeyMutation:
 
 
 P = _te.ParamSpec("P")
+
+
+class PNotMetWarning(UserWarning):
+    pass
 
 
 def with_function(
@@ -204,11 +210,108 @@ def with_cldr_keymap_file(
             if len(kb_char_candidates) > 0:
                 kb_char_to_candidates_dict[kb_char] = "".join(
                     sorted(
-                        kb_char_candidates
+                        list(kb_char_candidates)
                     )  # needs to be sorted to ensure reproducibility
                 )
 
-    def _mutate_series(srs: pd.Series) -> pd.Series:
+    def _mutate_series_3(srs: pd.Series, p: float) -> pd.Series:
+        _check_probability_in_bounds(p)
+
+        srs_out = srs.copy()
+        srs_len = len(srs_out)
+
+        # make sure it aligns with the original index
+        srs_candidate_chars = pd.Series([""] * srs_len, index=srs_out.index)
+
+        for candidate_char in kb_char_to_candidates_dict.keys():
+            # check for rows where candidate charis president
+            srs_contains_candidate_char = srs.str.contains(candidate_char, regex=False)
+            # add it as a candidate char to all applicable rows
+            srs_candidate_chars.loc[srs_contains_candidate_char] += candidate_char
+
+        # create a mask that selects all rows affected by mutation
+        # first drop all rows which have no candidate chars
+        srs_selected_for_mutation = srs_candidate_chars != ""
+
+        # now check if the desired p value can be reached, warn if not
+        p_candidates = srs_selected_for_mutation.sum() / srs_len
+
+        if p_candidates < p:
+            warnings.warn(
+                f"desired probability of {p} cannot be met since percentage of rows subject to mutation is {p_candidates}",
+                PNotMetWarning,
+            )
+
+        # select p for all eligible rows, avoid values > 1
+        p_subset_select = min(1.0, p / p_candidates)
+        # draw random rows to actually perform mutation on
+        arr_rng_vals = rng.random(size=srs_selected_for_mutation.sum())
+        # update the mutation mask (it may happen that rows that were True might flip to False)
+        srs_selected_for_mutation.loc[srs_selected_for_mutation] = (
+            arr_rng_vals < p_subset_select
+        )
+        # this is now the amount of all rows that will definitely be mutated
+        rows_to_mutate_count = srs_selected_for_mutation.sum()
+
+        # now srs_selected_for_mutation accurately represents the rows to perform mutation on, satisfying p
+        # and rows that could actually be affected
+        srs_candidates_selected = pd.Series([""] * srs_len, index=srs.index)
+
+        # draw random candidate chars
+        arr_rng_vals = rng.random(size=rows_to_mutate_count)
+        arr_rng_idxs = np.floor(
+            srs_candidate_chars.loc[srs_selected_for_mutation].str.len() * arr_rng_vals
+        ).astype(int)
+
+        # iterate over all unique indices and select the char at the i-th position
+        for idx in arr_rng_idxs.unique():
+            idx_mask = arr_rng_idxs == idx
+            srs_this_idx = srs_candidate_chars.loc[srs_selected_for_mutation].loc[
+                idx_mask
+            ]
+            srs_candidates_selected.update(srs_this_idx.str[idx])
+
+        # now do the same process for replacement chars
+        srs_replacements_selected = pd.Series([""] * srs_len, index=srs.index)
+
+        for candidate_char in srs_candidates_selected.loc[
+            srs_selected_for_mutation
+        ].unique():
+            srs_this_candidate_char = srs_candidates_selected == candidate_char
+            # count all affected rows
+            candidate_char_count = srs_this_candidate_char.sum()
+            # fetch replacement chars
+            replacement_chars = kb_char_to_candidates_dict[candidate_char]
+            # draw random replacement chars for each row
+            arr_rng_repl = rng.choice(
+                list(replacement_chars), size=candidate_char_count
+            )
+            # and update the replacement char series
+            srs_replacements_selected.loc[srs_this_candidate_char] = arr_rng_repl
+
+        # and now we do the actual replacements
+        for candidate_char in srs_candidates_selected.loc[
+            srs_selected_for_mutation
+        ].unique():
+            # filter by global mask and rows that contain this candidate char
+            srs_this_replacement_char = srs_selected_for_mutation & (
+                srs_candidates_selected == candidate_char
+            )
+
+            for replacement_char in srs_replacements_selected.loc[
+                srs_this_replacement_char
+            ].unique():
+                srs_out.update(
+                    srs_out.loc[srs_this_replacement_char].str.replace(
+                        candidate_char, replacement_char, n=1
+                    )
+                )
+
+        return srs_out
+
+    def _mutate_series(srs: pd.Series, p: float) -> pd.Series:
+        _check_probability_in_bounds(p)
+
         srs_out = srs.copy()
         str_count = len(srs_out)
 
@@ -255,8 +358,8 @@ def with_cldr_keymap_file(
 
         return srs_out
 
-    def _mutate(srs_lst: list[pd.Series]) -> list[pd.Series]:
-        return [_mutate_series(srs) for srs in srs_lst]
+    def _mutate(srs_lst: list[pd.Series], p: float) -> list[pd.Series]:
+        return [_mutate_series_3(srs, p) for srs in srs_lst]
 
     return _mutate
 
