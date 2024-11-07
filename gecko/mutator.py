@@ -214,7 +214,7 @@ def with_cldr_keymap_file(
                     )  # needs to be sorted to ensure reproducibility
                 )
 
-    def _mutate_series_3(srs: pd.Series, p: float) -> pd.Series:
+    def _mutate_series(srs: pd.Series, p: float) -> pd.Series:
         _check_probability_in_bounds(p)
 
         srs_out = srs.copy()
@@ -309,57 +309,8 @@ def with_cldr_keymap_file(
 
         return srs_out
 
-    def _mutate_series(srs: pd.Series, p: float) -> pd.Series:
-        _check_probability_in_bounds(p)
-
-        srs_out = srs.copy()
-        str_count = len(srs_out)
-
-        # string length series
-        srs_str_out_len = srs_out.str.len()
-        # random indices
-        arr_rng_vals = rng.random(size=str_count)
-        arr_rng_typo_indices = np.floor(srs_str_out_len * arr_rng_vals).astype(int)
-
-        # create a new series containing the chars that have been randomly selected for replacement
-        srs_typo_chars = pd.Series(dtype=str, index=srs_out.index)
-        arr_uniq_idx = arr_rng_typo_indices.unique()
-
-        for i in arr_uniq_idx:
-            idx_mask = arr_rng_typo_indices == i
-            srs_typo_chars[idx_mask] = srs_out[idx_mask].str[i]
-
-        # create a new series that will track the replacement chars for the selected chars
-        srs_repl_chars = pd.Series(dtype=str, index=srs_out.index)
-        arr_uniq_chars = srs_typo_chars.unique()
-
-        for char in arr_uniq_chars:
-            # check if there are any possible replacements for this char
-            if char not in kb_char_to_candidates_dict:
-                continue
-
-            # get candidate strings
-            char_candidates = kb_char_to_candidates_dict[char]
-            # count the rows that have this character selected
-            char_count = (srs_typo_chars == char).sum()
-            # draw replacements for the current character
-            rand_chars = rng.choice(list(char_candidates), size=char_count)
-            srs_repl_chars[srs_typo_chars == char] = rand_chars
-
-        for i in arr_uniq_idx:
-            # there is a possibility that a char might not have a replacement, so pd.notna() will have to
-            # act as an extra filter to not modify strings that have no replacement
-            idx_mask = (arr_rng_typo_indices == i) & pd.notna(srs_repl_chars)
-            srs_out[idx_mask] = (
-                srs_out[idx_mask].str[:i]
-                + srs_repl_chars[idx_mask]
-                + srs_out[idx_mask].str[i + 1 :]
-            )
-
-        return srs_out
-
     def _mutate(srs_lst: list[pd.Series], p: float) -> list[pd.Series]:
-        return [_mutate_series_3(srs, p) for srs in srs_lst]
+        return [_mutate_series(srs, p) for srs in srs_lst]
 
     return _mutate
 
