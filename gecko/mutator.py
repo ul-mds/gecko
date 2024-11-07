@@ -74,6 +74,14 @@ class PNotMetWarning(UserWarning):
     pass
 
 
+def _warn_p(fn_name: str, p_expected: float, p_actual: float):
+    warnings.warn(
+        f"{fn_name}: desired probability of {p_expected} cannot be met since percentage of rows "
+        f"that could possibly be mutated is {p_actual}",
+        PNotMetWarning,
+    )
+
+
 def with_function(
     func: _t.Callable[_te.Concatenate[str, P], str],
     *args: object,
@@ -237,10 +245,7 @@ def with_cldr_keymap_file(
         p_candidates = srs_selected_for_mutation.sum() / srs_len
 
         if p_candidates < p:
-            warnings.warn(
-                f"desired probability of {p} cannot be met since percentage of rows subject to mutation is {p_candidates}",
-                PNotMetWarning,
-            )
+            _warn_p("with_cldr_keymap_file", p, p_candidates)
 
         # select p for all eligible rows, avoid values > 1
         p_subset_select = min(1.0, p / p_candidates)
@@ -670,102 +675,48 @@ def with_replacement_table(
     return _mutate
 
 
-def _mutate_all_from_value(value: str) -> Mutator:
-    """
-    Mutate data by replacing all of its values with the same "missing" value.
-
-    Args:
-        value: "missing" value to replace entries with
-
-    Returns:
-        function returning list where all strings will be replaced with the "missing" value
-    """
-
-    def _mutate_series(srs: pd.Series) -> pd.Series:
-        return pd.Series(
-            data=[value] * len(srs),
-            index=srs.index,
-            dtype=str,
-        )
-
-    def _mutate(srs_lst: list[pd.Series]) -> list[pd.Series]:
-        return [_mutate_series(srs) for srs in srs_lst]
-
-    return _mutate
-
-
-def _mutate_only_empty_from_value(value: str) -> Mutator:
-    """
-    Mutate data by replacing all of its empty values (string length = 0) with the same "missing" value.
-
-    Args:
-        value: "missing" value to replace empty entries with
-
-    Returns:
-        function returning list where all empty strings will be replaced with the "missing" value
-    """
-
-    def _mutate_series(srs: pd.Series) -> pd.Series:
-        srs_out = srs.copy()
-        srs_out[srs_out == ""] = value
-        return srs_out
-
-    def _mutate(srs_lst: list[pd.Series]) -> list[pd.Series]:
-        return [_mutate_series(srs) for srs in srs_lst]
-
-    return _mutate
-
-
-def _mutate_only_blank_from_value(value: str) -> Mutator:
-    """
-    Mutate data by replacing all of its blank values (empty strings after trimming whitespaces) with the same
-    "missing" value.
-
-    Args:
-        value: "missing" value to replace blank entries with
-
-    Returns:
-        function returning list where all blank strings will be replaced with the "missing" value
-    """
-
-    def _mutate_series(srs: pd.Series) -> pd.Series:
-        srs_out = srs.copy()
-        srs_out[srs_out.str.strip() == ""] = value
-        return srs_out
-
-    def _mutate(srs_lst: list[pd.Series]) -> list[pd.Series]:
-        return [_mutate_series(srs) for srs in srs_lst]
-
-    return _mutate
-
-
 def with_missing_value(
     value: str = "",
-    strategy: _t.Literal["all", "blank", "empty"] = "blank",
+    rng: _t.Optional[np.random.Generator] = None,
 ) -> Mutator:
     """
     Mutate data by replacing select entries with a representative "missing" value.
-    Strings are selected for replacement depending on the chosen strategy.
-    If `all`, then all strings in the series will be replaced with the missing value.
-    If `blank`, then all strings that are either empty or consist of whitespace characters only will be replaced with
-    the missing value.
-    If `empty`, then all strings that are empty will be replaced with the missing value.
 
     Args:
         value: "missing" value to replace select entries with
-        strategy: `all`, `blank` or `empty` to select values to replace
+        rng: random number generator to use
 
     Returns:
         function returning list where select strings will be replaced with the "missing" value
     """
-    if strategy == "all":
-        return _mutate_all_from_value(value)
-    elif strategy == "blank":
-        return _mutate_only_blank_from_value(value)
-    elif strategy == "empty":
-        return _mutate_only_empty_from_value(value)
-    else:
-        raise ValueError(f"unrecognized replacement strategy: {strategy}")
+    if rng is None:
+        rng = np.random.default_rng()
+
+    def _mutate_series(srs: pd.Series, p: float) -> pd.Series:
+        srs_out = srs.copy(deep=True)
+
+        srs_rows_to_mutate = srs != value
+        possible_rows_to_mutate = srs_rows_to_mutate.sum()
+        p_actual = possible_rows_to_mutate / len(srs)
+
+        if p_actual < p:
+            _warn_p("with_missing_value", p, p_actual)
+
+        # select subset of rows to mutate
+        p_subset_select = min(1.0, p / p_actual)
+        arr_rng_vals = rng.random(size=possible_rows_to_mutate)
+        srs_rows_to_mutate.loc[srs_rows_to_mutate] = arr_rng_vals < p_subset_select
+
+        # update rows to mutate
+        srs_out.loc[srs_rows_to_mutate] = value
+
+        return srs_out
+
+    def _mutate(srs_lst: list[pd.Series], p: float = 1.0) -> list[pd.Series]:
+        _check_probability_in_bounds(p)
+        return [_mutate_series(srs, p) for srs in srs_lst]
+
+    return _mutate
 
 
 def with_insert(
