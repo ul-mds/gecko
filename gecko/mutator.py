@@ -13,7 +13,6 @@ __all__ = [
     "with_delete",
     "with_transpose",
     "with_substitute",
-    "with_edit",
     "with_noop",
     "with_categorical_values",
     "with_function",
@@ -974,91 +973,6 @@ def with_substitute(
                 + srs_rand_chars[srs_idx_mask]
                 + srs_masked.str[i + 1 :]
             )
-
-        return srs_out
-
-    def _mutate(srs_lst: list[pd.Series]) -> list[pd.Series]:
-        return [_mutate_series(srs) for srs in srs_lst]
-
-    return _mutate
-
-
-def with_edit(
-    p_insert: float = 0.25,
-    p_delete: float = 0.25,
-    p_substitute: float = 0.25,
-    p_transpose: float = 0.25,
-    charset: str = string.ascii_letters,
-    rng: _t.Optional[np.random.Generator] = None,
-) -> Mutator:
-    """
-    Mutate data by randomly applying insertion, deletion, substitution or transposition of characters.
-    This mutator works as a wrapper around the respective mutators for the mentioned individual operations.
-    The charset of allowed characters is passed on to the insertion and substitution mutators.
-    Each mutator receives its own isolated RNG which is derived from the RNG passed into this function.
-    The probabilities of each mutator must sum up to 1.
-
-    Args:
-        p_insert: probability of random character insertion on a string
-        p_delete: probability of random character deletion on a string
-        p_substitute: probability of random character substitution on a string
-        p_transpose: probability of random character transposition on a string
-        charset: string to sample random characters from for insertion and substitution
-        rng: random number generator to use
-
-    Returns:
-        function returning list with strings mutated by random edit operations
-    """
-    if rng is None:
-        rng = np.random.default_rng()
-
-    edit_ops: list[_EditOp] = ["ins", "del", "sub", "trs"]
-    edit_ops_prob = [p_insert, p_delete, p_substitute, p_transpose]
-
-    for p in edit_ops_prob:
-        _check_probability_in_bounds(p)
-
-    try:
-        # sanity check
-        rng.choice(edit_ops, p=edit_ops_prob)
-    except ValueError:
-        raise ValueError("probabilities must sum up to 1.0")
-
-    # equip every mutator with its own independent rng derived from this mutator's rng
-    rng_ins, rng_del, rng_sub, rng_trs = rng.spawn(4)
-    mut_ins, mut_del, mut_sub, mut_trs = (
-        with_insert(charset, rng_ins),
-        with_delete(rng_del),
-        with_substitute(charset, rng_sub),
-        with_transpose(rng_trs),
-    )
-
-    def _mutate_series(srs: pd.Series) -> pd.Series:
-        srs_out = srs.copy()
-        str_in_edit_ops = pd.Series(
-            rng.choice(edit_ops, size=len(srs_out), p=edit_ops_prob),
-            index=srs_out.index,
-        )
-
-        msk_ins = str_in_edit_ops == "ins"
-
-        if msk_ins.sum() != 0:
-            (srs_out[msk_ins],) = mut_ins([srs_out[msk_ins]])
-
-        msk_del = str_in_edit_ops == "del"
-
-        if msk_del.sum() != 0:
-            (srs_out[msk_del],) = mut_del([srs_out[msk_del]])
-
-        msk_sub = str_in_edit_ops == "sub"
-
-        if msk_sub.sum() != 0:
-            (srs_out[msk_sub],) = mut_sub([srs_out[msk_sub]])
-
-        msk_trs = str_in_edit_ops == "trs"
-
-        if msk_trs.sum() != 0:
-            (srs_out[msk_trs],) = mut_trs([srs_out[msk_trs]])
 
         return srs_out
 

@@ -14,7 +14,6 @@ from gecko.mutator import (
     with_missing_value,
     with_substitute,
     with_categorical_values,
-    with_edit,
     with_cldr_keymap_file,
     with_phonetic_replacement_table,
     with_replacement_table,
@@ -213,39 +212,6 @@ def test_with_categorical_values_df(rng):
     assert len(srs) == len(srs_mutated)
     # different items
     assert ~(srs == srs_mutated).all()
-
-
-def test_with_edit(rng):
-    def _new_string():
-        nonlocal rng
-        chars = list(string.ascii_letters)
-        rng.shuffle(chars)
-        return "".join(chars[:10])
-
-    def _generate_strings():
-        nonlocal rng
-        return [_new_string() for _ in range(1000)]
-
-    srs = pd.Series(_generate_strings())
-    mutate_edit = with_edit(
-        p_insert=0.25,
-        p_delete=0.25,
-        p_substitute=0.25,
-        p_transpose=0.25,
-        charset=string.ascii_letters,
-        rng=rng,
-    )
-    (srs_mutated,) = mutate_edit([srs])
-
-    assert len(srs) == len(srs_mutated)
-    assert ~(srs == srs_mutated).all()
-
-
-def test_with_edit_incorrect_probabilities():
-    with pytest.raises(ValueError) as e:
-        with_edit(p_insert=0.3, p_delete=0.3, p_substitute=0.3, p_transpose=0.3)
-
-    assert str(e.value) == "probabilities must sum up to 1.0"
 
 
 def test_with_phonetic_replacement_table(rng):
@@ -869,7 +835,6 @@ __dummy_rng = np.random.default_rng(5432)
         (1, with_delete(rng=__dummy_rng)),
         (1, with_transpose(rng=__dummy_rng)),
         (1, with_substitute(rng=__dummy_rng)),
-        (1, with_edit(rng=__dummy_rng)),
         (
             1,
             with_categorical_values(
@@ -967,7 +932,6 @@ def test_mutate_data_frame_no_modify(rng):
         (1, with_delete(rng=__dummy_rng)),
         (1, with_transpose(rng=__dummy_rng)),
         (1, with_substitute(rng=__dummy_rng)),
-        (1, with_edit(rng=__dummy_rng)),
         (
             1,
             with_categorical_values(
