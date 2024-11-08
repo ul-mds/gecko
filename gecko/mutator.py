@@ -1042,7 +1042,7 @@ def with_noop() -> Mutator:
         function returning list of strings as-is
     """
 
-    def _mutate(srs_lst: list[pd.Series]) -> list[pd.Series]:
+    def _mutate(srs_lst: list[pd.Series], _: float) -> list[pd.Series]:
         return srs_lst
 
     return _mutate
