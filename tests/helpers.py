@@ -41,7 +41,8 @@ def write_temporary_csv_file(
 def random_strings(
     n_strings: int = 1_000,
     str_len: int = 20,
-    charset=string.ascii_letters,
+    charset: str = string.ascii_letters,
+    unique: bool = False,
     rng: _t.Optional[np.random.Generator] = None,
 ):
     if rng is None:
@@ -50,7 +51,22 @@ def random_strings(
 
     charset_lst = list(charset)
 
+    if unique:
+        if str_len > len(charset_lst):
+            raise ValueError(
+                "to be able to draw unique random characters, the list of available characters must be "
+                "greater than or equal to the desired string length"
+            )
+
+    def _random_unique_string():
+        charset_lst_cpy = charset_lst[:]
+        rng.shuffle(charset_lst_cpy)
+        return "".join(charset_lst_cpy[:str_len])
+
     def _random_string():
         return "".join(rng.choice(charset_lst, size=str_len))
 
-    return [_random_string() for _ in range(n_strings)]
+    if unique:
+        return [_random_unique_string() for _ in range(n_strings)]
+    else:
+        return [_random_string() for _ in range(n_strings)]

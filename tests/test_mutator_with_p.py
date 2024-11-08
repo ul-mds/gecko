@@ -10,6 +10,7 @@ from gecko.mutator import (
     with_replacement_table,
     with_delete,
     with_insert,
+    with_transpose,
 )
 from tests.helpers import get_asset_path, random_strings, write_temporary_csv_file
 
@@ -253,3 +254,35 @@ def test_with_insert_charset(rng):
     # test that all rows are no longer only lowercase
     assert srs_mut.str.lower().all()
     assert (~srs_mut.str.islower()).all()
+
+
+def test_with_transpose(rng):
+    # create unique strings, otherwise the same characters might be swapped
+    srs = pd.Series(random_strings(unique=True, rng=rng))
+    mut_transpose = with_transpose(rng=rng)
+
+    (srs_mut,) = mut_transpose([srs], 1)
+
+    assert len(srs) == len(srs_mut)
+    assert (srs != srs_mut).all()
+    assert (srs.str.len() == srs_mut.str.len()).all()
+
+
+def test_with_transpose_warn_p(rng):
+    srs = pd.Series(random_strings(n_strings=50, unique=True, rng=rng) + ["a"] * 50)
+    mut_transpose = with_transpose(rng=rng)
+
+    with pytest.warns(PNotMetWarning) as record:
+        (srs_mut,) = mut_transpose([srs], 0.8)
+
+    assert len(record) == 1
+    assert (
+        record[0]
+        .message.args[0]
+        .startswith("with_transpose: desired probability of 0.8 cannot be met")
+    )
+
+    assert len(srs) == len(srs_mut)
+    assert (srs.str.len() == srs_mut.str.len()).all()
+    assert (srs.iloc[:50] != srs_mut.iloc[:50]).all()
+    assert (srs.iloc[50:] == srs_mut.iloc[50:]).all()
