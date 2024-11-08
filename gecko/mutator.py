@@ -837,23 +837,15 @@ def with_delete(rng: _t.Optional[np.random.Generator] = None) -> Mutator:
         srs_rows_to_mutate.loc[srs_rows_to_mutate] = arr_rng_vals < p_subset_select
 
         # generate random indices
-        srs_del_idx = pd.Series(
-            np.full(len(srs), fill_value=np.nan), dtype=pd.Int16Dtype(), index=srs.index
-        )
         arr_rng_vals = rng.random(size=possible_rows_to_mutate)
         arr_rng_idx = np.floor(
             srs.loc[srs_rows_to_mutate].str.len() * arr_rng_vals
         ).astype(int)
 
-        # update series of indices
-        srs_del_idx.loc[srs_rows_to_mutate] = arr_rng_idx
-
         # perform the character deletion (don't need to dropna() here)
-        for del_idx in srs_del_idx.loc[srs_rows_to_mutate].unique():
-            srs_this_idx = srs_del_idx == del_idx
-            srs_out.update(
-                srs.loc[srs_this_idx].str.slice_replace(del_idx, del_idx + 1, "")
-            )
+        for del_idx in arr_rng_idx.unique():
+            srs_this_idx = srs.loc[srs_rows_to_mutate].loc[arr_rng_idx == del_idx]
+            srs_out.update(srs_this_idx.str.slice_replace(del_idx, del_idx + 1, ""))
 
         return srs_out
 
