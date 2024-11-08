@@ -33,8 +33,8 @@ def test_with_capacity_raise_capacity_too_low():
 @pytest.mark.parametrize(
     "rows,capacity,mask,index",
     [
-        (100, 64, pd.Series([True] * 20 + [False] * 80), 64),
-        (100, 128, pd.Series([False] * 20 + [True] * 60 + [False] * 20), 65),
+        (100, 64, pd.Series([True] * 20 + [False] * 80), 63),
+        (100, 128, pd.Series([False] * 20 + [True] * 60 + [False] * 20), 64),
     ],
 )
 def test_set_test_index(rows: int, capacity: int, mask: pd.Series, index: int):

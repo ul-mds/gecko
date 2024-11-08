@@ -43,6 +43,7 @@ import pandas as pd
 from lxml import etree
 import typing_extensions as _te
 
+from gecko import dfidx
 from gecko.cldr import decode_iso_kb_pos, unescape_kb_char, get_neighbor_kb_pos_for
 from gecko.generator import Generator
 
@@ -611,66 +612,93 @@ def with_replacement_table(
             ignore_index=True,
         )
 
-    srs_unique_source_values = df.loc[:, source_column].unique()
+    # unique() returns a ndarray
+    arr_unique_source_values = df.loc[:, source_column].unique()
 
-    def _mutate_series(srs: pd.Series) -> pd.Series:
+    def _mutate_series_2(srs: pd.Series, p: float) -> pd.Series:
         # create copy
-        srs_out = srs.copy()
-        # create series to compute probability of substitution for each row
-        srs_str_sub_prob = pd.Series(dtype=float, index=srs_out.index)
-        srs_str_sub_prob[:] = 0
+        srs_out = srs.copy(deep=True)
+        # create index df
+        df_idx = dfidx.with_capacity(len(srs), len(arr_unique_source_values))
 
-        for source in srs_unique_source_values:
+        for src_idx, source in enumerate(arr_unique_source_values):
             if inline:
-                srs_str_sub_prob.loc[srs_out.str.contains(source)] += 1
+                dfidx.set_index(df_idx, srs_out.str.contains(source), src_idx)
             else:
-                srs_str_sub_prob.loc[srs_out == source] += 1
+                dfidx.set_index(df_idx, srs_out == source, src_idx)
 
-        mask_eligible_strs = srs_str_sub_prob != 0
-        srs_str_sub_prob.loc[mask_eligible_strs] = (
-            1 / srs_str_sub_prob.loc[mask_eligible_strs]
-        )
+        # check rows that can be mutated
+        srs_rows_to_mutate = dfidx.any_set(df_idx)
+        possible_rows_to_mutate = srs_rows_to_mutate.sum()
+        p_actual = possible_rows_to_mutate / len(srs)
 
-        for source in srs_unique_source_values:
-            if inline:
-                srs_str_source = srs_out.str.contains(source)
-            else:
-                srs_str_source = srs_out == source
+        # warn if p cannot be met
+        if p_actual < p:
+            _warn_p("with_replacement_table", p, p_actual)
 
-            msk_update = (
-                (srs == srs_out)
-                & srs_str_source
-                & (rng.random(size=len(srs)) < srs_str_sub_prob)
+        # perform actual selection
+        p_subset_select = min(1.0, p / p_actual)
+        arr_rng_vals = rng.random(size=possible_rows_to_mutate)
+        srs_rows_to_mutate.loc[srs_rows_to_mutate] = arr_rng_vals < p_subset_select
+
+        # create new series to track selected source values
+        srs_source_values = pd.Series([pd.NA] * len(srs), dtype=str, index=srs.index)
+        # randomize order of source indices
+        # TODO instead of shuffling, this should probably favor source values that don't appear often
+        # one way could be to have dfidx output sums for every index, then sort them in ascending order
+        arr_rng_src_idx = np.arange(0, len(arr_unique_source_values))
+        rng.shuffle(arr_rng_src_idx)
+
+        # populate the source value series
+        for src_idx in arr_rng_src_idx:
+            srs_src_indexed = dfidx.test_index(df_idx, src_idx)
+            # check which rows will have this source value replaced
+            srs_src_selected = (
+                srs_rows_to_mutate  # select rows that are eligible for mutation
+                & pd.isna(srs_source_values)  # AND that have no source value set yet
+                & srs_src_indexed  # AND that contain this source value
             )
+            # update the source value series accordingly
+            srs_source_values.loc[srs_src_selected] = arr_unique_source_values[src_idx]
 
-            replacement_count = msk_update.sum()
+        # populate the target value series
+        srs_target_values = pd.Series([pd.NA] * len(srs), dtype=str, index=srs.index)
 
-            if replacement_count == 0:
-                continue
+        for source_value in srs_source_values.dropna().unique():
+            # filter by all rows that have this source value applied to them
+            srs_this_source = srs_source_values == source_value
+            # collect all possible target values
+            target_values = df.loc[
+                df[source_column] == source_value, target_column
+            ].array
+            # select random target values
+            target_values_selected = rng.choice(
+                target_values, size=srs_this_source.sum()
+            )
+            # update target values
+            srs_target_values.loc[srs_this_source] = target_values_selected
 
-            replacement_options = df.loc[
-                df[source_column] == source, target_column
-            ].tolist()
+        # perform the actual replacements
+        for source_value in srs_source_values.dropna().unique():
+            srs_this_source = srs_source_values == source_value
 
-            arr_target_rng = rng.choice(replacement_options, size=replacement_count)
+            for target_value in srs_target_values.loc[srs_this_source].unique():
+                srs_to_mutate = srs_this_source & (srs_target_values == target_value)
 
-            if inline:
-                srs_out_sub = srs_out.loc[msk_update]
-
-                for target in replacement_options:
-                    msk_this_target = arr_target_rng == target
-                    srs_out_sub.loc[msk_this_target] = srs_out_sub.loc[
-                        msk_this_target
-                    ].str.replace(source, target, n=1)
-
-                srs_out.update(srs_out_sub)
-            else:
-                srs_out.loc[msk_update] = arr_target_rng
+                if inline:
+                    srs_out.update(
+                        srs_out.loc[srs_to_mutate].str.replace(
+                            source_value, target_value, n=1, regex=False
+                        )
+                    )
+                else:
+                    srs_out.loc[srs_to_mutate] = target_value
 
         return srs_out
 
-    def _mutate(srs_lst: list[pd.Series]) -> list[pd.Series]:
-        return [_mutate_series(srs) for srs in srs_lst]
+    def _mutate(srs_lst: list[pd.Series], p: float = 1) -> list[pd.Series]:
+        _check_probability_in_bounds(p)
+        return [_mutate_series_2(srs, p) for srs in srs_lst]
 
     return _mutate
 

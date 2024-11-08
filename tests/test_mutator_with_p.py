@@ -2,7 +2,12 @@ import string
 import pandas as pd
 import pytest
 
-from gecko.mutator import with_cldr_keymap_file, PNotMetWarning, with_missing_value
+from gecko.mutator import (
+    with_cldr_keymap_file,
+    PNotMetWarning,
+    with_missing_value,
+    with_replacement_table,
+)
 from tests.helpers import get_asset_path
 
 
@@ -79,3 +84,19 @@ def test_with_missing_value_existing(rng):
 
     assert len(srs) == len(srs_mut)
     assert (srs_mut == "").all()
+
+
+def test_with_replacement_table(rng):
+    srs = pd.Series(["xyz", "foo", "bar", "baz", "bat"])
+    mut_replace = with_replacement_table(
+        pd.DataFrame.from_dict(
+            {"source": ["o", "b", "b", "a"], "target": ["O", "B", "H", "A"]}
+        ),
+        source_column="source",
+        target_column="target",
+        inline=True,
+        rng=rng,
+    )
+
+    srs_out = mut_replace([srs], 1)
+    print(srs_out)
