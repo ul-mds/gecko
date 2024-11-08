@@ -9,6 +9,7 @@ from gecko.mutator import (
     with_missing_value,
     with_replacement_table,
     with_delete,
+    with_insert,
 )
 from tests.helpers import get_asset_path, random_strings, write_temporary_csv_file
 
@@ -225,3 +226,30 @@ def test_with_delete_warn_p(rng):
     assert (srs.iloc[:50] != srs_mut.iloc[:50]).all()
     assert (srs.iloc[:50].str.len() - 1 == srs_mut.iloc[:50].str.len()).all()
     assert (srs.iloc[50:] == srs_mut.iloc[50:]).all()
+
+
+def test_with_insert(rng):
+    srs = pd.Series(random_strings(rng=rng))
+    mut_insert = with_insert(rng=rng)
+
+    (srs_mut,) = mut_insert([srs], 1)
+
+    assert len(srs) == len(srs_mut)
+    assert (srs != srs_mut).all()
+    assert (srs.str.len() + 1 == srs_mut.str.len()).all()
+
+
+def test_with_insert_charset(rng):
+    # test by inserting uppercase characters into lowercase strings
+    srs = pd.Series(random_strings(rng=rng, charset=string.ascii_lowercase))
+    mut_insert = with_insert(charset=string.ascii_uppercase, rng=rng)
+
+    (srs_mut,) = mut_insert([srs], 1)
+
+    assert len(srs) == len(srs_mut)
+    assert (srs != srs_mut).all()
+    assert (srs.str.len() + 1 == srs_mut.str.len()).all()
+
+    # test that all rows are no longer only lowercase
+    assert srs_mut.str.lower().all()
+    assert (~srs_mut.str.islower()).all()

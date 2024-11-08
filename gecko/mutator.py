@@ -747,7 +747,7 @@ def with_missing_value(
 
 
 def with_insert(
-    charset: str = string.ascii_letters,
+    charset: _t.Union[str, list[str]] = string.ascii_letters,
     rng: _t.Optional[np.random.Generator] = None,
 ) -> Mutator:
     """
@@ -764,41 +764,45 @@ def with_insert(
     if rng is None:
         rng = np.random.default_rng()
 
-    def _mutate_series(srs: pd.Series) -> pd.Series:
-        srs_out = srs.copy()
-        str_count = len(srs_out)
+    if isinstance(charset, str):
+        charset = list(charset)
 
-        # get series of lengths of all strings in series
-        srs_str_out_len = srs_out.str.len()
-        # draw random values
-        arr_rng_vals = rng.random(size=str_count)
-        # compute indices from random values (+1 because letters can be inserted at the ned)
-        arr_rng_insert_indices = np.floor((srs_str_out_len + 1) * arr_rng_vals).astype(
-            int
-        )
-        # generate random char for each string
-        srs_rand_chars = pd.Series(
-            rng.choice(list(charset), size=str_count),
-            copy=False,  # use np array
-            index=srs_out.index,  # align index
-        )
-        # determine all unique random indices
-        arr_uniq_idx = arr_rng_insert_indices.unique()
+    def _mutate_series(srs: pd.Series, p: float) -> pd.Series:
+        srs_out = srs.copy(deep=True)
 
-        for i in arr_uniq_idx:
-            # select all strings with the same random insert index
-            srs_idx_mask = arr_rng_insert_indices == i
-            # insert character at current index
-            srs_out[srs_idx_mask] = (
-                srs_out[srs_idx_mask].str[:i]
-                + srs_rand_chars[srs_idx_mask]
-                + srs_out[srs_idx_mask].str[i:]
+        # select rows (don't need to do p-check because a new character can always be appended)
+        srs_rows_to_mutate = pd.Series(rng.random(size=len(srs)) < p, index=srs.index)
+
+        # count rows that will be mutated
+        rows_to_mutate_count = srs_rows_to_mutate.sum()
+
+        # generate random indices to insert values at
+        arr_rng_vals = rng.random(size=rows_to_mutate_count)
+        arr_ins_idx = np.floor(
+            (srs.str.len() + 1)
+            * arr_rng_vals  # +1 because letters can be inserted at the end
+        ).astype(int)
+
+        # generate random characters to insert
+        arr_rng_chars = rng.choice(charset, size=rows_to_mutate_count)
+        # create view on values to mutate
+        srs_in_rows = srs.loc[srs_rows_to_mutate]
+
+        for ins_idx in arr_ins_idx.unique():
+            # select all rows that have an insertion at this index
+            arr_this_idx = arr_ins_idx == ins_idx
+            srs_this_idx = srs_in_rows.loc[arr_this_idx]
+            # then update all affected rows
+            srs_out.update(
+                srs_this_idx.str[:ins_idx]
+                + arr_rng_chars[arr_this_idx]
+                + srs_this_idx.str[ins_idx:]
             )
 
         return srs_out
 
-    def _mutate(srs_lst: list[pd.Series]) -> list[pd.Series]:
-        return [_mutate_series(srs) for srs in srs_lst]
+    def _mutate(srs_lst: list[pd.Series], p: float = 1.0) -> list[pd.Series]:
+        return [_mutate_series(srs, p) for srs in srs_lst]
 
     return _mutate
 
