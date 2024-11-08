@@ -817,38 +817,46 @@ def with_delete(rng: _t.Optional[np.random.Generator] = None) -> Mutator:
     if rng is None:
         rng = np.random.default_rng()
 
-    def _mutate_series(srs: pd.Series) -> pd.Series:
-        # get series of string lengths
-        srs_str_out_len = srs.str.len()
-        # limit view to strings that have at least one character
-        srs_str_out_min_len = srs[srs_str_out_len >= 1]
+    def _mutate_series(srs: pd.Series, p: float) -> pd.Series:
+        srs_out = srs.copy(deep=True)
 
-        # check that there are any strings to modify
-        if len(srs_str_out_min_len) == 0:
-            return srs
+        # limit to strings that have at least a single character
+        srs_rows_to_mutate = srs.str.len() >= 1
+        possible_rows_to_mutate = srs_rows_to_mutate.sum()
+        p_actual = possible_rows_to_mutate / len(srs)
 
-        # create copy after length check
-        srs_out = srs.copy()
+        if p_actual < p:
+            _warn_p("with_delete", p, p_actual)
+
+        # select subset of rows to mutate
+        p_subset_select = min(1.0, p / p_actual)
+        arr_rng_vals = rng.random(size=possible_rows_to_mutate)
+        srs_rows_to_mutate.loc[srs_rows_to_mutate] = arr_rng_vals < p_subset_select
+
         # generate random indices
-        arr_rng_vals = rng.random(size=len(srs_str_out_min_len))
-        arr_rng_delete_indices = np.floor(
-            srs_str_out_min_len.str.len() * arr_rng_vals
+        srs_del_idx = pd.Series(
+            np.full(len(srs), fill_value=np.nan), dtype=pd.Int16Dtype(), index=srs.index
+        )
+        arr_rng_vals = rng.random(size=possible_rows_to_mutate)
+        arr_rng_idx = np.floor(
+            srs.loc[srs_rows_to_mutate].str.len() * arr_rng_vals
         ).astype(int)
-        # determine unique indices
-        arr_uniq_idx = arr_rng_delete_indices.unique()
 
-        for i in arr_uniq_idx:
-            # select all strings with the same random delete index
-            srs_idx_mask = arr_rng_delete_indices == i
-            # delete character at selected index
+        # update series of indices
+        srs_del_idx.loc[srs_rows_to_mutate] = arr_rng_idx
+
+        # perform the character deletion (don't need to dropna() here)
+        for del_idx in srs_del_idx.loc[srs_rows_to_mutate].unique():
+            srs_this_idx = srs_del_idx == del_idx
             srs_out.update(
-                srs_str_out_min_len[srs_idx_mask].str.slice_replace(i, i + 1, "")
+                srs.loc[srs_this_idx].str.slice_replace(del_idx, del_idx + 1, "")
             )
 
         return srs_out
 
-    def _mutate(srs_lst: list[pd.Series]) -> list[pd.Series]:
-        return [_mutate_series(srs) for srs in srs_lst]
+    def _mutate(srs_lst: list[pd.Series], p: float = 1.0) -> list[pd.Series]:
+        _check_probability_in_bounds(p)
+        return [_mutate_series(srs, p) for srs in srs_lst]
 
     return _mutate
 

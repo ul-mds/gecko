@@ -8,6 +8,7 @@ from gecko.mutator import (
     PNotMetWarning,
     with_missing_value,
     with_replacement_table,
+    with_delete,
 )
 from tests.helpers import get_asset_path, random_strings, write_temporary_csv_file
 
@@ -192,3 +193,35 @@ def test_with_replacement_table_csv(rng, tmp_path):
     assert len(srs) == len(srs_mut)
     assert (srs != srs_mut).all()
     assert (srs.str.len() == srs_mut.str.len()).all()
+
+
+def test_with_delete(rng):
+    srs = pd.Series(random_strings(rng=rng))
+    mut_delete = with_delete(rng=rng)
+
+    (srs_mut,) = mut_delete([srs], 1)
+
+    assert len(srs) == len(srs_mut)
+    assert (srs != srs_mut).all()
+    assert (srs.str.len() - 1 == srs_mut.str.len()).all()
+
+
+def test_with_delete_warn_p(rng):
+    srs = pd.Series(random_strings(n_strings=50, rng=rng) + [""] * 50)
+    mut_delete = with_delete(rng=rng)
+
+    with pytest.warns(PNotMetWarning) as record:
+        (srs_mut,) = mut_delete([srs], 0.8)
+
+    assert len(record) == 1
+    assert (
+        record[0]
+        .message.args[0]
+        .startswith("with_delete: desired probability of 0.8 cannot be met")
+    )
+
+    assert len(srs) == len(srs_mut)
+
+    assert (srs.iloc[:50] != srs_mut.iloc[:50]).all()
+    assert (srs.iloc[:50].str.len() - 1 == srs_mut.iloc[:50].str.len()).all()
+    assert (srs.iloc[50:] == srs_mut.iloc[50:]).all()
