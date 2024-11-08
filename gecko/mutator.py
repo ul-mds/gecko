@@ -925,7 +925,7 @@ def with_transpose(rng: _t.Optional[np.random.Generator] = None) -> Mutator:
 
 
 def with_substitute(
-    charset: str = string.ascii_letters,
+    charset: _t.Union[str, list[str]] = string.ascii_letters,
     rng: _t.Optional[np.random.Generator] = None,
 ) -> Mutator:
     """
@@ -945,46 +945,51 @@ def with_substitute(
     if rng is None:
         rng = np.random.default_rng()
 
-    def _mutate_series(srs: pd.Series) -> pd.Series:
-        # length of strings
-        srs_str_out_len = srs.str.len()
-        # limit view to strings that have at least 1 character
-        srs_str_out_min_len = srs[srs_str_out_len >= 1]
+    if isinstance(charset, str):
+        charset = list(charset)
 
-        # check that there are any strings to modify
-        if len(srs_str_out_min_len) == 0:
-            return srs
+    def _mutate_series(srs: pd.Series, p: float) -> pd.Series:
+        srs_out = srs.copy(deep=True)
 
-        # create copy after length check
-        srs_out = srs.copy()
-        # count strings that may be modified
-        str_count = len(srs_str_out_min_len)
-        # random indices
-        arr_rng_vals = rng.random(size=str_count)
-        arr_rng_sub_indices = np.floor(
-            srs_str_out_min_len.str.len() * arr_rng_vals
+        # limit to strings that have at least a single character
+        srs_rows_to_mutate = srs.str.len() >= 1
+        possible_rows_to_mutate = srs_rows_to_mutate.sum()
+        p_actual = possible_rows_to_mutate / len(srs)
+
+        if p_actual < p:
+            _warn_p(with_substitute.__name__, p, p_actual)
+
+        # select subset of rows to mutate
+        p_subset_select = min(1.0, p / p_actual)
+        arr_rng_vals = rng.random(size=possible_rows_to_mutate)
+        srs_rows_to_mutate.loc[srs_rows_to_mutate] = arr_rng_vals < p_subset_select
+
+        # count rows that will be mutated
+        rows_to_mutate_count = srs_rows_to_mutate.sum()
+
+        # generate random indices
+        arr_rng_vals = rng.random(size=rows_to_mutate_count)
+        arr_rng_idx = np.floor(
+            srs.loc[srs_rows_to_mutate].str.len() * arr_rng_vals
         ).astype(int)
-        # random substitution chars
-        srs_rand_chars = pd.Series(
-            rng.choice(list(charset), size=str_count),
-            copy=False,  # use np array
-            index=srs_str_out_min_len.index,  # align index
-        )
-        arr_uniq_idx = arr_rng_sub_indices.unique()
 
-        for i in arr_uniq_idx:
-            srs_idx_mask = arr_rng_sub_indices == i
-            srs_masked = srs_str_out_min_len[srs_idx_mask]
+        # generate random characters to insert
+        arr_rng_chars = rng.choice(charset, size=rows_to_mutate_count)
+
+        for idx in arr_rng_idx.unique():
+            arr_this_idx = arr_rng_idx == idx
+            srs_this_idx = srs.loc[srs_rows_to_mutate].loc[arr_this_idx]
             srs_out.update(
-                srs_masked.str[:i]
-                + srs_rand_chars[srs_idx_mask]
-                + srs_masked.str[i + 1 :]
+                srs_this_idx.str[:idx]
+                + arr_rng_chars[arr_this_idx]
+                + srs_this_idx.str[idx + 1 :]
             )
 
         return srs_out
 
-    def _mutate(srs_lst: list[pd.Series]) -> list[pd.Series]:
-        return [_mutate_series(srs) for srs in srs_lst]
+    def _mutate(srs_lst: list[pd.Series], p: float = 1.0) -> list[pd.Series]:
+        _check_probability_in_bounds(p)
+        return [_mutate_series(srs, p) for srs in srs_lst]
 
     return _mutate
 

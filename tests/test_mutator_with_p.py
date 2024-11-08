@@ -11,6 +11,7 @@ from gecko.mutator import (
     with_delete,
     with_insert,
     with_transpose,
+    with_substitute,
 )
 from tests.helpers import get_asset_path, random_strings, write_temporary_csv_file
 
@@ -280,6 +281,61 @@ def test_with_transpose_warn_p(rng):
         record[0]
         .message.args[0]
         .startswith("with_transpose: desired probability of 0.8 cannot be met")
+    )
+
+    assert len(srs) == len(srs_mut)
+    assert (srs.str.len() == srs_mut.str.len()).all()
+    assert (srs.iloc[:50] != srs_mut.iloc[:50]).all()
+    assert (srs.iloc[50:] == srs_mut.iloc[50:]).all()
+
+
+def test_with_substitute(rng):
+    # by default, with_substitute inserts characters, so use digits to avoid replacement of same characters
+    srs = pd.Series(random_strings(charset=string.digits, rng=rng))
+    mut_substitute = with_substitute(rng=rng)
+
+    (srs_mut,) = mut_substitute([srs], 1)
+
+    assert len(srs) == len(srs_mut)
+    assert (srs != srs_mut).all()
+    assert (srs.str.len() == srs_mut.str.len()).all()
+
+    # check that the correct characters have been inserted
+    assert srs.str.isdigit().all()
+    assert not srs_mut.str.isdigit().all()
+
+
+def test_with_substitute_charset(rng):
+    # same as above, this time using a custom charset param
+    srs = pd.Series(random_strings(charset=string.ascii_lowercase, rng=rng))
+    mut_substitute = with_substitute(charset=string.digits, rng=rng)
+
+    (srs_mut,) = mut_substitute([srs], 1)
+
+    assert len(srs) == len(srs_mut)
+    assert (srs != srs_mut).all()
+    assert (srs.str.len() == srs_mut.str.len()).all()
+
+    # same check as above, this time checking if digits have been inserted
+    assert srs.str.isalpha().all()
+    assert not srs_mut.str.isalpha().all()
+    assert srs_mut.str.isalnum().all()  # should be alphanumeric now!
+
+
+def test_with_substitute_warn_p(rng):
+    srs = pd.Series(
+        random_strings(n_strings=50, charset=string.digits, rng=rng) + [""] * 50
+    )
+    mut_substitute = with_substitute(rng=rng)
+
+    with pytest.warns(PNotMetWarning) as record:
+        (srs_mut,) = mut_substitute([srs], 0.8)
+
+    assert len(record) == 1
+    assert (
+        record[0]
+        .message.args[0]
+        .startswith("with_substitute: desired probability of 0.8 cannot be met")
     )
 
     assert len(srs) == len(srs_mut)
