@@ -615,7 +615,7 @@ def with_replacement_table(
     # unique() returns a ndarray
     arr_unique_source_values = df.loc[:, source_column].unique()
 
-    def _mutate_series_2(srs: pd.Series, p: float) -> pd.Series:
+    def _mutate_series(srs: pd.Series, p: float) -> pd.Series:
         # create copy
         srs_out = srs.copy(deep=True)
         # create index df
@@ -698,7 +698,7 @@ def with_replacement_table(
 
     def _mutate(srs_lst: list[pd.Series], p: float = 1) -> list[pd.Series]:
         _check_probability_in_bounds(p)
-        return [_mutate_series_2(srs, p) for srs in srs_lst]
+        return [_mutate_series(srs, p) for srs in srs_lst]
 
     return _mutate
 
