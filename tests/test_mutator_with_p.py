@@ -15,6 +15,7 @@ from gecko.mutator import (
     with_uppercase,
     with_lowercase,
     with_function,
+    with_repeat,
 )
 from tests.helpers import get_asset_path, random_strings, write_temporary_csv_file
 
@@ -430,3 +431,23 @@ def test_with_function(rng):
     assert (srs.str.len() + 1 == srs_mut.str.len()).all()
     assert (srs == srs_mut.str[:-1]).all()
     assert srs_mut.str[-1].str.isdigit().all()
+
+
+def test_with_repeat(rng):
+    srs = pd.Series(random_strings(charset=string.ascii_letters, rng=rng))
+    mut_repeat = with_repeat(rng=rng)
+
+    (srs_mut,) = mut_repeat([srs], 1.0)
+
+    assert len(srs) == len(srs_mut)
+    assert (srs + " " + srs == srs_mut).all()
+
+
+def test_with_repeat_join_character(rng):
+    srs = pd.Series(random_strings(charset=string.ascii_letters, rng=rng))
+    mut_repeat = with_repeat(join_with=":", rng=rng)
+
+    (srs_mut,) = mut_repeat([srs], 1.0)
+
+    assert len(srs) == len(srs_mut)
+    assert (srs + ":" + srs == srs_mut).all()

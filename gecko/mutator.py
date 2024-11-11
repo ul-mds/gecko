@@ -1543,25 +1543,38 @@ def with_regex_replacement_table(
     return _mutate
 
 
-def with_repeat(join_with: str = " ") -> Mutator:
+def with_repeat(
+    join_with: str = " ", rng: _t.Optional[np.random.Generator] = None
+) -> Mutator:
     """
     Mutate data in a series by repeating it.
     By default, it is appended with a whitespace.
 
     Args:
         join_with: joining character to use, space by default
+        rng: random number generator to use
 
     Returns:
         function returning list with repeated series values
     """
 
-    def _mutate_series(srs: pd.Series) -> pd.Series:
-        srs_out = srs.copy()
+    if rng is None:
+        rng = np.random.default_rng()
 
-        return srs_out + join_with + srs_out
+    def _mutate_series(srs: pd.Series, p: float) -> pd.Series:
+        srs_out = srs.copy(deep=True)
+        srs_rows_to_mutate = pd.Series(rng.random(size=len(srs)) < p, index=srs.index)
+        srs_out.update(
+            srs_out.loc[srs_rows_to_mutate]
+            + join_with
+            + srs_out.loc[srs_rows_to_mutate]
+        )
 
-    def _mutate(srs_lst: list[pd.Series]) -> list[pd.Series]:
-        return [_mutate_series(srs) for srs in srs_lst]
+        return srs_out
+
+    def _mutate(srs_lst: list[pd.Series], p: float = 1.0) -> list[pd.Series]:
+        _check_probability_in_bounds(p)
+        return [_mutate_series(srs, p) for srs in srs_lst]
 
     return _mutate
 
