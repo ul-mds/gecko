@@ -47,7 +47,6 @@ from gecko.cldr import decode_iso_kb_pos, unescape_kb_char, get_neighbor_kb_pos_
 from gecko.generator import Generator
 
 Mutator = _t.Callable[[list[pd.Series], _t.Optional[float]], list[pd.Series]]
-_EditOp = _t.Literal["ins", "del", "sub", "trs"]
 
 
 class _PhoneticReplacementRule(_t.NamedTuple):
