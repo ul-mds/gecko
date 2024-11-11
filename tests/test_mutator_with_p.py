@@ -12,6 +12,8 @@ from gecko.mutator import (
     with_insert,
     with_transpose,
     with_substitute,
+    with_uppercase,
+    with_lowercase,
 )
 from tests.helpers import get_asset_path, random_strings, write_temporary_csv_file
 
@@ -341,4 +343,72 @@ def test_with_substitute_warn_p(rng):
     assert len(srs) == len(srs_mut)
     assert (srs.str.len() == srs_mut.str.len()).all()
     assert (srs.iloc[:50] != srs_mut.iloc[:50]).all()
+    assert (srs.iloc[50:] == srs_mut.iloc[50:]).all()
+
+
+def test_with_uppercase(rng):
+    srs = pd.Series(random_strings(charset=string.ascii_lowercase, rng=rng))
+    mut_uppercase = with_uppercase(rng=rng)
+
+    (srs_mut,) = mut_uppercase([srs], 1)
+
+    assert len(srs) == len(srs_mut)
+    assert (srs != srs_mut).all()
+    assert (srs.str.upper() == srs_mut).all()
+
+
+def test_with_uppercase_warn_p(rng):
+    srs = pd.Series(
+        random_strings(n_strings=50, charset=string.ascii_lowercase, rng=rng)
+        + random_strings(n_strings=50, charset=string.ascii_uppercase, rng=rng)
+    )
+    mut_uppercase = with_uppercase(rng=rng)
+
+    with pytest.warns(PNotMetWarning) as record:
+        (srs_mut,) = mut_uppercase([srs], 0.8)
+
+    assert len(record) == 1
+    assert (
+        record[0]
+        .message.args[0]
+        .startswith("with_uppercase: desired probability of 0.8 cannot be met")
+    )
+
+    assert len(srs) == len(srs_mut)
+    assert (srs.iloc[:50] != srs_mut.iloc[:50]).all()
+    assert (srs.iloc[:50].str.upper() == srs_mut.iloc[:50]).all()
+    assert (srs.iloc[50:] == srs_mut.iloc[50:]).all()
+
+
+def test_with_lowercase(rng):
+    srs = pd.Series(random_strings(charset=string.ascii_uppercase, rng=rng))
+    mut_lowercase = with_lowercase(rng=rng)
+
+    (srs_mut,) = mut_lowercase([srs], 1)
+
+    assert len(srs) == len(srs_mut)
+    assert (srs != srs_mut).all()
+    assert (srs.str.lower() == srs_mut).all()
+
+
+def test_with_lowercase_warn_p(rng):
+    srs = pd.Series(
+        random_strings(n_strings=50, charset=string.ascii_uppercase, rng=rng)
+        + random_strings(n_strings=50, charset=string.ascii_lowercase, rng=rng)
+    )
+    mut_lowercase = with_lowercase(rng=rng)
+
+    with pytest.warns(PNotMetWarning) as record:
+        (srs_mut,) = mut_lowercase([srs], 0.8)
+
+    assert len(record) == 1
+    assert (
+        record[0]
+        .message.args[0]
+        .startswith("with_lowercase: desired probability of 0.8 cannot be met")
+    )
+
+    assert len(srs) == len(srs_mut)
+    assert (srs.iloc[:50] != srs_mut.iloc[:50]).all()
+    assert (srs.iloc[:50].str.lower() == srs_mut.iloc[:50]).all()
     assert (srs.iloc[50:] == srs_mut.iloc[50:]).all()

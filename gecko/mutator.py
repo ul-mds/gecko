@@ -1157,30 +1157,78 @@ def with_permute(rng: _t.Optional[np.random.Generator] = None) -> Mutator:
     return _mutate
 
 
-def with_lowercase() -> Mutator:
+def with_lowercase(rng: _t.Optional[np.random.Generator] = None) -> Mutator:
     """
     Mutate data from a series by converting it into lowercase.
 
     Returns:
         function returning list with the entries in each series converted to lowercase
     """
+    if rng is None:
+        rng = np.random.default_rng()
 
-    def _mutate(srs_lst: list[pd.Series]) -> list[pd.Series]:
-        return [srs.str.lower() for srs in srs_lst]
+    def _mutate_series(srs: pd.Series, p: float) -> pd.Series:
+        srs_out = srs.copy(deep=True)
+
+        # limit series to strings that are not all uppercase yet
+        srs_rows_to_mutate = ~srs.str.islower()
+        possible_rows_to_mutate = srs_rows_to_mutate.sum()
+        p_actual = possible_rows_to_mutate / len(srs)
+
+        if p_actual < p:
+            _warn_p(with_lowercase.__name__, p, p_actual)
+
+        # select subset of rows to mutate
+        p_subset_select = min(1.0, p / p_actual)
+        arr_rng_vals = rng.random(size=possible_rows_to_mutate)
+        srs_rows_to_mutate.loc[srs_rows_to_mutate] = arr_rng_vals < p_subset_select
+
+        # update selected rows
+        srs_out.update(srs.loc[srs_rows_to_mutate].str.lower())
+
+        return srs_out
+
+    def _mutate(srs_lst: list[pd.Series], p: float = 1.0) -> list[pd.Series]:
+        _check_probability_in_bounds(p)
+        return [_mutate_series(srs, p) for srs in srs_lst]
 
     return _mutate
 
 
-def with_uppercase() -> Mutator:
+def with_uppercase(rng: _t.Optional[np.random.Generator] = None) -> Mutator:
     """
     Mutate data from a series by converting it into uppercase.
 
     Returns:
         function returning list with the entries in each series converted to uppercase
     """
+    if rng is None:
+        rng = np.random.default_rng()
 
-    def _mutate(srs_lst: list[pd.Series]) -> list[pd.Series]:
-        return [srs.str.upper() for srs in srs_lst]
+    def _mutate_series(srs: pd.Series, p: float) -> pd.Series:
+        srs_out = srs.copy(deep=True)
+
+        # limit series to strings that are not all uppercase yet
+        srs_rows_to_mutate = ~srs.str.isupper()
+        possible_rows_to_mutate = srs_rows_to_mutate.sum()
+        p_actual = possible_rows_to_mutate / len(srs)
+
+        if p_actual < p:
+            _warn_p(with_uppercase.__name__, p, p_actual)
+
+        # select subset of rows to mutate
+        p_subset_select = min(1.0, p / p_actual)
+        arr_rng_vals = rng.random(size=possible_rows_to_mutate)
+        srs_rows_to_mutate.loc[srs_rows_to_mutate] = arr_rng_vals < p_subset_select
+
+        # update selected rows
+        srs_out.update(srs.loc[srs_rows_to_mutate].str.upper())
+
+        return srs_out
+
+    def _mutate(srs_lst: list[pd.Series], p: float = 1.0) -> list[pd.Series]:
+        _check_probability_in_bounds(p)
+        return [_mutate_series(srs, p) for srs in srs_lst]
 
     return _mutate
 
