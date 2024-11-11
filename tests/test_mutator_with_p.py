@@ -14,6 +14,7 @@ from gecko.mutator import (
     with_substitute,
     with_uppercase,
     with_lowercase,
+    with_function,
 )
 from tests.helpers import get_asset_path, random_strings, write_temporary_csv_file
 
@@ -412,3 +413,20 @@ def test_with_lowercase_warn_p(rng):
     assert (srs.iloc[:50] != srs_mut.iloc[:50]).all()
     assert (srs.iloc[:50].str.lower() == srs_mut.iloc[:50]).all()
     assert (srs.iloc[50:] == srs_mut.iloc[50:]).all()
+
+
+def test_with_function(rng):
+    import numpy as np
+
+    def _my_func(value: str, my_rng: np.random.Generator) -> str:
+        return f"{value}{my_rng.integers(0, 10)}"
+
+    srs = pd.Series(random_strings(charset=string.ascii_letters, rng=rng))
+    mut_fn = with_function(_my_func, rng=rng, my_rng=rng)
+
+    (srs_mut,) = mut_fn([srs], 1)
+
+    assert len(srs) == len(srs_mut)
+    assert (srs.str.len() + 1 == srs_mut.str.len()).all()
+    assert (srs == srs_mut.str[:-1]).all()
+    assert srs_mut.str[-1].str.isdigit().all()

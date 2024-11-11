@@ -83,6 +83,7 @@ def _warn_p(fn_name: str, p_expected: float, p_actual: float):
 
 def with_function(
     func: _t.Callable[_te.Concatenate[str, P], str],
+    rng: _t.Optional[np.random.Generator] = None,
     *args: object,
     **kwargs: object,
 ) -> Mutator:
@@ -102,16 +103,23 @@ def with_function(
         function returning list with strings mutated using custom function
     """
 
-    def _mutate_series(srs: pd.Series) -> pd.Series:
-        srs_out = srs.copy()
+    if rng is None:
+        rng = np.random.default_rng()
 
-        for i in range(len(srs_out)):
-            srs_out.iloc[i] = func(srs_out.iloc[i], *args, **kwargs)
+    def _bound_apply(val: object) -> str:
+        x = func(str(val), *args, **kwargs)
+        return str(x)
+
+    def _mutate_series(srs: pd.Series, p: float) -> pd.Series:
+        srs_out = srs.copy(deep=True)
+        srs_rows_to_mutate = pd.Series(rng.random(size=len(srs)) < p, index=srs.index)
+        srs_out.update(srs.loc[srs_rows_to_mutate].apply(_bound_apply))
 
         return srs_out
 
-    def _mutate(srs_lst: list[pd.Series]) -> list[pd.Series]:
-        return [_mutate_series(srs) for srs in srs_lst]
+    def _mutate(srs_lst: list[pd.Series], p: float = 1.0) -> list[pd.Series]:
+        _check_probability_in_bounds(p)
+        return [_mutate_series(srs, p) for srs in srs_lst]
 
     return _mutate
 
