@@ -1113,7 +1113,15 @@ def with_permute(rng: _t.Optional[np.random.Generator] = None) -> Mutator:
     if rng is None:
         rng = np.random.default_rng()
 
-    def _mutate(srs_lst: list[pd.Series]) -> list[pd.Series]:
+    def _filter_permutations(tpl: tuple[int, ...]) -> bool:
+        for idx, val in enumerate(tpl):
+            if idx == val:
+                return False
+
+        return True
+
+    def _mutate(srs_lst: list[pd.Series], p: float = 1.0) -> list[pd.Series]:
+        _check_probability_in_bounds(p)
         srs_lst_len = len(srs_lst)
 
         if srs_lst_len < 2:
@@ -1131,33 +1139,29 @@ def with_permute(rng: _t.Optional[np.random.Generator] = None) -> Mutator:
 
         # e.g. for l=3, this will produce (0, 1, 2)
         tpl_idx_not_permuted = tuple(range(srs_lst_len))
-        # generate all series index permutations and remove the tuple with all indices in order
+        # generate all series index permutations and remove the tuple with all indices in order.
+        # filter out all tuples that keep values from any column in the same column.
         srs_idx_permutations = sorted(
-            set(itertools.permutations(range(len(srs_lst)))) - {tpl_idx_not_permuted}
+            filter(_filter_permutations, itertools.permutations(range(len(srs_lst))))
         )
+
+        # select rows
+        arr_rows_to_mutate = rng.random(size=srs_0_len) < p
+
         # choose random index permutations
         arr_rand_idx_tpl = rng.choice(srs_idx_permutations, size=srs_0_len)
-        # map tuples to each series
-        srs_idx_per_srs = list(zip(*arr_rand_idx_tpl))
-        # transform each list of indices into series
-        srs_lst_idx_per_srs = [
-            pd.Series(
-                data=srs_idx_per_srs[i],
-                index=srs_lst[i].index,
-                copy=False,
-            )
-            for i in range(srs_lst_len)
-        ]
+        # map tuples to each series (zip indices -> convert to array -> wrap in list)
+        arr_idx_per_srs = list(map(np.array, zip(*arr_rand_idx_tpl)))
 
-        srs_lst_out = [srs.copy() for srs in srs_lst]
+        srs_lst_out = [srs.copy(deep=True) for srs in srs_lst]
 
         for i in range(srs_lst_len):
             for j in range(srs_lst_len):
                 if i == j:
                     continue
 
-                mask_this_srs = srs_lst_idx_per_srs[i] == j
-                srs_lst_out[i][mask_this_srs] = srs_lst[j][mask_this_srs]
+                arr_this_srs = arr_rows_to_mutate & (arr_idx_per_srs[i] == j)
+                srs_lst_out[i].loc[arr_this_srs] = srs_lst[j].loc[arr_this_srs]
 
         return srs_lst_out
 

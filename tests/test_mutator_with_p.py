@@ -16,6 +16,7 @@ from gecko.mutator import (
     with_lowercase,
     with_function,
     with_repeat,
+    with_permute,
 )
 from tests.helpers import get_asset_path, random_strings, write_temporary_csv_file
 
@@ -451,3 +452,56 @@ def test_with_repeat_join_character(rng):
 
     assert len(srs) == len(srs_mut)
     assert (srs + ":" + srs == srs_mut).all()
+
+
+def test_permute(rng):
+    srs_a = pd.Series(random_strings(charset=string.ascii_lowercase, rng=rng))
+    srs_b = pd.Series(random_strings(charset=string.ascii_uppercase, rng=rng))
+    mut_permute = with_permute(rng=rng)
+
+    (srs_a_mut, srs_b_mut) = mut_permute([srs_a, srs_b], 1.0)
+
+    assert len(srs_a) == len(srs_b) == len(srs_a_mut) == len(srs_b_mut)
+    assert (srs_a == srs_b_mut).all()
+    assert (srs_b == srs_a_mut).all()
+
+
+def test_permute_multicolumn(rng):
+    srs_a = pd.Series(random_strings(charset=string.ascii_lowercase, rng=rng))
+    srs_b = pd.Series(random_strings(charset=string.ascii_uppercase, rng=rng))
+    srs_c = pd.Series(random_strings(charset=string.digits, rng=rng))
+    mut_permute = with_permute(rng=rng)
+
+    (srs_a_mut, srs_b_mut, srs_c_mut) = mut_permute([srs_a, srs_b, srs_c], 1.0)
+
+    assert (
+        len(srs_a)
+        == len(srs_b)
+        == len(srs_c)
+        == len(srs_a_mut)
+        == len(srs_b_mut)
+        == len(srs_c_mut)
+    )
+    assert (~srs_a_mut.str.islower()).all()
+    assert (~srs_b_mut.str.isupper()).all()
+    assert (~srs_c_mut.str.isdigit()).all()
+
+
+def test_permute_partial(rng):
+    srs_a = pd.Series(random_strings(charset=string.ascii_lowercase, rng=rng))
+    srs_b = pd.Series(random_strings(charset=string.ascii_uppercase, rng=rng))
+    mut_permute = with_permute(rng=rng)
+
+    # most entries should be flipped
+    (srs_a_mut, srs_b_mut) = mut_permute([srs_a, srs_b], 0.8)
+
+    assert len(srs_a) == len(srs_b) == len(srs_a_mut) == len(srs_b_mut)
+
+    srs_a_flipped = srs_a_mut.str.isupper()
+    srs_b_flipped = srs_b_mut.str.islower()
+
+    assert not srs_a_flipped.all()
+    assert not srs_b_flipped.all()
+
+    assert srs_a_flipped.sum() > (~srs_a_flipped).sum()
+    assert srs_b_flipped.sum() > (~srs_b_flipped).sum()
