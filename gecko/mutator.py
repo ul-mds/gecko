@@ -1325,6 +1325,7 @@ def with_generator(
     generator: Generator,
     mode: _t.Literal["prepend", "append", "replace"],
     join_with: str = " ",
+    rng: _t.Optional[np.random.Generator] = None,
 ) -> Mutator:
     """
     Mutate data from a series by appending, prepending or replacing it with data from another generator.
@@ -1334,12 +1335,15 @@ def with_generator(
         generator: generator to source data from
         mode: either append, prepend or replace
         join_with: join character when appending or prepending
+        rng: random number generator to use
 
     Returns:
         function returning list of strings that have been appended, prepended or replaced with data from a generator
     """
+    if rng is None:
+        rng = np.random.default_rng()
 
-    def _mutate(srs_lst: list[pd.Series]) -> list[pd.Series]:
+    def _mutate(srs_lst: list[pd.Series], p: float = 1.0) -> list[pd.Series]:
         # check that all series are of the same length
         srs_lst_len_set = set([len(srs) for srs in srs_lst])
 
@@ -1359,12 +1363,10 @@ def with_generator(
             if not all(indices_aligned):
                 raise ValueError("indices of input series are not aligned")
 
-        # call generator and align its index with the input series index. use ffill to
-        # avoid nas when reindexing.
-        srs_gen_lst = [
-            srs.reindex(srs_lst[i].index, method="ffill")
-            for i, srs in enumerate(generator(srs_len))
-        ]
+        arr_rows_to_mutate = rng.random(size=srs_len) < p
+        rows_to_mutate_count = arr_rows_to_mutate.sum()
+
+        srs_gen_lst = generator(rows_to_mutate_count)
 
         # check that the generator returns as many series as provided to the mutator.
         if len(srs_lst) != len(srs_gen_lst):
@@ -1373,16 +1375,25 @@ def with_generator(
                 f"got {len(srs_gen_lst)}, expected {len(srs_lst)}"
             )
 
+        # align indices with the input series index. use ffill to
+        # avoid nas when reindexing.
+        srs_gen_lst_aligned = [
+            srs.reindex(srs_lst[i].index, method="ffill")
+            for i, srs in enumerate(srs_gen_lst)
+        ]
+
         srs_lst_out = [srs.copy() for srs in srs_lst]
 
         # perform the actual data mutation (this is where index alignment matters)
-        for i, srs_gen in enumerate(srs_gen_lst):
+        for i, srs_gen in enumerate(srs_gen_lst_aligned):
             if mode == "replace":
-                srs_lst_out[i][:] = srs_gen
+                srs_lst_out[i].loc[arr_rows_to_mutate] = srs_gen
             elif mode == "prepend":
-                srs_lst_out[i][:] = srs_gen + join_with + srs_lst_out[i][:]
+                srs_lst_out[i].loc[arr_rows_to_mutate] = (
+                    srs_gen + join_with + srs_lst_out[i][:]
+                )
             elif mode == "append":
-                srs_lst_out[i][:] += join_with + srs_gen
+                srs_lst_out[i].loc[arr_rows_to_mutate] += join_with + srs_gen
             else:
                 raise ValueError(f"invalid mode: `{mode}`")
 

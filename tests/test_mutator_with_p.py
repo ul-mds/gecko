@@ -3,6 +3,7 @@ import string
 import pandas as pd
 import pytest
 
+import gecko.generator
 from gecko.mutator import (
     with_cldr_keymap_file,
     PNotMetWarning,
@@ -17,6 +18,7 @@ from gecko.mutator import (
     with_function,
     with_repeat,
     with_permute,
+    with_generator,
 )
 from tests.helpers import get_asset_path, random_strings, write_temporary_csv_file
 
@@ -505,3 +507,123 @@ def test_permute_partial(rng):
 
     assert srs_a_flipped.sum() > (~srs_a_flipped).sum()
     assert srs_b_flipped.sum() > (~srs_b_flipped).sum()
+
+
+def _from_scalar_value(column_values) -> gecko.generator.Generator:
+    if isinstance(column_values, str):
+        column_values = (column_values,)
+
+    if not isinstance(column_values, tuple):
+        raise ValueError(
+            f"column values must be provided as a string or tuple of strings, is {type(column_values)}"
+        )
+
+    def _generate(count: int) -> list[pd.Series]:
+        return [pd.Series([value] * count) for value in column_values]
+
+    return _generate
+
+
+def test_with_generator_replace(rng):
+    srs = pd.Series(random_strings(charset=string.ascii_letters, rng=rng))
+    mut_generator = with_generator(
+        _from_scalar_value("foobar"), mode="replace", rng=rng
+    )
+    (srs_mut,) = mut_generator([srs], 1.0)
+
+    assert len(srs) == len(srs_mut)
+    assert (srs != srs_mut).all()
+    assert (srs_mut == "foobar").all()
+
+
+def test_with_generator_partial(rng):
+    srs = pd.Series(random_strings(charset=string.ascii_letters, rng=rng))
+    mut_generator = with_generator(
+        _from_scalar_value("foobar"), mode="replace", rng=rng
+    )
+    (srs_mut,) = mut_generator([srs], 0.8)
+
+    assert len(srs) == len(srs_mut)
+
+    srs_value_mutated = srs_mut == "foobar"
+
+    assert not srs_value_mutated.all()
+    assert srs_value_mutated.sum() > (~srs_value_mutated).sum()
+
+
+def test_with_generator_prepend(rng):
+    srs = pd.Series(random_strings(charset=string.digits, rng=rng))
+    mut_generator = with_generator(
+        _from_scalar_value("foobar"), mode="prepend", rng=rng
+    )
+    (srs_mut,) = mut_generator([srs], 1.0)
+
+    assert len(srs) == len(srs_mut)
+    assert (srs != srs_mut).all()
+    assert srs_mut.str.match(r"foobar \d+").all()
+
+
+def test_with_generator_append(rng):
+    srs = pd.Series(random_strings(charset=string.digits, rng=rng))
+    mut_generator = with_generator(_from_scalar_value("foobar"), mode="append", rng=rng)
+    (srs_mut,) = mut_generator([srs], 1.0)
+
+    assert len(srs) == len(srs_mut)
+    assert (srs != srs_mut).all()
+    assert srs_mut.str.match(r"\d+ foobar").all()
+
+
+def test_with_generator_prepend_join_char(rng):
+    srs = pd.Series(random_strings(charset=string.digits, rng=rng))
+    mut_generator = with_generator(
+        _from_scalar_value("foobar"), mode="prepend", join_with="-", rng=rng
+    )
+    (srs_mut,) = mut_generator([srs], 1.0)
+
+    assert len(srs) == len(srs_mut)
+    assert (srs != srs_mut).all()
+    assert srs_mut.str.match(r"foobar-\d+").all()
+
+
+def test_with_generator_append_join_char(rng):
+    srs = pd.Series(random_strings(charset=string.digits, rng=rng))
+    mut_generator = with_generator(
+        _from_scalar_value("foobar"), mode="append", join_with="-", rng=rng
+    )
+    (srs_mut,) = mut_generator([srs], 1.0)
+
+    assert len(srs) == len(srs_mut)
+    assert (srs != srs_mut).all()
+    assert srs_mut.str.match(r"\d+-foobar").all()
+
+
+def test_with_generator_multi_column(rng):
+    srs_a = pd.Series(random_strings(charset=string.ascii_letters, rng=rng))
+    srs_b = pd.Series(random_strings(charset=string.ascii_letters, rng=rng))
+
+    mut_generator = with_generator(
+        _from_scalar_value(("foobar", "foobaz")), mode="replace", rng=rng
+    )
+    (srs_a_mut, srs_b_mut) = mut_generator([srs_a, srs_b], 1.0)
+
+    assert len(srs_a) == len(srs_b) == len(srs_a_mut) == len(srs_b_mut)
+
+    assert (srs_a != srs_a_mut).all()
+    assert (srs_b != srs_b_mut).all()
+    assert (srs_a_mut == "foobar").all()
+    assert (srs_b_mut == "foobaz").all()
+
+
+def test_with_generator_raise_mismatched_columns(rng):
+    srs = pd.Series(random_strings(charset=string.ascii_letters, rng=rng))
+    mut_generator = with_generator(
+        _from_scalar_value(("foobar", "foobaz")), mode="replace", rng=rng
+    )
+
+    with pytest.raises(ValueError) as e:
+        _ = mut_generator([srs], 1.0)
+
+    assert str(e.value) == (
+        "generator must generate as many series as provided to the mutator: "
+        "got 2, expected 1"
+    )
