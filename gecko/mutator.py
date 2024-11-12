@@ -1668,7 +1668,9 @@ def with_group(
                 f"weight of mutator at index {mut_idx} must be higher than zero, is {p}"
             )
 
-    def _mutate(srs_lst: list[pd.Series]) -> list[pd.Series]:
+    def _mutate(srs_lst: list[pd.Series], p: float = 1.0) -> list[pd.Series]:
+        _check_probability_in_bounds(p)
+
         # check that all series have the same length
         if len(set(len(s) for s in srs_lst)) != 1:
             raise ValueError("series do not have the same length")
@@ -1677,6 +1679,7 @@ def with_group(
         srs_lst_out = [srs.copy() for srs in srs_lst]
 
         # each row gets an index of the applied mutator
+        arr_rows_to_mutate = rng.random(size=srs_len) < p
         arr_mut_idx = np.arange(len(mutator_lst))
         arr_mut_per_row = rng.choice(arr_mut_idx, p=p_vals, size=srs_len)
 
@@ -1684,8 +1687,8 @@ def with_group(
         for i in arr_mut_idx:
             mutator = mut_lst[i]
             # select all rows that have this mutator applied to it
-            msk_this_mut = arr_mut_per_row == i
-            srs_mut_lst = mutator([srs[msk_this_mut] for srs in srs_lst_out])
+            msk_this_mut = arr_rows_to_mutate & (arr_mut_per_row == i)
+            srs_mut_lst = mutator([srs[msk_this_mut] for srs in srs_lst_out], 1.0)
 
             for j, srs_mut in enumerate(srs_mut_lst):
                 srs_lst_out[j].update(srs_mut)

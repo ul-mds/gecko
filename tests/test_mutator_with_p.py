@@ -19,6 +19,7 @@ from gecko.mutator import (
     with_repeat,
     with_permute,
     with_generator,
+    with_group,
 )
 from tests.helpers import get_asset_path, random_strings, write_temporary_csv_file
 
@@ -627,3 +628,82 @@ def test_with_generator_raise_mismatched_columns(rng):
         "generator must generate as many series as provided to the mutator: "
         "got 2, expected 1"
     )
+
+
+def test_with_group(rng):
+    srs = pd.Series(random_strings(charset=string.ascii_letters, str_len=20, rng=rng))
+    mut_group = with_group(
+        [
+            with_insert(charset=string.digits, rng=rng),
+            with_delete(rng=rng),
+        ],
+        rng=rng,
+    )
+
+    (srs_mut,) = mut_group([srs], 1.0)
+
+    assert len(srs) == len(srs_mut)
+    assert (srs != srs_mut).all()
+    assert (srs.str.len() != srs_mut.str.len()).all()
+    assert set(srs_mut.str.len().unique()) == {19, 21}
+
+
+def test_with_group_weighted(rng):
+    srs = pd.Series(random_strings(charset=string.ascii_letters, str_len=20, rng=rng))
+    mut_group = with_group(
+        [
+            (0.2, with_insert(charset=string.digits, rng=rng)),
+            (0.8, with_delete(rng=rng)),
+        ],
+        rng=rng,
+    )
+
+    (srs_mut,) = mut_group([srs], 1.0)
+
+    assert len(srs) == len(srs_mut)
+
+    srs_mut_str_len_counts = srs_mut.str.len().value_counts()
+    assert srs_mut_str_len_counts[19] > srs_mut_str_len_counts[21]
+
+
+def test_with_group_padded(rng):
+    srs = pd.Series(random_strings(charset=string.ascii_letters, rng=rng))
+    mut_group = with_group(
+        [
+            (0.2, with_insert(charset=string.digits, rng=rng)),
+        ],
+        rng=rng,
+    )
+
+    (srs_mut,) = mut_group([srs], 1.0)
+
+    assert len(srs) == len(srs_mut)
+
+    srs_mut_str_len_counts = srs_mut.str.len().value_counts()
+    assert srs_mut_str_len_counts[20] > srs_mut_str_len_counts[21]
+
+
+def test_with_group_raise_p_sum_too_high(rng):
+    with pytest.raises(ValueError) as e:
+        _ = with_group(
+            [
+                (0.6, with_delete(rng=rng)),
+                (0.41, with_insert(rng=rng)),
+            ],
+            rng=rng,
+        )
+
+    assert str(e.value) == f"sum of weights must not be higher than 1, is {.6 + .41}"
+
+
+def test_with_group_raise_p_sum_too_low(rng):
+    with pytest.raises(ValueError) as e:
+        _ = with_group(
+            [
+                (0, with_delete(rng=rng)),
+                (0, with_insert(rng=rng)),
+            ],
+            rng=rng,
+        )
+
+    assert str(e.value) == "sum of weights must be higher than 0, is 0"
