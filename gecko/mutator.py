@@ -96,6 +96,7 @@ def with_function(
 
     Args:
         func: function to invoke to mutate data with
+        rng: random number generator to use
         *args: positional arguments to pass to `func`
         **kwargs: keyword arguments to pass to `func`
 
@@ -391,7 +392,7 @@ def with_phonetic_replacement_table(
     ) is not type(flags_column):
         raise ValueError("source, target and flags columns must be of the same type")
 
-    # skip check for source and target column bc they are all of the same type already
+    # skip check for source and target column bc they are of same type already
     if not isinstance(flags_column, str) and not isinstance(flags_column, int):
         raise ValueError(
             "source, target and flags columns must be either a string or an integer"
@@ -1698,8 +1699,8 @@ def with_group(
         function returning list with strings modified by mutators as specified
     """
     if all(callable(m) for m in mutator_lst):
-        p = 1.0 / len(mutator_lst)
-        mutator_lst = [(p, m) for m in mutator_lst]
+        p_idx = 1.0 / len(mutator_lst)
+        mutator_lst = [(p_idx, m) for m in mutator_lst]
 
     if not _is_weighted_mutator_tuple_list(mutator_lst):
         raise ValueError(
@@ -1725,10 +1726,10 @@ def with_group(
     mut_lst: tuple[Mutator, ...]
     p_vals, mut_lst = zip(*mutator_lst)
 
-    for mut_idx, p in enumerate(p_vals):
-        if p <= 0:
+    for mut_idx, p_idx in enumerate(p_vals):
+        if p_idx <= 0:
             raise ValueError(
-                f"weight of mutator at index {mut_idx} must be higher than zero, is {p}"
+                f"weight of mutator at index {mut_idx} must be higher than zero, is {p_idx}"
             )
 
     def _mutate(srs_lst: list[pd.Series], p: float = 1.0) -> list[pd.Series]:
@@ -1770,7 +1771,6 @@ _MutatorSpec = list[
 def mutate_data_frame(
     df_in: pd.DataFrame,
     mutator_lst: _MutatorSpec,
-    rng: _t.Optional[np.random.Generator] = None,
 ) -> pd.DataFrame:
     """
     Mutate a data frame by applying several mutators on select columns.
@@ -1781,14 +1781,10 @@ def mutate_data_frame(
     Args:
         df_in: data frame to mutate
         mutator_lst: list of columns with their mutator assignments
-        rng: random number generator to use
 
     Returns:
         data frame with columns mutated as specified
     """
-
-    if rng is None:
-        rng = np.random.default_rng()
 
     df_out = df_in.copy()
 
