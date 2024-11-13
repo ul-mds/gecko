@@ -3,7 +3,6 @@ import string
 
 import pandas as pd
 import pytest
-from numpy.core.defchararray import str_len
 
 import gecko.generator
 from gecko.mutator import (
@@ -39,6 +38,16 @@ def test_with_cldr_keymap_file(rng):
     assert len(srs) == len(srs_mutated)
     assert (srs.str.len() == srs_mutated.str.len()).all()
     assert (srs != srs_mutated).all()
+
+
+def test_with_cldr_keymap_file_partial(rng):
+    srs = pd.Series(list(string.ascii_lowercase))
+    mutate_cldr = with_cldr_keymap_file(get_asset_path("de-t-k0-windows.xml"), rng=rng)
+    (srs_mutated,) = mutate_cldr([srs], 0.5)
+
+    assert len(srs) == len(srs_mutated)
+    assert (srs == srs_mutated).any()
+    assert (srs != srs_mutated).any()
 
 
 def test_with_cldr_keymap_file_multiple_options(rng):
@@ -88,6 +97,16 @@ def test_with_missing_value(rng):
     assert (srs_mut == "").all()
 
 
+def test_with_missing_value_partial(rng):
+    srs = pd.Series(range(1_000), dtype=str)
+    mut_missing = with_missing_value(value="", rng=rng)
+    (srs_mut,) = mut_missing([srs], 0.5)
+
+    assert len(srs) == len(srs_mut)
+    assert (srs == srs_mut).any()
+    assert (srs != srs_mut).any()
+
+
 def test_with_missing_value_existing(rng):
     srs = pd.Series(["foo"] * 20 + [""] * 80)
     mut_missing = with_missing_value(value="", rng=rng)
@@ -124,6 +143,26 @@ def test_with_replacement_table(rng):
     assert len(srs) == len(srs_mut)
     assert (srs != srs_mut).all()
     assert (srs.str.len() == srs_mut.str.len()).all()
+
+
+def test_with_replacement_table_partial(rng):
+    srs = pd.Series(list(string.ascii_lowercase))
+
+    # replacement table that maps lowercase chars to uppercase
+    df = pd.DataFrame(
+        list(zip(string.ascii_lowercase, string.ascii_uppercase)),
+        columns=["source", "target"],
+    )
+
+    mut_replacement_table = with_replacement_table(
+        df, source_column="source", target_column="target", rng=rng
+    )
+
+    (srs_mut,) = mut_replacement_table([srs], 0.5)
+
+    assert len(srs) == len(srs_mut)
+    assert (srs == srs_mut).any()
+    assert (srs != srs_mut).any()
 
 
 def test_with_replacement_table_reverse(rng):
@@ -224,6 +263,17 @@ def test_with_delete(rng):
     assert (srs.str.len() - 1 == srs_mut.str.len()).all()
 
 
+def test_with_delete_partial(rng):
+    srs = pd.Series(random_strings(rng=rng))
+    mut_delete = with_delete(rng=rng)
+
+    (srs_mut,) = mut_delete([srs], 0.5)
+
+    assert len(srs) == len(srs_mut)
+    assert (srs == srs_mut).any()
+    assert (srs != srs_mut).any()
+
+
 def test_with_delete_warn_p(rng):
     srs = pd.Series(random_strings(n_strings=50, rng=rng) + [""] * 50)
     mut_delete = with_delete(rng=rng)
@@ -256,6 +306,17 @@ def test_with_insert(rng):
     assert (srs.str.len() + 1 == srs_mut.str.len()).all()
 
 
+def test_with_insert_partial(rng):
+    srs = pd.Series(random_strings(rng=rng))
+    mut_insert = with_insert(rng=rng)
+
+    (srs_mut,) = mut_insert([srs], 0.5)
+
+    assert len(srs) == len(srs_mut)
+    assert (srs == srs_mut).any()
+    assert (srs != srs_mut).any()
+
+
 def test_with_insert_charset(rng):
     # test by inserting uppercase characters into lowercase strings
     srs = pd.Series(random_strings(rng=rng, charset=string.ascii_lowercase))
@@ -282,6 +343,18 @@ def test_with_transpose(rng):
     assert len(srs) == len(srs_mut)
     assert (srs != srs_mut).all()
     assert (srs.str.len() == srs_mut.str.len()).all()
+
+
+def test_with_transpose_partial(rng):
+    # create unique strings, otherwise the same characters might be swapped
+    srs = pd.Series(random_strings(unique=True, rng=rng))
+    mut_transpose = with_transpose(rng=rng)
+
+    (srs_mut,) = mut_transpose([srs], 0.5)
+
+    assert len(srs) == len(srs_mut)
+    assert (srs == srs_mut).any()
+    assert (srs != srs_mut).any()
 
 
 def test_with_transpose_warn_p(rng):
@@ -318,6 +391,17 @@ def test_with_substitute(rng):
     # check that the correct characters have been inserted
     assert srs.str.isdigit().all()
     assert not srs_mut.str.isdigit().all()
+
+
+def test_with_substitute_partial(rng):
+    srs = pd.Series(random_strings(charset=string.digits, rng=rng))
+    mut_substitute = with_substitute(rng=rng)
+
+    (srs_mut,) = mut_substitute([srs], 0.5)
+
+    assert len(srs) == len(srs_mut)
+    assert (srs == srs_mut).any()
+    assert (srs != srs_mut).any()
 
 
 def test_with_substitute_charset(rng):
@@ -370,6 +454,17 @@ def test_with_uppercase(rng):
     assert (srs.str.upper() == srs_mut).all()
 
 
+def test_with_uppercase_partial(rng):
+    srs = pd.Series(random_strings(charset=string.ascii_lowercase, rng=rng))
+    mut_uppercase = with_uppercase(rng=rng)
+
+    (srs_mut,) = mut_uppercase([srs], 0.5)
+
+    assert len(srs) == len(srs_mut)
+    assert (srs == srs_mut).any()
+    assert (srs != srs_mut).any()
+
+
 def test_with_uppercase_warn_p(rng):
     srs = pd.Series(
         random_strings(n_strings=50, charset=string.ascii_lowercase, rng=rng)
@@ -402,6 +497,17 @@ def test_with_lowercase(rng):
     assert len(srs) == len(srs_mut)
     assert (srs != srs_mut).all()
     assert (srs.str.lower() == srs_mut).all()
+
+
+def test_with_lowercase_partial(rng):
+    srs = pd.Series(random_strings(charset=string.ascii_uppercase, rng=rng))
+    mut_lowercase = with_lowercase(rng=rng)
+
+    (srs_mut,) = mut_lowercase([srs], 0.5)
+
+    assert len(srs) == len(srs_mut)
+    assert (srs == srs_mut).any()
+    assert (srs != srs_mut).any()
 
 
 def test_with_lowercase_warn_p(rng):
@@ -439,9 +545,26 @@ def test_with_function(rng):
     (srs_mut,) = mut_fn([srs], 1)
 
     assert len(srs) == len(srs_mut)
+    assert (srs != srs_mut).all()
     assert (srs.str.len() + 1 == srs_mut.str.len()).all()
     assert (srs == srs_mut.str[:-1]).all()
     assert srs_mut.str[-1].str.isdigit().all()
+
+
+def test_with_function_partial(rng):
+    import numpy as np
+
+    def _my_func(value: str, my_rng: np.random.Generator) -> str:
+        return f"{value}{my_rng.integers(0, 10)}"
+
+    srs = pd.Series(random_strings(charset=string.ascii_letters, rng=rng))
+    mut_fn = with_function(_my_func, rng=rng, my_rng=rng)
+
+    (srs_mut,) = mut_fn([srs], 0.5)
+
+    assert len(srs) == len(srs_mut)
+    assert (srs == srs_mut).any()
+    assert (srs != srs_mut).any()
 
 
 def test_with_repeat(rng):
@@ -451,7 +574,19 @@ def test_with_repeat(rng):
     (srs_mut,) = mut_repeat([srs], 1.0)
 
     assert len(srs) == len(srs_mut)
+    assert (srs != srs_mut).all()
     assert (srs + " " + srs == srs_mut).all()
+
+
+def test_with_repeat_partial(rng):
+    srs = pd.Series(random_strings(charset=string.ascii_letters, rng=rng))
+    mut_repeat = with_repeat(rng=rng)
+
+    (srs_mut,) = mut_repeat([srs], 0.5)
+
+    assert len(srs) == len(srs_mut)
+    assert (srs == srs_mut).any()
+    assert (srs != srs_mut).any()
 
 
 def test_with_repeat_join_character(rng):
@@ -464,7 +599,7 @@ def test_with_repeat_join_character(rng):
     assert (srs + ":" + srs == srs_mut).all()
 
 
-def test_permute(rng):
+def test_with_permute(rng):
     srs_a = pd.Series(random_strings(charset=string.ascii_lowercase, rng=rng))
     srs_b = pd.Series(random_strings(charset=string.ascii_uppercase, rng=rng))
     mut_permute = with_permute(rng=rng)
@@ -476,7 +611,7 @@ def test_permute(rng):
     assert (srs_b == srs_a_mut).all()
 
 
-def test_permute_multicolumn(rng):
+def test_with_permute_multicolumn(rng):
     srs_a = pd.Series(random_strings(charset=string.ascii_lowercase, rng=rng))
     srs_b = pd.Series(random_strings(charset=string.ascii_uppercase, rng=rng))
     srs_c = pd.Series(random_strings(charset=string.digits, rng=rng))
@@ -497,7 +632,7 @@ def test_permute_multicolumn(rng):
     assert (~srs_c_mut.str.isdigit()).all()
 
 
-def test_permute_partial(rng):
+def test_with_permute_partial(rng):
     srs_a = pd.Series(random_strings(charset=string.ascii_lowercase, rng=rng))
     srs_b = pd.Series(random_strings(charset=string.ascii_uppercase, rng=rng))
     mut_permute = with_permute(rng=rng)
@@ -655,6 +790,23 @@ def test_with_group(rng):
     assert set(srs_mut.str.len().unique()) == {19, 21}
 
 
+def test_with_group_partial(rng):
+    srs = pd.Series(random_strings(charset=string.ascii_letters, str_len=20, rng=rng))
+    mut_group = with_group(
+        [
+            with_insert(charset=string.digits, rng=rng),
+            with_delete(rng=rng),
+        ],
+        rng=rng,
+    )
+
+    (srs_mut,) = mut_group([srs], 0.5)
+
+    assert len(srs) == len(srs_mut)
+    assert (srs == srs_mut).any()
+    assert (srs != srs_mut).any()
+
+
 def test_with_group_weighted(rng):
     srs = pd.Series(random_strings(charset=string.ascii_letters, str_len=20, rng=rng))
     mut_group = with_group(
@@ -737,6 +889,21 @@ def test_with_categorical_values(rng):
             assert (srs_mut[this_val] == other_value).any()
 
 
+def test_with_categorical_values_partial(rng):
+    values = {"a", "b", "c", "d"}
+    srs = pd.Series(list(sorted(values)) * 1_000)
+
+    df_cat = pd.DataFrame.from_dict({"values": list("abcd")})
+
+    mut_categorical = with_categorical_values(df_cat, value_column="values", rng=rng)
+
+    (srs_mut,) = mut_categorical([srs], 0.5)
+
+    assert len(srs) == len(srs_mut)
+    assert (srs == srs_mut).any()
+    assert (srs != srs_mut).any()
+
+
 def test_with_categorical_values_warn_p(rng):
     srs = pd.Series(list("abcd") * 1_000)
 
@@ -805,6 +972,21 @@ def test_with_datetime_offset(rng, unit):
 @pytest.mark.parametrize(
     "unit", ["d", "days", "h", "hours", "m", "minutes", "s", "seconds"]
 )
+def test_with_datetime_offset_partial(rng, unit):
+    srs = pd.Series(
+        pd.date_range("2020-01-01", "2021-01-01", freq="h", inclusive="left")
+    )
+    mut_datetime_offset = with_datetime_offset(5, unit, "%Y-%m-%d %H:%M:%S", rng=rng)
+    (srs_mut,) = mut_datetime_offset([srs], 0.5)
+
+    assert len(srs) == len(srs_mut)
+    assert (srs == srs_mut).any()
+    assert (srs != srs_mut).any()
+
+
+@pytest.mark.parametrize(
+    "unit", ["d", "days", "h", "hours", "m", "minutes", "s", "seconds"]
+)
 def test_with_datetime_offset_prevent_wraparound(rng, unit):
     srs = pd.Series(["2020-01-01 00:00:00"] * 1_000)
     mut_datetime_offset = with_datetime_offset(
@@ -864,6 +1046,27 @@ def test_with_phonetic_replacement_table(rng):
     assert len(srs) == len(srs_mut)
     assert (srs != srs_mut).all()
     assert not srs_mut.str.isalpha().all()
+
+
+def test_with_phonetic_replacement_table_partial(rng):
+    srs = pd.Series(["".join(tpl) for tpl in itertools.permutations("abc")])
+    df_phon = pd.DataFrame.from_dict(
+        {"source": list("abcbcca"), "target": list("0123456"), "flags": list("^^^$$__")}
+    )
+
+    mut_phonetic = with_phonetic_replacement_table(
+        df_phon,
+        source_column="source",
+        target_column="target",
+        flags_column="flags",
+        rng=rng,
+    )
+
+    (srs_mut,) = mut_phonetic([srs], 0.5)
+
+    assert len(srs) == len(srs_mut)
+    assert (srs == srs_mut).any()
+    assert (srs != srs_mut).any()
 
 
 def test_with_phonetic_replacement_table_no_flags(rng):
@@ -981,6 +1184,22 @@ def test_with_regex_replacement_table_unnamed_capture_group(rng):
     assert len(srs) == len(srs_mut)
     assert (srs != srs_mut).all()
     assert not srs_mut.str.isalpha().all()
+
+
+def test_with_regex_replacement_table_unnamed_capture_group_partial(rng):
+    srs = pd.Series(["abc", "def"] * 100)
+
+    df_table = pd.DataFrame.from_dict({"pattern": ["a(bc)", "d(ef)"], "1": ["1", "2"]})
+
+    mut_regex = with_regex_replacement_table(
+        df_table, pattern_column="pattern", rng=rng
+    )
+
+    (srs_mut,) = mut_regex([srs], 0.5)
+
+    assert len(srs) == len(srs_mut)
+    assert (srs == srs_mut).any()
+    assert (srs != srs_mut).any()
 
 
 def test_with_regex_replacement_table_named_capture_group(rng):
