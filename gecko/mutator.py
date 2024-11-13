@@ -33,7 +33,7 @@ import re
 import string
 import warnings
 from dataclasses import dataclass, field
-from os import PathLike, stat_result
+from os import PathLike
 from pathlib import Path
 import typing as _t
 
@@ -777,7 +777,7 @@ def with_insert(
         # generate random indices to insert values at
         arr_rng_vals = rng.random(size=rows_to_mutate_count)
         arr_ins_idx = np.floor(
-            (srs.str.len() + 1)
+            (srs.loc[srs_rows_to_mutate].str.len() + 1)
             * arr_rng_vals  # +1 because letters can be inserted at the end
         ).astype(int)
 
@@ -834,8 +834,11 @@ def with_delete(rng: _t.Optional[np.random.Generator] = None) -> Mutator:
         arr_rng_vals = rng.random(size=possible_rows_to_mutate)
         srs_rows_to_mutate.loc[srs_rows_to_mutate] = arr_rng_vals < p_subset_select
 
+        # count rows that will be mutated
+        rows_to_mutate_count = srs_rows_to_mutate.sum()
+
         # generate random indices
-        arr_rng_vals = rng.random(size=possible_rows_to_mutate)
+        arr_rng_vals = rng.random(size=rows_to_mutate_count)
         arr_rng_idx = np.floor(
             srs.loc[srs_rows_to_mutate].str.len() * arr_rng_vals
         ).astype(int)
@@ -1819,11 +1822,9 @@ def mutate_data_frame(
                 f"of column `{', '.join(column_spec)}`"
             )
 
-        # if the list contains functions only, create them into tuples with equal probability
+        # if the list contains functions only, apply them all with 1.0 probability
         if all(callable(c) for c in mutator_spec):
-            mutator_spec = [
-                (1.0 / len(mutator_spec), mutator) for mutator in mutator_spec
-            ]
+            mutator_spec = [(1.0, mutator) for mutator in mutator_spec]
 
         # if the end result is not a list of weighted mutators for each column, abort
         if not _is_weighted_mutator_tuple_list(mutator_spec):
@@ -1837,8 +1838,7 @@ def mutate_data_frame(
             if mut_p <= 0 or mut_p > 1:
                 raise ValueError("probability for mutator must be in range of (0, 1]")
 
-            mut_grp = with_group([weighted_mut], rng=rng)
-            srs_lst_out = mut_grp(srs_lst_out)
+            srs_lst_out = mut_fn(srs_lst_out, mut_p)
 
         for mut_srs_idx, mut_srs in enumerate(srs_lst_out):
             col_name = column_spec[mut_srs_idx]

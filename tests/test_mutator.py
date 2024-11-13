@@ -3,6 +3,7 @@ import string
 
 import pandas as pd
 import pytest
+from numpy.core.defchararray import str_len
 
 import gecko.generator
 from gecko.mutator import (
@@ -25,6 +26,7 @@ from gecko.mutator import (
     with_datetime_offset,
     with_phonetic_replacement_table,
     with_regex_replacement_table,
+    mutate_data_frame,
 )
 from tests.helpers import get_asset_path, random_strings, write_temporary_csv_file
 
@@ -1077,3 +1079,70 @@ def test_with_regex_replacement_table_csv(rng, tmp_path):
     assert len(srs) == len(srs_mut)
     assert (srs != srs_mut).all()
     assert not srs_mut.str.isalpha().all()
+
+
+def test_mutate_data_frame(rng):
+    lowercase_char_count = len(string.ascii_lowercase)
+
+    def random_unique_lowercase_strings():
+        return random_strings(
+            n_strings=100_000,
+            str_len=lowercase_char_count,
+            charset=string.ascii_lowercase,
+            unique=True,
+            rng=rng,
+        )
+
+    df = pd.DataFrame.from_dict(
+        {
+            "col_1": random_unique_lowercase_strings(),
+            "col_2": random_unique_lowercase_strings(),
+            "col_3": random_unique_lowercase_strings(),
+            "col_4": random_unique_lowercase_strings(),
+        }
+    )
+
+    df_mut = mutate_data_frame(
+        df,
+        [
+            # col 1 should have these mutators applied to all rows
+            (
+                "col_1",
+                [
+                    with_delete(rng=rng),
+                    with_uppercase(rng=rng),
+                ],
+            ),
+            # col 2 should have these mutators applied to approx. 50% of all rows
+            (
+                "col_2",
+                [
+                    (0.5, with_insert(charset=string.ascii_uppercase, rng=rng)),
+                ],
+            ),
+            # col 3 and 4 should be permuted
+            (("col_3", "col_4"), with_permute(rng=rng)),
+        ],
+    )
+
+    # for col_1, ensure that all mutators were applied
+    assert (df["col_1"] != df_mut["col_1"]).all()
+
+    assert (df_mut["col_1"].str.len() == lowercase_char_count - 1).all()
+    assert df_mut["col_1"].str.upper().all()
+
+    # for col_2, check that the amount of mutated and untouched columns roughly matches
+    df_mut_col_2_str_lens = df_mut["col_2"].str.len().value_counts()
+
+    assert (
+        abs(
+            df_mut_col_2_str_lens[lowercase_char_count]
+            - df_mut_col_2_str_lens[lowercase_char_count + 1]
+        )
+        / len(df_mut["col_1"])
+        < 0.01
+    )
+
+    # for col_3 and col_4, check that the columns were correctly permuted
+    assert (df_mut["col_3"] == df["col_4"]).all()
+    assert (df_mut["col_4"] == df["col_3"]).all()
