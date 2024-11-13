@@ -1056,45 +1056,57 @@ def with_categorical_values(
         )
 
     # fetch unique values
-    unique_values = pd.Series(df[value_column].unique())
+    arr_unique_values = np.array(sorted(df.loc[:, value_column].unique()))
 
-    def _mutate_series(srs: pd.Series) -> pd.Series:
-        nonlocal unique_values
-
-        # create a new series with which the original one will be updated.
-        # for starters all rows will be NaN. dtype is to avoid typecast warning.
-        srs_in_update = pd.Series(
-            np.full(len(srs), np.nan), copy=False, dtype=str, index=srs.index
+    if len(arr_unique_values) < 2:
+        raise ValueError(
+            f"column must contain at least two unique values, has {len(arr_unique_values)}"
         )
 
-        for unique_val in unique_values:
-            # remove current value from list of unique values
-            unique_vals_without_current = np.setdiff1d(unique_values, unique_val)
-            # select all rows that equal the current value
-            srs_in_matching_val = srs.str.fullmatch(unique_val)
-            # count the rows that contain the current value
-            unique_val_total = srs_in_matching_val.sum()
+    def _mutate_series(srs: pd.Series, p: float) -> pd.Series:
+        # create copy
+        srs_out = srs.copy(deep=True)
+        # track which rows contain a value that can be mutated
+        srs_rows_to_mutate = pd.Series([False] * len(srs), index=srs.index)
 
-            # skip if there are no values to generate
-            if unique_val_total == 0:
+        # update by checking which rows contain a candidate value
+        for val in arr_unique_values:
+            srs_rows_to_mutate |= srs == val
+
+        # check rows that can be mutated
+        possible_rows_to_mutate = srs_rows_to_mutate.sum()
+        p_actual = possible_rows_to_mutate / len(srs)
+
+        # warn if p cannot be met
+        if p_actual < p:
+            _warn_p(with_categorical_values.__name__, p, p_actual)
+
+        # perform selection
+        p_subset_select = min(1.0, p / p_actual)
+        arr_rng_vals = rng.random(size=possible_rows_to_mutate)
+        srs_rows_to_mutate.loc[srs_rows_to_mutate] = arr_rng_vals < p_subset_select
+
+        for val in arr_unique_values:
+            # fetch all rows that match the value
+            srs_this_val = srs_rows_to_mutate & (srs == val)
+            rows_to_mutate_count = srs_this_val.sum()
+
+            # skip if no rows match
+            if rows_to_mutate_count == 0:
                 continue
 
-            # draw from the list of values excluding the current one
-            new_unique_vals = rng.choice(
-                unique_vals_without_current, size=unique_val_total
+            # get the set of unique values minus the one that is currently processed
+            arr_unique_values_without_this = np.setdiff1d(arr_unique_values, val)
+            # perform the update
+            srs_out.loc[srs_this_val] = rng.choice(
+                arr_unique_values_without_this, size=rows_to_mutate_count
             )
-
-            # populate the series that is used for updating the original one
-            srs_in_update[srs_in_matching_val] = new_unique_vals
-
-        # update() is performed in-place, so create a copy of the initial series first.
-        srs_out = srs.copy()
-        srs_out.update(srs_in_update)
 
         return srs_out
 
-    def _mutate(srs_lst: list[pd.Series]) -> list[pd.Series]:
-        return [_mutate_series(srs) for srs in srs_lst]
+    def _mutate(srs_lst: list[pd.Series], p: float = 1.0) -> list[pd.Series]:
+        _check_probability_in_bounds(p)
+        return [_mutate_series(srs, p) for srs in srs_lst]
 
     return _mutate
 

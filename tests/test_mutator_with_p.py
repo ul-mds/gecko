@@ -20,6 +20,7 @@ from gecko.mutator import (
     with_permute,
     with_generator,
     with_group,
+    with_categorical_values,
 )
 from tests.helpers import get_asset_path, random_strings, write_temporary_csv_file
 
@@ -707,3 +708,75 @@ def test_with_group_raise_p_sum_too_low(rng):
         )
 
     assert str(e.value) == "sum of weights must be higher than 0, is 0"
+
+
+def test_with_categorical_values(rng):
+    values = {"a", "b", "c", "d"}
+    srs = pd.Series(list(sorted(values)) * 1_000)
+
+    df_cat = pd.DataFrame.from_dict({"values": list("abcd")})
+
+    mut_categorical = with_categorical_values(df_cat, value_column="values", rng=rng)
+
+    (srs_mut,) = mut_categorical([srs], 1.0)
+
+    assert len(srs) == len(srs_mut)
+    assert (srs != srs_mut).all()
+
+    # check that each other categorical value appears at least once
+    for value in values:
+        this_val = srs == value
+
+        for other_value in values - {value}:
+            assert (srs_mut[this_val] == other_value).any()
+
+
+def test_with_categorical_values_warn_p(rng):
+    srs = pd.Series(list("abcd") * 1_000)
+
+    # only two values from the series can be mutated, so p should be approx. 50%
+    df_cat = pd.DataFrame.from_dict({"values": list("ab")})
+
+    mut_categorical = with_categorical_values(df_cat, value_column="values", rng=rng)
+
+    with pytest.warns(UserWarning) as record:
+        (srs_mut,) = mut_categorical([srs], 0.8)
+
+    assert len(record) == 1
+    assert (
+        record[0]
+        .message.args[0]
+        .startswith("with_categorical_values: desired probability of 0.8 cannot be met")
+    )
+
+    srs_mutated_rows = (srs == "a") | (srs == "b")
+
+    assert (srs.loc[srs_mutated_rows] != srs_mut.loc[srs_mutated_rows]).all()
+    assert (srs.loc[~srs_mutated_rows] == srs_mut.loc[~srs_mutated_rows]).all()
+
+
+def test_with_categorical_values_raise_too_few_values(rng):
+    df_cat = pd.DataFrame.from_dict({"values": list("a")})
+
+    with pytest.raises(ValueError) as e:
+        _ = with_categorical_values(df_cat, value_column="values", rng=rng)
+
+    assert str(e.value) == "column must contain at least two unique values, has 1"
+
+
+def test_with_categorical_values_csv(rng, tmp_path):
+    srs = pd.Series(list(string.ascii_letters))
+    csv_file_path = write_temporary_csv_file(
+        tmp_path,
+        header=["values"],
+        rows=list(string.ascii_letters),
+    )
+
+    mut_categorical = with_categorical_values(
+        csv_file_path, value_column="values", rng=rng
+    )
+
+    (srs_mut,) = mut_categorical([srs], 1)
+
+    assert len(srs) == len(srs_mut)
+    assert (srs != srs_mut).all()
