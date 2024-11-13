@@ -252,7 +252,7 @@ def with_cldr_keymap_file(
         p_candidates = srs_selected_for_mutation.sum() / srs_len
 
         if p_candidates < p:
-            _warn_p("with_cldr_keymap_file", p, p_candidates)
+            _warn_p(with_cldr_keymap_file.__name__, p, p_candidates)
 
         # select p for all eligible rows, avoid values > 1
         p_subset_select = min(1.0, p / p_candidates)
@@ -631,7 +631,7 @@ def with_replacement_table(
 
         # warn if p cannot be met
         if p_actual < p:
-            _warn_p("with_replacement_table", p, p_actual)
+            _warn_p(with_replacement_table.__name__, p, p_actual)
 
         # perform actual selection
         p_subset_select = min(1.0, p / p_actual)
@@ -725,7 +725,7 @@ def with_missing_value(
         p_actual = possible_rows_to_mutate / len(srs)
 
         if p_actual < p:
-            _warn_p("with_missing_value", p, p_actual)
+            _warn_p(with_missing_value.__name__, p, p_actual)
 
         # select subset of rows to mutate
         p_subset_select = min(1.0, p / p_actual)
@@ -827,7 +827,7 @@ def with_delete(rng: _t.Optional[np.random.Generator] = None) -> Mutator:
         p_actual = possible_rows_to_mutate / len(srs)
 
         if p_actual < p:
-            _warn_p("with_delete", p, p_actual)
+            _warn_p(with_delete.__name__, p, p_actual)
 
         # select subset of rows to mutate
         p_subset_select = min(1.0, p / p_actual)
