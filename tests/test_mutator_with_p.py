@@ -21,6 +21,7 @@ from gecko.mutator import (
     with_generator,
     with_group,
     with_categorical_values,
+    with_datetime_offset,
 )
 from tests.helpers import get_asset_path, random_strings, write_temporary_csv_file
 
@@ -739,7 +740,7 @@ def test_with_categorical_values_warn_p(rng):
 
     mut_categorical = with_categorical_values(df_cat, value_column="values", rng=rng)
 
-    with pytest.warns(UserWarning) as record:
+    with pytest.warns(PNotMetWarning) as record:
         (srs_mut,) = mut_categorical([srs], 0.8)
 
     assert len(record) == 1
@@ -780,3 +781,60 @@ def test_with_categorical_values_csv(rng, tmp_path):
 
     assert len(srs) == len(srs_mut)
     assert (srs != srs_mut).all()
+
+
+@pytest.mark.parametrize(
+    "unit", ["d", "days", "h", "hours", "m", "minutes", "s", "seconds"]
+)
+def test_with_datetime_offset(rng, unit):
+    srs = pd.Series(
+        pd.date_range("2020-01-01", "2021-01-01", freq="h", inclusive="left")
+    )
+    mut_datetime_offset = with_datetime_offset(5, unit, "%Y-%m-%d %H:%M:%S", rng=rng)
+    (srs_mut,) = mut_datetime_offset([srs], 1)
+
+    assert len(srs) == len(srs_mut)
+    assert (srs != srs_mut).all()
+
+
+@pytest.mark.parametrize(
+    "unit", ["d", "days", "h", "hours", "m", "minutes", "s", "seconds"]
+)
+def test_with_datetime_offset_prevent_wraparound(rng, unit):
+    srs = pd.Series(["2020-01-01 00:00:00"] * 1_000)
+    mut_datetime_offset = with_datetime_offset(
+        5, unit, "%Y-%m-%d %H:%M:%S", prevent_wraparound=True, rng=rng
+    )
+
+    with pytest.warns(PNotMetWarning) as record:
+        (srs_mut,) = mut_datetime_offset([srs], 1)
+
+    assert len(record) == 1
+    assert (
+        record[0]
+        .message.args[0]
+        .startswith("with_datetime_offset: desired probability of 1 cannot be met")
+    )
+
+    assert len(srs) == len(srs_mut)
+    assert not (srs != srs_mut).all()
+    assert (srs == srs_mut).any()
+
+
+def test_with_datetime_offset_custom_format(rng):
+    srs = pd.Series(pd.date_range("2020-01-01", periods=28, freq="D")).dt.strftime(
+        "%d.%m.%Y"
+    )
+    mut_datetime_offset = with_datetime_offset(5, "d", "%d.%m.%Y", rng=rng)
+    (srs_mut,) = mut_datetime_offset([srs], 1)
+
+    assert len(srs) == len(srs_mut)
+    assert (srs != srs_mut).all()
+    assert srs_mut.str.fullmatch(r"\d{2}.\d{2}.\d{4}").all()
+
+
+def test_with_datetime_offset_raise_invalid_delta(rng):
+    with pytest.raises(ValueError) as e:
+        _ = with_datetime_offset(0, "d", "%Y-%m-%d", rng=rng)
+
+    assert str(e.value) == "delta must be positive, is 0"

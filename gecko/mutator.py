@@ -1256,9 +1256,32 @@ def with_uppercase(rng: _t.Optional[np.random.Generator] = None) -> Mutator:
     return _mutate
 
 
+_gecko_to_pd_dt_unit_dict = {
+    "d": "D",
+    "days": "D",
+    "h": "h",
+    "hours": "h",
+    "m": "m",
+    "minutes": "m",
+    "s": "s",
+    "seconds": "s",
+}
+
+
+def _to_pd_dt_unit(unit: str) -> str:
+    pd_dt_unit = _gecko_to_pd_dt_unit_dict.get(unit)
+
+    if pd_dt_unit is None:
+        raise ValueError(
+            f"unrecognized unit `{unit}`, must be one of: `{'`, `'.join(sorted(_gecko_to_pd_dt_unit_dict.keys()))}`"
+        )
+
+    return pd_dt_unit
+
+
 def with_datetime_offset(
     max_delta: int,
-    unit: _t.Literal["D", "h", "m", "s"],
+    unit: _t.Literal["d", "days", "h", "hours", "m", "minutes", "s", "seconds"],
     dt_format: str,
     prevent_wraparound: bool = False,
     rng: _t.Optional[np.random.Generator] = None,
@@ -1288,36 +1311,38 @@ def with_datetime_offset(
     if rng is None:
         rng = np.random.default_rng()
 
-    def _mutate_series(srs: pd.Series) -> pd.Series:
+    def _mutate_series(srs: pd.Series, p: float) -> pd.Series:
         srs_dt = pd.to_datetime(srs, format=dt_format, errors="raise")
-        srs_dt_out = srs_dt.copy()
+        srs_dt_out = srs_dt.copy(deep=True)
 
+        # select rows that should be mutated
+        arr_rows_to_mutate = rng.random(size=len(srs)) < p
+
+        # draw random amount of time units for rows to modify
         arr_rng_vals = rng.integers(
             low=1, high=max_delta, size=len(srs_dt), endpoint=True
         ) * rng.choice((-1, 1), size=len(srs_dt))
-
-        srs_vals = pd.Series(arr_rng_vals, copy=False, index=srs_dt.index)
 
         for sgn in (-1, 1):
             for val in range(1, max_delta + 1):
                 # compute the delta
                 this_delta = sgn * val
                 # wrap it into a timedelta
-                this_timedelta = pd.Timedelta(this_delta, unit)
+                this_timedelta = pd.Timedelta(this_delta, _to_pd_dt_unit(unit))
                 # select all rows that have this delta applied to them
-                this_srs_mask = srs_vals == this_delta
+                this_srs_mask = (arr_rng_vals == this_delta) & arr_rows_to_mutate
                 # update rows
                 srs_dt_out.loc[this_srs_mask] += this_timedelta
 
                 # patch stuff if it wrapped around on accident
                 if prevent_wraparound:
-                    if unit == "D":
+                    if unit in ("days", "d"):
                         wraparound_patch_mask = srs_dt_out.dt.month != srs_dt.dt.month
-                    elif unit == "h":
+                    elif unit in ("hours", "h"):
                         wraparound_patch_mask = srs_dt_out.dt.day != srs_dt.dt.day
-                    elif unit == "m":
+                    elif unit in ("minutes", "m"):
                         wraparound_patch_mask = srs_dt_out.dt.hour != srs_dt.dt.hour
-                    elif unit == "s":
+                    elif unit in ("seconds", "s"):
                         wraparound_patch_mask = srs_dt_out.dt.minute != srs_dt.dt.minute
                     else:
                         raise ValueError(f"unrecognized unit: `{unit}`")
@@ -1327,10 +1352,20 @@ def with_datetime_offset(
                         wraparound_patch_mask
                     ]
 
+        # check if all rows that were marked for mutation actually got mutated
+        srs_mutated_rows = (
+            srs_dt.loc[arr_rows_to_mutate] != srs_dt_out.loc[arr_rows_to_mutate]
+        )
+        p_actual = srs_mutated_rows.sum() / len(srs)
+
+        if not srs_mutated_rows.all():
+            _warn_p(with_datetime_offset.__name__, p, p_actual)
+
         return srs_dt_out.dt.strftime(dt_format)
 
-    def _mutate(srs_lst: list[pd.Series]) -> list[pd.Series]:
-        return [_mutate_series(srs) for srs in srs_lst]
+    def _mutate(srs_lst: list[pd.Series], p: float = 1.0) -> list[pd.Series]:
+        _check_probability_in_bounds(p)
+        return [_mutate_series(srs, p) for srs in srs_lst]
 
     return _mutate
 
