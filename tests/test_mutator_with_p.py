@@ -24,6 +24,7 @@ from gecko.mutator import (
     with_categorical_values,
     with_datetime_offset,
     with_phonetic_replacement_table,
+    with_regex_replacement_table,
 )
 from tests.helpers import get_asset_path, random_strings, write_temporary_csv_file
 
@@ -962,3 +963,117 @@ def test_with_phonetic_replacement_table_raise_no_rules(rng):
         )
 
     assert str(e.value) == "must provide at least one phonetic replacement rule"
+
+
+def test_with_regex_replacement_table_unnamed_capture_group(rng):
+    srs = pd.Series(["abc", "def"] * 100)
+
+    df_table = pd.DataFrame.from_dict({"pattern": ["a(bc)", "d(ef)"], "1": ["1", "2"]})
+
+    mut_regex = with_regex_replacement_table(
+        df_table, pattern_column="pattern", rng=rng
+    )
+
+    (srs_mut,) = mut_regex([srs], 1)
+
+    assert len(srs) == len(srs_mut)
+    assert (srs != srs_mut).all()
+    assert not srs_mut.str.isalpha().all()
+
+
+def test_with_regex_replacement_table_named_capture_group(rng):
+    srs = pd.Series(["abc", "def"] * 100)
+
+    df_table = pd.DataFrame.from_dict(
+        {"pattern": ["a(?P<foo>bc)", "d(?P<foo>ef)"], "foo": ["1", "2"]}
+    )
+
+    mut_regex = with_regex_replacement_table(
+        df_table, pattern_column="pattern", rng=rng
+    )
+
+    (srs_mut,) = mut_regex([srs], 1)
+
+    assert len(srs) == len(srs_mut)
+    assert (srs != srs_mut).all()
+    assert not srs_mut.str.isalpha().all()
+
+
+def test_with_regex_replacement_table_flags(rng):
+    srs = pd.Series(["abc", "def", "ABC", "DEF"] * 100)
+
+    df_table = pd.DataFrame.from_dict(
+        {
+            "pattern": ["a(bc)", "d(ef)"],
+            "1": ["1", "2"],
+            "flags": ["i", "i"],  # ignore case flag
+        }
+    )
+
+    mut_regex = with_regex_replacement_table(
+        df_table, pattern_column="pattern", flags_column="flags", rng=rng
+    )
+
+    (srs_mut,) = mut_regex([srs], 1)
+
+    assert len(srs) == len(srs_mut)
+    assert (srs != srs_mut).all()
+    assert not srs_mut.str.isalpha().all()
+
+
+def test_with_regex_replacement_table_warn_p(rng):
+    srs = pd.Series(["abc", "def"] * 100)
+
+    df_table = pd.DataFrame.from_dict({"pattern": ["a(bc)"], "1": ["1"]})
+
+    mut_regex = with_regex_replacement_table(
+        df_table, pattern_column="pattern", rng=rng
+    )
+
+    with pytest.warns(PNotMetWarning) as record:
+        (srs_mut,) = mut_regex([srs], 0.8)
+
+    assert len(record) == 1
+    assert (
+        record[0]
+        .message.args[0]
+        .startswith(
+            "with_regex_replacement_table: desired probability of 0.8 cannot be met"
+        )
+    )
+
+    srs_mutated_rows = srs.str.startswith("a")
+
+    assert (srs.loc[srs_mutated_rows] != srs_mut.loc[srs_mutated_rows]).all()
+    assert (srs.loc[~srs_mutated_rows] == srs.loc[~srs_mutated_rows]).all()
+
+
+def test_with_regex_replacement_table_raise_no_rules(rng):
+    with pytest.raises(ValueError) as e:
+        _ = with_regex_replacement_table(
+            pd.DataFrame({"pattern": []}), pattern_column="pattern", rng=rng
+        )
+
+    assert str(e.value) == "must provide at least one regex pattern"
+
+
+def test_with_regex_replacement_table_csv(rng, tmp_path):
+    srs = pd.Series(["abc", "def"] * 100)
+    csv_path = write_temporary_csv_file(
+        tmp_path,
+        header=["pattern", "1"],
+        rows=[
+            ["a(bc)", "1"],
+            ["d(ef)", "2"],
+        ],
+    )
+
+    mut_regex = with_regex_replacement_table(
+        csv_path, pattern_column="pattern", rng=rng
+    )
+
+    (srs_mut,) = mut_regex([srs], 1)
+
+    assert len(srs) == len(srs_mut)
+    assert (srs != srs_mut).all()
+    assert not srs_mut.str.isalpha().all()
