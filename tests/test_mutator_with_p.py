@@ -1,3 +1,4 @@
+import itertools
 import string
 
 import pandas as pd
@@ -22,6 +23,7 @@ from gecko.mutator import (
     with_group,
     with_categorical_values,
     with_datetime_offset,
+    with_phonetic_replacement_table,
 )
 from tests.helpers import get_asset_path, random_strings, write_temporary_csv_file
 
@@ -838,3 +840,125 @@ def test_with_datetime_offset_raise_invalid_delta(rng):
         _ = with_datetime_offset(0, "d", "%Y-%m-%d", rng=rng)
 
     assert str(e.value) == "delta must be positive, is 0"
+
+
+def test_with_phonetic_replacement_table(rng):
+    srs = pd.Series(["".join(tpl) for tpl in itertools.permutations("abc")])
+    df_phon = pd.DataFrame.from_dict(
+        {"source": list("abcbcca"), "target": list("0123456"), "flags": list("^^^$$__")}
+    )
+
+    mut_phonetic = with_phonetic_replacement_table(
+        df_phon,
+        source_column="source",
+        target_column="target",
+        flags_column="flags",
+        rng=rng,
+    )
+
+    (srs_mut,) = mut_phonetic([srs], 1)
+
+    assert len(srs) == len(srs_mut)
+    assert (srs != srs_mut).all()
+    assert not srs_mut.str.isalpha().all()
+
+
+def test_with_phonetic_replacement_table_no_flags(rng):
+    # no flag defaults to all flags enabled. generate a list of strings where all characters a-z
+    # are shuffled.
+    srs = pd.Series(
+        random_strings(
+            charset=string.ascii_lowercase,
+            str_len=len(string.ascii_lowercase),
+            unique=True,
+            rng=rng,
+        )
+    )
+
+    df_phon = pd.DataFrame.from_dict({"source": ["a"], "target": ["0"], "flags": [""]})
+
+    mut_phonetic = with_phonetic_replacement_table(
+        df_phon,
+        source_column="source",
+        target_column="target",
+        flags_column="flags",
+        rng=rng,
+    )
+
+    (srs_mut,) = mut_phonetic([srs], 1)
+
+    assert len(srs) == len(srs_mut)
+    assert (srs != srs_mut).all()
+    assert not srs_mut.str.isalpha().all()
+
+
+def test_with_phonetic_replacement_table_csv(rng, tmp_path):
+    # same as regular test except this one is based on a csv file
+    srs = pd.Series(["".join(tpl) for tpl in itertools.permutations("abc")])
+    csv_file_path = write_temporary_csv_file(
+        tmp_path,
+        header=["source", "target", "flags"],
+        rows=list(zip("abcbcca", "0123456", "^^^$$__")),
+    )
+
+    mut_phonetic = with_phonetic_replacement_table(
+        csv_file_path,
+        source_column="source",
+        target_column="target",
+        flags_column="flags",
+        rng=rng,
+    )
+
+    (srs_mut,) = mut_phonetic([srs], 1)
+
+    assert len(srs) == len(srs_mut)
+    assert (srs != srs_mut).all()
+    assert not srs_mut.str.isalpha().all()
+
+
+def test_with_phonetic_replacement_table_warn_p(rng):
+    srs = pd.Series(["abc", "def"] * 100)
+    df_phon = pd.DataFrame.from_dict({"source": ["a"], "target": ["0"], "flags": ["^"]})
+
+    mut_phonetic = with_phonetic_replacement_table(
+        df_phon,
+        source_column="source",
+        target_column="target",
+        flags_column="flags",
+        rng=rng,
+    )
+
+    with pytest.warns(PNotMetWarning) as record:
+        (srs_mut,) = mut_phonetic([srs], 0.8)
+
+    assert len(record) == 1
+    assert (
+        record[0]
+        .message.args[0]
+        .startswith(
+            "with_phonetic_replacement_table: desired probability of 0.8 cannot be met"
+        )
+    )
+
+    srs_mutated_rows = srs.str.startswith("a")
+
+    assert (srs.loc[srs_mutated_rows] != srs_mut.loc[srs_mutated_rows]).all()
+    assert (srs.loc[~srs_mutated_rows] == srs_mut.loc[~srs_mutated_rows]).all()
+
+
+def test_with_phonetic_replacement_table_raise_no_rules(rng):
+    with pytest.raises(ValueError) as e:
+        _ = with_phonetic_replacement_table(
+            pd.DataFrame.from_dict(
+                {
+                    "source": [],
+                    "target": [],
+                    "flags": [],
+                }
+            ),
+            source_column="source",
+            target_column="target",
+            flags_column="flags",
+        )
+
+    assert str(e.value) == "must provide at least one phonetic replacement rule"

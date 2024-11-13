@@ -33,7 +33,7 @@ import re
 import string
 import warnings
 from dataclasses import dataclass, field
-from os import PathLike
+from os import PathLike, stat_result
 from pathlib import Path
 import typing as _t
 
@@ -52,7 +52,7 @@ Mutator = _t.Callable[[list[pd.Series], _t.Optional[float]], list[pd.Series]]
 class _PhoneticReplacementRule(_t.NamedTuple):
     pattern: str
     replacement: str
-    flags: str
+    flag: str
 
 
 def _check_probability_in_bounds(p: float):
@@ -327,6 +327,11 @@ def with_cldr_keymap_file(
     return _mutate
 
 
+_PHON_FLAG_START = "^"
+_PHON_FLAG_END = "$"
+_PHON_FLAG_MIDDLE = "_"
+
+
 def with_phonetic_replacement_table(
     data_source: _t.Union[PathLike, str, pd.DataFrame],
     source_column: _t.Union[int, str] = 0,
@@ -361,8 +366,8 @@ def with_phonetic_replacement_table(
         function returning list with strings mutated by applying phonetic errors according to rules in CSV file
     """
 
-    # list of all flags. needs to be sorted for rng.
-    _all_flags = "".join(sorted("^$_"))
+    # list of all flags
+    _all_flags = "".join([_PHON_FLAG_START, _PHON_FLAG_END, _PHON_FLAG_MIDDLE])
 
     def _validate_flags(flags_str: _t.Optional[str]) -> str:
         """Check a string for valid flags. Returns all flags if string is empty, `NaN` or `None`."""
@@ -375,8 +380,8 @@ def with_phonetic_replacement_table(
 
         return flags_str
 
-    def __new_unknown_flag_error(flag: str):
-        return ValueError(f"invalid state: unknown flag `{flag}`")
+    def _new_unknown_flag_error(f: str):
+        return ValueError(f"invalid state: unknown flag `{f}`")
 
     if rng is None:
         rng = np.random.default_rng()
@@ -416,127 +421,111 @@ def with_phonetic_replacement_table(
         replacement = row[target_column]
         flags = _validate_flags(row[flags_column])
 
-        phonetic_replacement_rules.append(
-            _PhoneticReplacementRule(pattern, replacement, flags)
-        )
-
-    def _mutate_series(srs: pd.Series) -> pd.Series:
-        # create a copy of input series
-        srs_out = srs.copy()
-        # get series of string lengths
-        srs_str_out_len = srs_out.str.len()
-        # get series length
-        str_count = len(srs_out)
-        # create series to compute substitution probability
-        srs_str_sub_prob = pd.Series(dtype=float, index=srs_out.index)
-        srs_str_sub_prob[:] = 0
-        # track possible replacements for each rule
-        rule_to_flag_dict: dict[_PhoneticReplacementRule, pd.Series] = {}
-
-        for rule in phonetic_replacement_rules:
-            # increment absolute frequency for each string where rule applies
-            srs_str_flags = pd.Series(dtype=str, index=srs_out.index)
-            srs_str_flags[:] = ""
-
-            # find pattern in series
-            srs_pattern_idx = srs_out.str.find(rule.pattern)
-
-            if "^" in rule.flags:
-                # increment counter for all strings where pattern is found at start of string
-                mask_pattern_at_start = srs_pattern_idx == 0
-                srs_str_flags[mask_pattern_at_start] += "^"
-
-            if "$" in rule.flags:
-                # increment counter for all strings where pattern is found at end of string
-                mask_pattern_at_end = (
-                    srs_pattern_idx + len(rule.pattern) == srs_str_out_len
-                )
-                srs_str_flags[mask_pattern_at_end] += "$"
-
-            if "_" in rule.flags:
-                # increment counter for all strings where pattern is not at the start and at the end
-                mask_pattern_in_middle = (srs_pattern_idx > 0) & (
-                    srs_pattern_idx + len(rule.pattern) < srs_str_out_len
-                )
-                srs_str_flags[mask_pattern_in_middle] += "_"
-
-            rule_to_flag_dict[rule] = srs_str_flags
-            srs_str_sub_prob[srs_str_flags != ""] += 1
-
-        # prevent division by zero
-        mask_eligible_strs = srs_str_sub_prob != 0
-        # absolute -> relative frequency
-        srs_str_sub_prob[mask_eligible_strs] = 1 / srs_str_sub_prob[mask_eligible_strs]
-        # keep track of modified rows
-        mask_modified_rows = pd.Series(dtype=bool, index=srs_out.index)
-        mask_modified_rows[:] = False
-
-        for rule in phonetic_replacement_rules:
-            # draw random numbers for each row
-            arr_rand_vals = rng.random(size=str_count)
-            # get flags that were generated for each row
-            srs_str_flags = rule_to_flag_dict[rule]
-            # get candidate row mask
-            mask_candidate_rows = (arr_rand_vals < srs_str_sub_prob) & (
-                srs_str_flags != ""
+        for flag in flags:
+            phonetic_replacement_rules.append(
+                _PhoneticReplacementRule(pattern, replacement, flag)
             )
 
-            # create copy of rule flags and shuffle it in-place
-            arr_rand_flags = list(rule.flags)
-            rng.shuffle(arr_rand_flags)
+    if len(phonetic_replacement_rules) == 0:
+        raise ValueError("must provide at least one phonetic replacement rule")
 
-            for flag in arr_rand_flags:
-                # select rows that can have the current rule applied to them, fit into the correct flag
-                # and haven't been modified yet
-                if flag == "^":
-                    mask_current_flag = srs_out.str.startswith(rule.pattern)
-                elif flag == "$":
-                    mask_current_flag = srs_out.str.endswith(rule.pattern)
-                elif flag == "_":
-                    # not at the start and not at the end
-                    mask_current_flag = ~srs_out.str.startswith(rule.pattern) & (
-                        ~srs_out.str.endswith(rule.pattern)
-                    )
-                else:
-                    raise __new_unknown_flag_error(flag)
+    def _mutate_series(srs: pd.Series, p: float) -> pd.Series:
+        # create copy
+        srs_out = srs.copy(deep=True)
+        # track string lengths
+        srs_str_len = srs.str.len()
+        # create index df
+        df_idx = dfidx.with_capacity(
+            len(srs), len(phonetic_replacement_rules), index=srs.index
+        )
 
-                mask_current_candidate_rows = (
-                    mask_candidate_rows & mask_current_flag & ~mask_modified_rows
+        # track which rules can be applied to each row
+        for rule_idx, rule in enumerate(phonetic_replacement_rules):
+            srs_pattern_idx = srs.str.find(rule.pattern)
+
+            if rule.flag == _PHON_FLAG_START:
+                # mark all rows containing this pattern at the start
+                dfidx.set_index(df_idx, srs_pattern_idx == 0, rule_idx)
+            elif rule.flag == _PHON_FLAG_END:
+                # mark all rows containing this pattern at the end
+                dfidx.set_index(
+                    df_idx, srs_pattern_idx + len(rule.pattern) == srs_str_len, rule_idx
                 )
+            elif rule.flag == _PHON_FLAG_MIDDLE:
+                # mark all rows containing this pattern not at the start nor the end
+                dfidx.set_index(
+                    df_idx,
+                    (
+                        (srs_pattern_idx > 0)
+                        & (srs_pattern_idx + len(rule.pattern) < srs_str_len)
+                    ),
+                    rule_idx,
+                )
+            else:
+                raise _new_unknown_flag_error(flag)
 
-                # skip if there are no replacements to be made
-                if mask_current_candidate_rows.sum() == 0:
-                    continue
+        # check rows that can be mutated
+        srs_rows_to_mutate = dfidx.any_set(df_idx)
+        possible_rows_to_mutate = srs_rows_to_mutate.sum()
+        p_actual = possible_rows_to_mutate / len(srs)
 
-                if flag == "^":
-                    srs_out[mask_current_candidate_rows] = srs_out[
-                        mask_current_candidate_rows
-                    ].str.replace(f"^{rule.pattern}", rule.replacement, n=1, regex=True)
-                elif flag == "$":
-                    srs_out[mask_current_candidate_rows] = srs_out[
-                        mask_current_candidate_rows
-                    ].str.replace(f"{rule.pattern}$", rule.replacement, n=1, regex=True)
-                elif flag == "_":
-                    # matching groups are the parts that are supposed to be preserved
-                    # (anything but the string to replace).
-                    srs_out[mask_current_candidate_rows] = srs_out[
-                        mask_current_candidate_rows
-                    ].str.replace(
-                        f"^(.+){rule.pattern}(.+)$",
-                        f"\\1{rule.replacement}\\2",
+        # warn if p cannot be met
+        if p_actual < p:
+            _warn_p(with_phonetic_replacement_table.__name__, p, p_actual)
+
+        # perform selection
+        arr_rng_vals = rng.random(size=possible_rows_to_mutate)
+        srs_rows_to_mutate.loc[srs_rows_to_mutate] = arr_rng_vals < min(
+            1.0, p / p_actual
+        )
+
+        # TODO see with_replacement_table on better selection of rules
+        # randomize the order in which the existing rules might be applied
+        arr_rng_rule_idx = np.arange(0, len(phonetic_replacement_rules))
+        rng.shuffle(arr_rng_rule_idx)
+
+        for rule_idx in arr_rng_rule_idx:
+            # retrieve the appropriate rule
+            rule = phonetic_replacement_rules[rule_idx]
+            # check which rules are affected by this rule
+            srs_selected_rows_mask = (
+                srs_rows_to_mutate  # select eligible rows
+                & (srs == srs_out)  # AND select rows that haven't been mutated yet
+                & (
+                    dfidx.test_index(df_idx, rule_idx)
+                )  # AND select rows that match this rule
+            )
+
+            # apply the rule
+            if rule.flag == _PHON_FLAG_START:
+                srs_out.update(
+                    srs.loc[srs_selected_rows_mask].str.replace(
+                        f"^{rule.pattern}", rule.replacement, n=1, regex=True
+                    )
+                )
+            elif rule.flag == _PHON_FLAG_END:
+                srs_out.update(
+                    srs.loc[srs_selected_rows_mask].str.replace(
+                        f"{rule.pattern}$", rule.replacement, n=1, regex=True
+                    )
+                )
+            elif rule.flag == _PHON_FLAG_MIDDLE:
+                srs_out.update(
+                    srs.loc[srs_selected_rows_mask].str.replace(
+                        f"^(.+)(?:{rule.pattern})(.+)$",
+                        f"\\g<1>{rule.replacement}\\g<2>",
                         n=1,
                         regex=True,
                     )
-                else:
-                    raise __new_unknown_flag_error(flag)
-
-                # update modified row series
-                mask_modified_rows |= mask_current_candidate_rows
+                )
+            else:
+                raise _new_unknown_flag_error(rule.flag)
 
         return srs_out
 
-    def _mutate(srs_lst: list[pd.Series]) -> list[pd.Series]:
-        return [_mutate_series(srs) for srs in srs_lst]
+    def _mutate(srs_lst: list[pd.Series], p: float = 1.0) -> list[pd.Series]:
+        _check_probability_in_bounds(p)
+        return [_mutate_series(srs, p) for srs in srs_lst]
 
     return _mutate
 
