@@ -1,12 +1,13 @@
 import numpy as np
 import pandas as pd
 
+import typing as _t
 import typing_extensions as _te
 
 _UINT_CAPACITY = 64
 
 
-def with_capacity(rows: int, capacity: int):
+def with_capacity(rows: int, capacity: int, index: _t.Optional[pd.Index] = None):
     if rows <= 0:
         raise ValueError(f"number of rows must be positive, is {rows}")
 
@@ -14,7 +15,7 @@ def with_capacity(rows: int, capacity: int):
         raise ValueError(f"capacity must be positive, is {capacity}")
 
     col_idx, _ = divmod(capacity - 1, _UINT_CAPACITY)
-    return pd.DataFrame(np.zeros((rows, col_idx + 1), dtype=np.uint64))
+    return pd.DataFrame(np.zeros((rows, col_idx + 1), dtype=np.uint64), index=index)
 
 
 def set_index(df: pd.DataFrame, mask: _te.Union[pd.Series, slice], idx: int):

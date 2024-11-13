@@ -625,13 +625,15 @@ def with_replacement_table(
         # create copy
         srs_out = srs.copy(deep=True)
         # create index df
-        df_idx = dfidx.with_capacity(len(srs), len(arr_unique_source_values))
+        df_idx = dfidx.with_capacity(
+            len(srs), len(arr_unique_source_values), index=srs.index
+        )
 
         for src_idx, source in enumerate(arr_unique_source_values):
             if inline:
-                dfidx.set_index(df_idx, srs_out.str.contains(source), src_idx)
+                dfidx.set_index(df_idx, srs.str.contains(source), src_idx)
             else:
-                dfidx.set_index(df_idx, srs_out == source, src_idx)
+                dfidx.set_index(df_idx, srs == source, src_idx)
 
         # check rows that can be mutated
         srs_rows_to_mutate = dfidx.any_set(df_idx)
