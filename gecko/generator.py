@@ -4,7 +4,6 @@ These generators wrap around common data sources such as frequency tables and nu
 """
 
 __all__ = [
-    "Generator",
     "from_function",
     "from_uniform_distribution",
     "from_normal_distribution",
@@ -22,13 +21,12 @@ import numpy as np
 import pandas as pd
 import typing_extensions as _te
 
+from gecko import _typedefs as _gt
+
 _P = _te.ParamSpec("_P")
-Generator = _t.Callable[[int], list[pd.Series]]
 
 
-def from_function(
-    func: _t.Callable[_P, str], *args: object, **kwargs: object
-) -> Generator:
+def from_function(func: _t.Callable[_P, str], *args: object, **kwargs: object) -> _gt.Generator:
     """
     Generate data from an arbitrary function that returns a single value at a time.
 
@@ -56,7 +54,7 @@ def from_uniform_distribution(
     high: _t.Union[int, float] = 1,
     precision: int = 6,
     rng: _t.Optional[np.random.Generator] = None,
-) -> Generator:
+) -> _gt.Generator:
     """
     Generate data from a uniform distribution.
 
@@ -85,7 +83,7 @@ def from_normal_distribution(
     sd: float = 1,
     precision: int = 6,
     rng: _t.Optional[np.random.Generator] = None,
-) -> Generator:
+) -> _gt.Generator:
     """
     Generate data from a normal distribution.
 
@@ -116,7 +114,7 @@ def from_frequency_table(
     encoding: str = "utf-8",
     delimiter: str = ",",
     rng: _t.Optional[np.random.Generator] = None,
-) -> Generator:
+) -> _gt.Generator:
     """
     Generate data from a frequency table.
     The frequency table must be provided in CSV format and contain at least two columns: one containing values to
@@ -144,9 +142,7 @@ def from_frequency_table(
 
     # skip check for value_column bc they are both of the same type already
     if not isinstance(freq_column, (str, int)):
-        raise ValueError(
-            "value and frequency columns must be either a string or an integer"
-        )
+        raise ValueError("value and frequency columns must be either a string or an integer")
 
     if isinstance(data_source, pd.DataFrame):
         df = data_source
@@ -181,7 +177,7 @@ def from_multicolumn_frequency_table(
     encoding: str = "utf-8",
     delimiter: str = ",",
     rng: _t.Optional[np.random.Generator] = None,
-) -> Generator:
+) -> _gt.Generator:
     """
     Generate data from a frequency table with multiple interdependent columns..
     The frequency table must be provided in CSV format and contain at least two columns: one containing values to
@@ -218,17 +214,13 @@ def from_multicolumn_frequency_table(
 
     # skip check for value_columns bc they are both of the same type already
     if not isinstance(freq_column, str) and not isinstance(freq_column, int):
-        raise ValueError(
-            "value and frequency column must be either a string or an integer"
-        )
+        raise ValueError("value and frequency column must be either a string or an integer")
 
     # now check that all other entries in the value column are of the same type as the first entry
     # (which has been validated already)
     for i in range(1, len(value_columns)):
         if not isinstance(value_columns[i], type(value_columns[0])):
-            raise ValueError(
-                "value and frequency column must be either a string or an integer"
-            )
+            raise ValueError("value and frequency column must be either a string or an integer")
 
     if isinstance(data_source, pd.DataFrame):
         df = data_source
@@ -268,7 +260,7 @@ def from_datetime_range(
     dt_format: str,
     unit: _t.Literal["D", "h", "m", "s"],
     rng: _t.Optional[np.random.Generator] = None,
-) -> Generator:
+) -> _gt.Generator:
     """
     Generate data from a range of dates and times.
     The start and end datetime must be provided either as a ISO 8601 datetime string or a NumPy datetime object.
@@ -296,9 +288,7 @@ def from_datetime_range(
         end_dt = np.datetime64(end_dt)
 
     if start_dt >= end_dt:
-        raise ValueError(
-            f"start datetime `{start_dt}` is greater than end datetime `{end_dt}`"
-        )
+        raise ValueError(f"start datetime `{start_dt}` is greater than end datetime `{end_dt}`")
 
     if rng is None:
         rng = np.random.default_rng()
@@ -315,23 +305,18 @@ def from_datetime_range(
     return _generate
 
 
-_WeightedGenerator = tuple[_t.Union[int, float], Generator]
+_WeightedGenerator = tuple[_t.Union[int, float], _gt.Generator]
 
 
 def _is_weighted_generator(x: object) -> _te.TypeGuard[_WeightedGenerator]:
-    return (
-        isinstance(x, tuple)
-        and len(x) == 2
-        and isinstance(x[0], (float, int))
-        and callable(x[1])
-    )
+    return isinstance(x, tuple) and len(x) == 2 and isinstance(x[0], (float, int)) and callable(x[1])
 
 
 def from_group(
-    generator_lst: _t.Union[list[Generator], list[_WeightedGenerator]],
+    generator_lst: _t.Union[list[_gt.Generator], list[_WeightedGenerator]],
     max_rounding_adjustment: int = 0,
     rng: _t.Optional[np.random.Generator] = None,
-) -> Generator:
+) -> _gt.Generator:
     """
     Generate data from multiple generators.
     Unless explicitly specified, all generators will generate data with equal probability.
@@ -352,18 +337,14 @@ def from_group(
         function returning list of random data generated using supplied generators
     """
     if max_rounding_adjustment < 0:
-        raise ValueError(
-            f"rounding adjustment must not be negative, is {max_rounding_adjustment}"
-        )
+        raise ValueError(f"rounding adjustment must not be negative, is {max_rounding_adjustment}")
 
     if all(callable(g) for g in generator_lst):
         p_per_generator = 1 / len(generator_lst)
         generator_lst = [(p_per_generator, g) for g in generator_lst]
 
     if not all(_is_weighted_generator(g) for g in generator_lst):
-        raise ValueError(
-            "invalid argument, must be a list of generators or weighted generators"
-        )
+        raise ValueError("invalid argument, must be a list of generators or weighted generators")
 
     p_vals = tuple(g[0] for g in generator_lst)
     p_sum = sum(p_vals)
@@ -377,9 +358,7 @@ def from_group(
         rng = np.random.default_rng()
 
     def _generate(count: int) -> list[pd.Series]:
-        count_per_generator = list(
-            round(count * p) for p in p_vals
-        )  # get absolute counts for each generator
+        count_per_generator = list(round(count * p) for p in p_vals)  # get absolute counts for each generator
         count_sum = sum(count_per_generator)
 
         if count_sum != count:
@@ -401,9 +380,7 @@ def from_group(
 
             # draw random indices to adjust
             adjustment = np.sign(count_diff)
-            idx_to_adjust = rng.choice(
-                np.arange(0, len(count_per_generator)), size=abs(count_diff)
-            )
+            idx_to_adjust = rng.choice(np.arange(0, len(count_per_generator)), size=abs(count_diff))
 
             for idx in idx_to_adjust:
                 count_per_generator[idx] += adjustment
@@ -411,9 +388,7 @@ def from_group(
         generated_series_lsts: list[list[pd.Series]] = []
 
         for i, weighted_generator in enumerate(generator_lst):
-            _, gen = (
-                weighted_generator  # drop first argument since we won't be needing the p for this generator
-            )
+            _, gen = weighted_generator  # drop first argument since we won't be needing the p for this generator
             generated_series_lsts.append(gen(count_per_generator[i]))
 
         column_counts = set(len(srs_lst) for srs_lst in generated_series_lsts)
@@ -444,7 +419,7 @@ def from_group(
     return _generate
 
 
-_GeneratorSpec = list[tuple[_t.Union[str, tuple[str, ...]], Generator]]
+_GeneratorSpec = list[tuple[_t.Union[str, tuple[str, ...]], _gt.Generator]]
 
 
 def to_data_frame(

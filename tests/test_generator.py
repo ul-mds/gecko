@@ -71,9 +71,7 @@ def test_from_frequency_table_with_header(rng):
 
 
 def test_from_frequency_table_tsv(rng):
-    generate_tab = generator.from_frequency_table(
-        get_asset_path("freq_table_no_header.tsv"), rng=rng, delimiter="\t"
-    )
+    generate_tab = generator.from_frequency_table(get_asset_path("freq_table_no_header.tsv"), rng=rng, delimiter="\t")
 
     srs = generate_tab(100)[0]
 
@@ -127,9 +125,7 @@ def test_from_multicolumn_frequency_table(rng):
 
 
 def test_from_datetime_range(rng):
-    gen_datetime = generator.from_datetime_range(
-        "1920-01-01", "2020-01-01", "%d.%m.%Y", "D", rng=rng
-    )
+    gen_datetime = generator.from_datetime_range("1920-01-01", "2020-01-01", "%d.%m.%Y", "D", rng=rng)
 
     (dt_srs,) = gen_datetime(100)
     assert dt_srs.str.fullmatch(r"\d{2}\.\d{2}\.\d{4}").all()
@@ -151,15 +147,11 @@ def test_from_datetime_range_invalid_end_datetime(rng):
 
 @pytest.mark.parametrize("unit", ["D", "h", "m", "s"])
 def test_from_datetime_range_all_units(rng, unit):
-    gen_datetime = generator.from_datetime_range(
-        "1920-01-01", "2020-01-01", "%d.%m.%Y %H:%M:%S", unit, rng=rng
-    )
+    gen_datetime = generator.from_datetime_range("1920-01-01", "2020-01-01", "%d.%m.%Y %H:%M:%S", unit, rng=rng)
 
     (dt_srs,) = gen_datetime(100)
 
-    df_matches = dt_srs.str.extract(
-        r"(?P<date>\d{2}.\d{2}.\d{4}) (?P<hour>\d{2}):(?P<minute>\d{2}):(?P<second>\d{2})"
-    )
+    df_matches = dt_srs.str.extract(r"(?P<date>\d{2}.\d{2}.\d{4}) (?P<hour>\d{2}):(?P<minute>\d{2}):(?P<second>\d{2})")
 
     assert df_matches["date"].notna().all()
 
@@ -174,14 +166,9 @@ def test_from_datetime_range_all_units(rng, unit):
 
 def test_from_datetime_range_end_before_start(rng):
     with pytest.raises(ValueError) as e:
-        generator.from_datetime_range(
-            "2020-01-01", "1920-01-01", "%d.%m.%Y", "D", rng=rng
-        )
+        generator.from_datetime_range("2020-01-01", "1920-01-01", "%d.%m.%Y", "D", rng=rng)
 
-    assert (
-        str(e.value)
-        == "start datetime `2020-01-01` is greater than end datetime `1920-01-01`"
-    )
+    assert str(e.value) == "start datetime `2020-01-01` is greater than end datetime `1920-01-01`"
 
 
 def test_to_dataframe_error_empty_list():
@@ -247,9 +234,7 @@ def test_from_frequency_table_nan(tmp_path, rng):
 def test_from_frequency_table_df(rng):
     df = pd.DataFrame.from_dict({"freq": [10, 5], "value": ["foo", "bar"]})
 
-    gen_freq_table = generator.from_frequency_table(
-        df, value_column="value", freq_column="freq", rng=rng
-    )
+    gen_freq_table = generator.from_frequency_table(df, value_column="value", freq_column="freq", rng=rng)
 
     (srs,) = gen_freq_table(100)
     assert pd.notna(srs).all()
@@ -335,9 +320,7 @@ def test_from_group_single_column_different_weight(rng):
 
     # check that the difference in relative frequency (50%) is present
     df_value_counts = srs.value_counts()
-    assert (
-        abs(0.5 - abs((df_value_counts["a"] - df_value_counts["b"]) / count)) < 0.0001
-    )
+    assert abs(0.5 - abs((df_value_counts["a"] - df_value_counts["b"]) / count)) < 0.0001
 
 
 def test_from_group_multiple_column_same_weight(rng):
@@ -375,16 +358,10 @@ def test_from_group_multiple_column_different_weight(rng):
 
     # check that the difference in relative frequency (50%) is present
     df_value_counts_1 = srs_1.value_counts()
-    assert (
-        abs(0.5 - abs((df_value_counts_1["a1"] - df_value_counts_1["b1"]) / count))
-        < 0.0001
-    )
+    assert abs(0.5 - abs((df_value_counts_1["a1"] - df_value_counts_1["b1"]) / count)) < 0.0001
 
     df_value_counts_2 = srs_2.value_counts()
-    assert (
-        abs(0.5 - abs((df_value_counts_2["a2"] - df_value_counts_2["b2"]) / count))
-        < 0.0001
-    )
+    assert abs(0.5 - abs((df_value_counts_2["a2"] - df_value_counts_2["b2"]) / count)) < 0.0001
 
 
 def test_from_group_raise_different_column_counts(rng):
@@ -431,9 +408,7 @@ def test_from_group_rounding_adjustment_positive(rng):
 
     # this would otherwise generate 99999 rows but with the rounding adjustment,
     # all series should now have 100000
-    gen = generator.from_group(
-        [gen_a, gen_b, gen_c], rng=rng, max_rounding_adjustment=1
-    )
+    gen = generator.from_group([gen_a, gen_b, gen_c], rng=rng, max_rounding_adjustment=1)
 
     # this should work without error
     count = 100_000
