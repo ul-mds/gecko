@@ -471,6 +471,9 @@ def with_phonetic_replacement_table(
         if p_actual < p:
             _warn_p(with_phonetic_replacement_table.__name__, p, p_actual)
 
+        if possible_rows_to_mutate == 0:
+            return srs_out
+
         # perform selection
         arr_rng_vals = rng.random(size=possible_rows_to_mutate)
         srs_rows_to_mutate.loc[srs_rows_to_mutate] = arr_rng_vals < min(
@@ -631,6 +634,9 @@ def with_replacement_table(
         if p_actual < p:
             _warn_p(with_replacement_table.__name__, p, p_actual)
 
+        if possible_rows_to_mutate == 0:
+            return srs_out
+
         # perform actual selection
         p_subset_select = min(1.0, p / p_actual)
         arr_rng_vals = rng.random(size=possible_rows_to_mutate)
@@ -724,6 +730,9 @@ def with_missing_value(
 
         if p_actual < p:
             _warn_p(with_missing_value.__name__, p, p_actual)
+
+        if possible_rows_to_mutate == 0:
+            return srs_out
 
         # select subset of rows to mutate
         p_subset_select = min(1.0, p / p_actual)
@@ -828,6 +837,9 @@ def with_delete(rng: _t.Optional[np.random.Generator] = None) -> _gt.Mutator:
         if p_actual < p:
             _warn_p(with_delete.__name__, p, p_actual)
 
+        if possible_rows_to_mutate == 0:
+            return srs_out
+
         # select subset of rows to mutate
         p_subset_select = min(1.0, p / p_actual)
         arr_rng_vals = rng.random(size=possible_rows_to_mutate)
@@ -882,6 +894,9 @@ def with_transpose(rng: _t.Optional[np.random.Generator] = None) -> _gt.Mutator:
 
         if p_actual < p:
             _warn_p(with_transpose.__name__, p, p_actual)
+
+        if possible_rows_to_mutate == 0:
+            return srs_out
 
         # select subset of rows to mutate
         p_subset_select = min(1.0, p / p_actual)
@@ -950,6 +965,9 @@ def with_substitute(
 
         if p_actual < p:
             _warn_p(with_substitute.__name__, p, p_actual)
+
+        if possible_rows_to_mutate == 0:
+            return srs_out
 
         # select subset of rows to mutate
         p_subset_select = min(1.0, p / p_actual)
@@ -1075,6 +1093,9 @@ def with_categorical_values(
         if p_actual < p:
             _warn_p(with_categorical_values.__name__, p, p_actual)
 
+        if possible_rows_to_mutate == 0:
+            return srs_out
+
         # perform selection
         p_subset_select = min(1.0, p / p_actual)
         arr_rng_vals = rng.random(size=possible_rows_to_mutate)
@@ -1197,6 +1218,9 @@ def with_lowercase(rng: _t.Optional[np.random.Generator] = None) -> _gt.Mutator:
         if p_actual < p:
             _warn_p(with_lowercase.__name__, p, p_actual)
 
+        if possible_rows_to_mutate == 0:
+            return srs_out
+
         # select subset of rows to mutate
         p_subset_select = min(1.0, p / p_actual)
         arr_rng_vals = rng.random(size=possible_rows_to_mutate)
@@ -1237,6 +1261,9 @@ def with_uppercase(rng: _t.Optional[np.random.Generator] = None) -> _gt.Mutator:
 
         if p_actual < p:
             _warn_p(with_uppercase.__name__, p, p_actual)
+
+        if possible_rows_to_mutate == 0:
+            return srs_out
 
         # select subset of rows to mutate
         p_subset_select = min(1.0, p / p_actual)
@@ -1589,6 +1616,9 @@ def with_regex_replacement_table(
         # warn if p cannot be met
         if p_actual < p:
             _warn_p(with_regex_replacement_table.__name__, p, p_actual)
+
+        if possible_rows_to_mutate == 0:
+            return srs_out
 
         # perform selection
         arr_rng_vals = rng.random(size=possible_rows_to_mutate)
