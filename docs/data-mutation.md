@@ -1,17 +1,12 @@
 # Mutating data
 
-A mutator is a function that takes in a list
-of [Pandas series](https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.Series.html) where each series
-represents a column and returns a mutated copy of it.
-For example, a mutator that converts all strings in a series into uppercase could look like this.
+A mutator is a function that takes in a list of 
+[Pandas series](https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.Series.html) and a probability between
+zero and one and returns a list of mutated series.
+The probability dictates which maximum percentage of rows within each series should be mutated.
 
-```py
-import pandas as pd
-
-
-def mutate_to_all_uppercase(srs_lst: list[pd.Series]) -> list[pd.Series]:
-    return [srs.str.upper() for srs in srs_lst]
-```
+If a mutator fails to meet the requested percentage, most likely due to the contents of a series not being 
+able to be mutated due to preconditions imposed by the mutator, it will emit a `GeckoWarning`.
 
 Gecko comes with a bunch of built-in mutators which are described on this page.
 They are exposed in Gecko's `mutator` module.
@@ -52,13 +47,13 @@ kb_mutator = mutator.with_cldr_keymap_file(
     rng=rng
 )
 srs = pd.Series(["apple", "banana", "clementine"])
-print(kb_mutator([srs]))
-# => [["spple", "banany", "cldmentine"]]
+print(kb_mutator([srs], 1.0))
+# => [["aople", "ganana", "clementkne"]]
 ```
 
 By default, this mutator considers all possible neighboring keys for each key.
-If you want to constrain typos to a certain set of characters, you can pass an optional string of characters to this
-mutator.
+If you want to constrain typos to a certain set of characters, you can pass an optional string of characters or a list
+of characters to this mutator.
 One such example is to limit the mutator to digits when manipulating a series of numbers that are broken up by
 non-digit characters.
 The following snippet avoids the substitution of hyphens by specifying that only digits may be manipulated.
@@ -77,8 +72,8 @@ kb_mutator = mutator.with_cldr_keymap_file(
     rng=rng
 )
 srs = pd.Series(["123-456-789", "727-727-727", "294-753-618"])
-print(kb_mutator([srs]))
-# => [["122-456-789", "827-727-727", "294-753-628"]]
+print(kb_mutator([srs], 1.0))
+# => [["123-457-789", "717-727-727", "295-753-618"]]
 ```
 
 ### Phonetic errors
@@ -133,7 +128,7 @@ phonetic_mutator = mutator.with_phonetic_replacement_table(
 )
 
 srs = pd.Series(["straße", "stadt", "schießen"])
-print(phonetic_mutator([srs]))
+print(phonetic_mutator([srs], 1.0))
 # => [["strasse", "statt", "schiessen"]]
 ```
 
@@ -146,59 +141,22 @@ or column schema.
 A simple example would be `###_MISSING_###` in place of a person's date of birth, since it does not conform to any
 common date format and consists entirely of letters and special characters.
 
-Gecko provides the function `with_missing_value` which replaces certain values within a series with a custom "missing
-value".
-The mutator replaces either empty, blank or all strings within a series depending on the defined strategy.
-This is best explained by a few examples.
-
-Gecko considers strings to be "empty" when their length is zero.
-Strings with whitespaces will be left as-is.
+Gecko provides the function `with_missing_value` which replaces values within a series with a representative 
+"missing value".
+In the following example, 50% of all rows will be converted to a missing value.
 
 ```py
+import numpy as np
 import pandas as pd
 
 from gecko import mutator
 
-missing_mutator = mutator.with_missing_value(
-    "###_MISSING_###",
-    strategy="empty"
-)
-srs = pd.Series(["apple", "   ", ""])
-print(missing_mutator([srs]))
-# => [["apple", "   ", "###_MISSING_###"]]
-```
+rng = np.random.default_rng(2905)
 
-Gecko considers strings to be "blank" when their length is zero after trimming all leading and trailing whitespaces.
-This is the default behavior of this mutator.
-
-```py
-import pandas as pd
-
-from gecko import mutator
-
-missing_mutator = mutator.with_missing_value(
-    "###_MISSING_###",
-    strategy="blank"
-)
-srs = pd.Series(["apple", "   ", ""])
-print(missing_mutator([srs]))
+missing_mutator = mutator.with_missing_value("###_MISSING_###", rng=rng)
+srs = pd.Series(["apple", "banana", "clementine"])
+print(missing_mutator([srs], 0.5))
 # => [["apple", "###_MISSING_###", "###_MISSING_###"]]
-```
-
-The "nuclear" option is to replace all strings within a series with the "missing value".
-
-```py
-import pandas as pd
-
-from gecko import mutator
-
-missing_mutator = mutator.with_missing_value(
-    "###_MISSING_###",
-    strategy="all"
-)
-srs = pd.Series(["apple", "   ", ""])
-print(missing_mutator([srs]))
-# => [["###_MISSING_###", "###_MISSING_###", "###_MISSING_###"]]
 ```
 
 ### Edit errors
@@ -221,56 +179,27 @@ from gecko import mutator
 rng = np.random.default_rng(8080)
 srs = pd.Series(["apple", "banana", "clementine"])
 
-insert_mutator = mutator.with_insert(charset=string.ascii_letters, rng=rng)
-print(insert_mutator([srs]))
-# => [["aVpple", "banaFna", "clemenMtine"]]
+insert_mutator = mutator.with_insert(charset=string.ascii_lowercase, rng=rng)
+print(insert_mutator([srs], 1.0))
+# => [["appmle", "bananai", "clemenjtine"]]
 
 delete_mutator = mutator.with_delete(rng=rng)
-print(delete_mutator([srs]))
-# => [["aple", "bnana", "clementin"]]
+print(delete_mutator([srs], 1.0))
+# => [["appl", "anana", "clemntine"]]
 
-substitute_mutator = mutator.with_substitute(charset=string.digits, rng=rng)
-print(substitute_mutator([srs]))
-# => [["appl9", "ba4ana", "clementi9e"]]
+substitute_mutator = mutator.with_substitute(charset=string.ascii_lowercase, rng=rng)
+print(substitute_mutator([srs], 1.0))
+# => [["apyle", "sanana", "clemeneine"]]
 
-transpose_mutator = mutator.with_transpose(rng)
-print(transpose_mutator([srs]))
-# => [["paple", "baanna", "clemenitne"]]
-```
-
-Gecko also provides a more general edit mutator which wraps around the insertion, deletion, substitution and
-transposition mutator.
-It is then possible to assign probabilities for each operation.
-By default, all operations are equally likely to be performed.
-
-```python
-import numpy as np
-import pandas as pd
-
-from gecko import mutator
-
-rng = np.random.default_rng(8443)
-srs = pd.Series(["apple", "banana", "clementine", "durian", "eggplant", "fig", "grape", "honeydew"])
-
-edit_mutator_1 = mutator.with_edit(rng=rng)
-print(edit_mutator_1([srs]))
-# => [["aple", "banan", "clementinb", "duiran", "eAgplant", "Nig", "grapce", "hoKeydew"]]
-
-edit_mutator_2 = mutator.with_edit(
-    p_insert=0.1,
-    p_delete=0.2,
-    p_substitute=0.3,
-    p_transpose=0.4,
-    rng=rng,
-)
-print(edit_mutator_2([srs]))
-# => [["aplpe", "anana", "lementine", "duriRan", "geggplant", "fg", "rgape", "honedyew"]]
+transpose_mutator = mutator.with_transpose(rng=rng)
+print(transpose_mutator([srs], 1.0))
+# => [["paple", "banaan", "cleemntine"]]
 ```
 
 ### Categorical errors
 
 Sometimes an attribute can only take on a set number of values.
-For example, if you have a "gender" column in your dataset and it can only take on `m` for male, `f` for female and `o`
+For example, if you have a "gender" column in your dataset, and it can only take on `m` for male, `f` for female and `o`
 for other, it wouldn't make sense for a mutated record to contain anything else except these three options.
 
 Gecko offers the `with_categorical_values` function for this purpose.
@@ -292,8 +221,8 @@ categorical_mutator = mutator.with_categorical_values(
     rng=rng,
 )
 
-print(categorical_mutator([srs]))
-# => [["o", "f", "m", "o", "f", "o", "f", "m"]]
+print(categorical_mutator([srs], 1.0))
+# => [["m", "o", "m", "m", "m", "f", "m", "f"]]
 ```
 
 ### Value permutations
@@ -303,19 +232,23 @@ This is particularly true for names, where the differentiation between given and
 challenging to get right.
 The `with_permute` function handles this exact use case.
 It simply swaps the values between series that are passed into it.
+In this example, 50% of all rows are permuted at random.
 
 ```python
+import numpy as np
 import pandas as pd
 
 from gecko import mutator
 
+rng = np.random.default_rng(1955104)
+
 srs_given_name = pd.Series(["Max", "Jane", "Jan"])
 srs_last_name = pd.Series(["Mustermann", "Doe", "Jansen"])
 
-permute_mutator = mutator.with_permute()
-print(permute_mutator([srs_given_name, srs_last_name]))
-# => [["Mustermann", "Doe", "Jansen"],
-#       ["Max", "Jane", "Jan"]]
+permute_mutator = mutator.with_permute(rng=rng)
+print(permute_mutator([srs_given_name, srs_last_name], 0.5))
+# => [["Max", "Doe", "Jan"],
+#       ["Mustermann", "Jane", "Jansen"]]
 ```
 
 ### Common replacements
@@ -352,7 +285,7 @@ replacement_mutator = mutator.with_replacement_table(
     rng=rng,
 )
 
-print(replacement_mutator([srs]))
+print(replacement_mutator([srs], 1.0))
 # => ["lcick 0", "step |", "go z", "run s"]
 ```
 
@@ -402,8 +335,9 @@ replacement_mutator = mutator.with_replacement_table(
     rng=rng,
 )
 
-print(replacement_mutator([srs]))
-# => ["Jann", "John", "Juan"]
+print(replacement_mutator([srs], 1.0))
+# => GeckoWarning: with_replacement_table: desired probability of 1.0 cannot be met since percentage of rows that could possibly be mutated is 0.6666666666666666
+# => ["Jann", "Juan", "Juan"]
 ```
 
 Note how "Juan" is not replaced since it is only present in the "target" column, not the "source" column.
@@ -425,8 +359,8 @@ replacement_mutator = mutator.with_replacement_table(
     rng=rng,
 )
 
-print(replacement_mutator([srs]))
-# => ["Jann", "Juan", "Jan"]
+print(replacement_mutator([srs], 1.0))
+# => ["Jann", "Johann", "Jann"]
 ```
 
 ### Regex replacements
@@ -527,7 +461,7 @@ regex_mutator = mutator.with_regex_replacement_table(
     rng=rng
 )
 
-print(regex_mutator([srs]))
+print(regex_mutator([srs], 1.0))
 # => ["2020-01-03", "2020-01-02", "2020-01-01"]
 ```
 
@@ -567,7 +501,7 @@ regex_mutator = mutator.with_regex_replacement_table(
     rng=rng
 )
 
-print(regex_mutator([srs]))
+print(regex_mutator([srs], 1.0))
 # => ["foobaz", "Foobaz", "fOoBaz"]
 ```
 
@@ -576,20 +510,26 @@ print(regex_mutator([srs]))
 During data entry or normalization, it may occur that text is converted to all lowercase or uppercase, by accident or on
 purpose.
 `with_lowercase` and `with_uppercase` handle these use cases.
+Gecko outputs warnings here because some values in the original series are already all lowercase and uppercase.
 
 ```python
+import numpy as np
 import pandas as pd
 
 from gecko import mutator
 
+rng = np.random.default_rng(9_0000_8479_1716)
 srs = pd.Series(["Foobar", "foobaz", "FOOBAT"])
 
-lowercase_mutator = mutator.with_lowercase()
-uppercase_mutator = mutator.with_uppercase()
+lowercase_mutator = mutator.with_lowercase(rng=rng)
+uppercase_mutator = mutator.with_uppercase(rng=rng)
 
-print(lowercase_mutator([srs]))
+print(lowercase_mutator([srs], 1.0))
+# => GeckoWarning: with_lowercase: desired probability of 1.0 cannot be met since percentage of rows that could possibly be mutated is 0.6666666666666666
 # => ["foobar", "foobaz", "foobat"]
-print(uppercase_mutator([srs]))
+
+print(uppercase_mutator([srs], 1.0))
+# => GeckoWarning: with_uppercase: desired probability of 1.0 cannot be met since percentage of rows that could possibly be mutated is 0.6666666666666666
 # => ["FOOBAR", "FOOBAZ", "FOOBAT"]
 ```
 
@@ -599,7 +539,7 @@ Date and time information is prone to errors where single fields are offset by a
 This error source is implemented in the `with_datetime_offset` function.
 It requires a range in which time units can be offset by and the format of the data to mutate as expressed
 by [Python's format codes for datetime objects](https://docs.python.org/3/library/datetime.html#format-codes).
-It is possible to apply offsets in units of days (`D`), hours (`h`), minutes (`m`) and seconds (`s`).
+It is possible to apply offsets in units of days (`d`), hours (`h`), minutes (`m`) and seconds (`s`).
 
 ```python
 import numpy as np
@@ -611,11 +551,11 @@ srs = pd.Series(pd.date_range("2020-01-01", "2020-01-31", freq="D"))
 rng = np.random.default_rng(0xffd8)
 
 datetime_mutator = mutator.with_datetime_offset(
-   max_delta=5, unit="D", dt_format="%Y-%m-%d", rng=rng
+   max_delta=5, unit="d", dt_format="%Y-%m-%d", rng=rng
 )
 
-print(datetime_mutator([srs]))
-# => ["2019-12-30", "2020-01-03", ..., "2020-01-25", "2020-02-01"]
+print(datetime_mutator([srs], 1.0))
+# => ["2019-12-30", "2019-12-29", ..., "2020-02-02", "2020-01-29"]
 ```
 
 When applying offsets, it might happen that the offset applied to a single field affects another field, e.g. subtracting
@@ -624,6 +564,7 @@ If this is not desired, Gecko offers an extra flag that prevents these types of 
 affected rows untouched.
 Note how the first and last entry in the output of the snippet below remains unchanged when compared to the previous 
 snippet.
+Gecko outputs a warning to reflect this.
 
 ```python
 import numpy as np
@@ -635,11 +576,12 @@ srs = pd.Series(pd.date_range("2020-01-01", "2020-01-31", freq="D"))
 rng = np.random.default_rng(0xffd8)
 
 datetime_mutator = mutator.with_datetime_offset(
-   max_delta=5, unit="D", dt_format="%Y-%m-%d", prevent_wraparound=True, rng=rng
+   max_delta=5, unit="d", dt_format="%Y-%m-%d", prevent_wraparound=True, rng=rng
 )
 
-print(datetime_mutator([srs]))
-# => ["2020-01-01", "2020-01-03", ..., "2020-01-25", "2020-01-31"]
+print(datetime_mutator([srs], 1.0))
+# => GeckoWarning: with_datetime_offset: desired probability of 1.0 cannot be met since percentage of rows that could possibly be mutated is 0.9032258064516129
+# => ["2020-01-01", "2020-01-02", ..., "2020-01-30", "2020-01-29"]
 ```
 
 ### Repeated values
@@ -654,15 +596,16 @@ import pandas as pd
 
 from gecko import mutator
 
+rng = np.random.default_rng(1_7117_4268)
 srs = pd.Series(["foo", "bar", "baz"])
 
-repeat_mutator = mutator.with_repeat()
+repeat_mutator = mutator.with_repeat(rng=rng)
 repeat_mutator_no_space = mutator.with_repeat(join_with="")
 
-print(repeat_mutator([srs]))
+print(repeat_mutator([srs], 1.0))
 # => ["foo foo", "bar bar", "baz baz"]
 
-print(repeat_mutator_no_space([srs]))
+print(repeat_mutator_no_space([srs], 1.0))
 # => ["foofoo", "barbar", "bazbaz"]
 ```
 
@@ -678,27 +621,25 @@ import pandas as pd
 
 from gecko import mutator
 
-
 def generate_foobar_suffix(rand: np.random.Generator):
     def _generate(count: int) -> list[pd.Series]:
         return [pd.Series(rand.choice(("bar", "baz", "bat"), size=count))]
 
     return _generate
 
-
 srs = pd.Series(["foo"] * 100)
 rng = np.random.default_rng(0x25504446)
 
 gen_prepend_mutator = mutator.with_generator(generate_foobar_suffix(rng), "prepend")
-print(gen_prepend_mutator([srs]))
+print(gen_prepend_mutator([srs], 1.0))
 # => ["bat foo", "bar foo", ..., "baz foo", "baz foo"]
 
 gen_replace_mutator = mutator.with_generator(generate_foobar_suffix(rng), "replace")
-print(gen_replace_mutator([srs]))
+print(gen_replace_mutator([srs], 1.0))
 # => ["bar", "bar", ..., "baz", "bat"]
 
 gen_append_mutator = mutator.with_generator(generate_foobar_suffix(rng), "append", join_with="")
-print(gen_append_mutator([srs]))
+print(gen_append_mutator([srs], 1.0))
 # => ["foobat", "foobat", ..., "foobat", "foobaz"]
 ```
 
@@ -723,9 +664,9 @@ equal_prob_mutator = mutator.with_group([
    mutator.with_delete(rng=rng),
 ], rng=rng)
 
-(srs_mut_1,) = equal_prob_mutator([srs])
+(srs_mut_1,) = equal_prob_mutator([srs], 1.0)
 print(srs_mut_1.str.len().value_counts())
-# => { 0: 45, 2: 55 }
+# => { 0: 44, 2: 56 }
 # no more single character values remain
 
 weighted_prob_mutator = mutator.with_group([
@@ -733,9 +674,9 @@ weighted_prob_mutator = mutator.with_group([
    (.25, mutator.with_delete(rng=rng)),
 ], rng=rng)
 
-(srs_mut_2,) = weighted_prob_mutator([srs])
+(srs_mut_2,) = weighted_prob_mutator([srs], 1.0)
 print(srs_mut_2.str.len().value_counts())
-# => { 0: 24, 1: 50, 2: 26 }
+# => { 0: 25, 1: 51, 2: 24 }
 # half of the original single character values remain
 ```
 
@@ -767,25 +708,23 @@ rng = np.random.default_rng(25565)
 df_mutated = mutator.mutate_data_frame(df, [
     (("fruit", "type"), (.5, mutator.with_permute())),  # (1)!
     ("grade", [  # (2)!
-        mutator.with_missing_value(strategy="all"),
         mutator.with_substitute(charset=string.ascii_uppercase, rng=rng),
     ]),
     ("amount", [  # (3)!
         (.8, mutator.with_insert(charset=string.digits, rng=rng)),
         (.2, mutator.with_delete(rng=rng))
     ])
-], rng=rng)
+])
 
 print(df_mutated)
 # => [["fruit", "type", "weight_in_grams", "amount", "grade"],
-#       ["apple", "elstar", "241.0", "83", ""],
-#       ["cavendish", "banana", "195.6", "", "O"],
-#       ["mandarin", "orange", "71.1", "", "F"]]
+#       ["elstar", "apple", "241.0", "53", "M"],
+#       ["cavendish", "banana", "195.6", "59", "Q"],
+#       ["mandarin", "orange", "71.1", "68", "V"]]
 ```
 
 1. You can assign probabilities to a mutator for a column. In this case, the permutation mutator will be applied to
    50% of all records. The remaining 50% remain untouched.
-2. You can assign multiple mutators to a column. In this case, the two mutators will be evenly applied to 50% of all
-   records.
+2. You can assign multiple mutators to a column. In this case, all specified mutators will be applied to all rows.
 3. You can assign probabilities to multiple mutators for a column. In this case, the insertion and deletion mutator
    are applied to 80% and 20% of all records respectively.
