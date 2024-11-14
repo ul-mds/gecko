@@ -268,7 +268,7 @@ def mutate_data_frame(df, rng):
                 rng=rng,
             ))
         ])
-    ], rng=rng)  # (3)!
+    ]) 
 ```
 
 1. The `mutate_data_frame` function takes in two arguments: the data frame to mutate and a list. This list
@@ -276,8 +276,6 @@ def mutate_data_frame(df, rng):
 2. Each column is assigned a list. This list contains entries that define how mutators should be applied. The syntax
    for each entry is `(probability, mutator)`. So in this case, the replacement table mutator is applied to 10% of
    all values in the `given_name` column. The remaining 90% remain untouched.
-3. It is important to supply the RNG to `mutate_data_frame` so that it always selectes the same records for mutation
-   every time the script is run.
 
 For columns such as `gender`, the available options are limited.
 In this example, it can only take on the values `m` and `f`.
@@ -309,7 +307,7 @@ def mutate_data_frame(df, rng):
                 rng=rng,
             ))
         ])
-    ], rng=rng)
+    ])
 ```
 
 1. The `with_categorical_values` function allows you to reuse the same files that you used to generate your data. The
@@ -343,18 +341,15 @@ def mutate_data_frame(df, rng):
             )),
             (0.05, mutator.with_missing_value(
                 value="",  # (1)!
-                strategy="all",  # (2)!
+                rng=rng
             ))
         ])
-    ], rng=rng)
+    ])
 ```
 
 1. By default, this mutator uses an empty string as the "missing value". You don't need to add this parameter if you
    are happy with empty strings, but it's good practice nonetheless to be as explicit as possible in case the default
    value changes in the future.
-2. By setting the mutator's strategy to `all`, it ensures that all of the randomly selected records will have their
-   values replaced with an empty string. The other options, `blank` and `empty`, are explained in
-   the [documentation on mutating data](../data-mutation.md#missing-values).
 
 Another common source of errors are typos on a keyboard.
 Gecko can read keymaps from the Unicode Common Locale Data Repository (CLDR) and apply typos based on them.
@@ -387,7 +382,7 @@ def mutate_data_frame(df, rng):
             )),
             (0.05, mutator.with_missing_value(
                 value="",
-                strategy="all",
+                rng=rng,
             ))
         ]),
         ("postcode", [
@@ -397,7 +392,7 @@ def mutate_data_frame(df, rng):
                 rng=rng,
             ))
         ])
-    ], rng=rng)
+    ])
 ```
 
 1. The `with_cldr_keymap_file` function can read any CLDR
@@ -472,7 +467,7 @@ def mutate_data_frame(df, rng):
             )),
             (0.05, mutator.with_missing_value(
                 value="",
-                strategy="all",
+                rng=rng,
             ))
         ]),
         ("postcode", [
@@ -482,7 +477,7 @@ def mutate_data_frame(df, rng):
                 rng=rng,
             ))
         ])
-    ], rng=rng)
+    ])
 
 
 if __name__ == "__main__":
@@ -513,7 +508,7 @@ Add a new function to your script called `create_date_of_birth_generator`.
 import numpy as np
 import pandas as pd
 
-from gecko.generator import Generator
+from gecko import Generator
 from typing import Optional
 
 
@@ -539,7 +534,7 @@ be recognized as a generator.
 import numpy as np
 import pandas as pd
 
-from gecko.generator import Generator
+from gecko import Generator
 from typing import Optional
 
 
@@ -581,7 +576,7 @@ This returns a floating point number, which you can then convert into an integer
 import numpy as np
 import pandas as pd
 
-from gecko.generator import Generator
+from gecko import Generator
 from typing import Optional
 
 
@@ -628,7 +623,7 @@ a list.
 import numpy as np
 import pandas as pd
 
-from gecko.generator import Generator
+from gecko import Generator
 from typing import Optional
 
 
@@ -671,7 +666,7 @@ Expand the `generate_data_frame` function by adding your own generator.
 import numpy as np
 import pandas as pd
 
-from gecko.generator import Generator
+from gecko import Generator
 from typing import Optional
 
 from gecko import generator
@@ -691,11 +686,11 @@ def create_date_of_birth_generator(
         delta = end_dt - start_dt
         days_delta = int(delta / np.timedelta64(1, "D"))
 
-        random_days = rng.integers(low=0, high=days_delta, size=count, endpoint=True)  # (1)!
-        random_dates = start_dt + random_days  # (2)!
-        random_date_strs = np.char.mod("%s", random_dates)  # (3)!
+        random_days = rng.integers(low=0, high=days_delta, size=count, endpoint=True) 
+        random_dates = start_dt + random_days 
+        random_date_strs = np.char.mod("%s", random_dates) 
 
-        return [pd.Series(random_date_strs)]  # (4)!
+        return [pd.Series(random_date_strs)] 
 
     return _generate
 
@@ -728,7 +723,7 @@ def generate_data_frame(count, rng):
         (("given_name", "gender"), gen_given_name_gender),
         ("last_name", gen_last_name),
         (("street_name", "municipality", "postcode"), gen_street_municip_postcode),
-        ("date_of_birth", gen_date_of_birth)
+        ("date_of_birth", gen_date_of_birth)  # (2)!
     ], count)
 ```
 
