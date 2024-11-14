@@ -42,7 +42,7 @@ import pandas as pd
 from lxml import etree
 import typing_extensions as _te
 
-from gecko import dfidx
+from gecko import dfbitlookup
 from gecko.cldr import decode_iso_kb_pos, unescape_kb_char, get_neighbor_kb_pos_for
 from gecko.generator import Generator
 
@@ -442,7 +442,7 @@ def with_phonetic_replacement_table(
         # track string lengths
         srs_str_len = srs.str.len()
         # create index df
-        df_idx = dfidx.with_capacity(
+        df_idx = dfbitlookup.with_capacity(
             len(srs), len(phonetic_replacement_rules), index=srs.index
         )
 
@@ -452,15 +452,15 @@ def with_phonetic_replacement_table(
 
             if rule.flag == _PHON_FLAG_START:
                 # mark all rows containing this pattern at the start
-                dfidx.set_index(df_idx, srs_pattern_idx == 0, rule_idx)
+                dfbitlookup.set_index(df_idx, srs_pattern_idx == 0, rule_idx)
             elif rule.flag == _PHON_FLAG_END:
                 # mark all rows containing this pattern at the end
-                dfidx.set_index(
+                dfbitlookup.set_index(
                     df_idx, srs_pattern_idx + len(rule.pattern) == srs_str_len, rule_idx
                 )
             elif rule.flag == _PHON_FLAG_MIDDLE:
                 # mark all rows containing this pattern not at the start nor the end
-                dfidx.set_index(
+                dfbitlookup.set_index(
                     df_idx,
                     (
                         (srs_pattern_idx > 0)
@@ -472,7 +472,7 @@ def with_phonetic_replacement_table(
                 raise _new_unknown_flag_error(flag)
 
         # check rows that can be mutated
-        srs_rows_to_mutate = dfidx.any_set(df_idx)
+        srs_rows_to_mutate = dfbitlookup.any_set(df_idx)
         possible_rows_to_mutate = srs_rows_to_mutate.sum()
         p_actual = possible_rows_to_mutate / len(srs)
 
@@ -499,7 +499,7 @@ def with_phonetic_replacement_table(
                 srs_rows_to_mutate  # select eligible rows
                 & (srs == srs_out)  # AND select rows that haven't been mutated yet
                 & (
-                    dfidx.test_index(df_idx, rule_idx)
+                    dfbitlookup.test_index(df_idx, rule_idx)
                 )  # AND select rows that match this rule
             )
 
@@ -621,18 +621,18 @@ def with_replacement_table(
         # create copy
         srs_out = srs.copy(deep=True)
         # create index df
-        df_idx = dfidx.with_capacity(
+        df_idx = dfbitlookup.with_capacity(
             len(srs), len(arr_unique_source_values), index=srs.index
         )
 
         for src_idx, source in enumerate(arr_unique_source_values):
             if inline:
-                dfidx.set_index(df_idx, srs.str.contains(source), src_idx)
+                dfbitlookup.set_index(df_idx, srs.str.contains(source), src_idx)
             else:
-                dfidx.set_index(df_idx, srs == source, src_idx)
+                dfbitlookup.set_index(df_idx, srs == source, src_idx)
 
         # check rows that can be mutated
-        srs_rows_to_mutate = dfidx.any_set(df_idx)
+        srs_rows_to_mutate = dfbitlookup.any_set(df_idx)
         possible_rows_to_mutate = srs_rows_to_mutate.sum()
         p_actual = possible_rows_to_mutate / len(srs)
 
@@ -649,13 +649,13 @@ def with_replacement_table(
         srs_source_values = pd.Series([pd.NA] * len(srs), dtype=str, index=srs.index)
         # randomize order of source indices
         # TODO instead of shuffling, this should probably favor source values that don't appear often
-        # one way could be to have dfidx output sums for every index, then sort them in ascending order
+        # one way could be to have dfbitlookup output sums for every index, then sort them in ascending order
         arr_rng_src_idx = np.arange(0, len(arr_unique_source_values))
         rng.shuffle(arr_rng_src_idx)
 
         # populate the source value series
         for src_idx in arr_rng_src_idx:
-            srs_src_indexed = dfidx.test_index(df_idx, src_idx)
+            srs_src_indexed = dfbitlookup.test_index(df_idx, src_idx)
             # check which rows will have this source value replaced
             srs_src_selected = (
                 srs_rows_to_mutate  # select rows that are eligible for mutation
@@ -1584,14 +1584,14 @@ def with_regex_replacement_table(
         # copy series
         srs_out = srs.copy(deep=True)
         # create index df
-        df_idx = dfidx.with_capacity(len(srs), regex_count, index=srs.index)
+        df_idx = dfbitlookup.with_capacity(len(srs), regex_count, index=srs.index)
 
         # track which regexes match each row
         for rgx_idx, rgx in enumerate(regexes):
-            dfidx.set_index(df_idx, srs.str.match(rgx), rgx_idx)
+            dfbitlookup.set_index(df_idx, srs.str.match(rgx), rgx_idx)
 
         # check rows that can be mutated
-        srs_rows_to_mutate = dfidx.any_set(df_idx)
+        srs_rows_to_mutate = dfbitlookup.any_set(df_idx)
         possible_rows_to_mutate = srs_rows_to_mutate.sum()
         p_actual = possible_rows_to_mutate / len(srs)
 
@@ -1614,7 +1614,7 @@ def with_regex_replacement_table(
             srs_selected_rows_mask = (
                 srs_rows_to_mutate  # select eligible rows
                 & (srs == srs_out)  # AND select rows that haven't been mutated yet
-                & dfidx.test_index(
+                & dfbitlookup.test_index(
                     df_idx, rgx_idx
                 )  # AND select rows that match this regex
             )

@@ -1,7 +1,7 @@
 import pytest
 import pandas as pd
 
-from gecko import dfidx
+from gecko import dfbitlookup
 
 
 @pytest.mark.parametrize(
@@ -9,7 +9,7 @@ from gecko import dfidx
     [(1, 1, 1), (10, 32, 1), (10, 64, 1), (100, 65, 2), (100, 128, 2), (100, 129, 3)],
 )
 def test_with_capacity(rows: int, capacity: int, expected_columns: int):
-    df = dfidx.with_capacity(rows, capacity)
+    df = dfbitlookup.with_capacity(rows, capacity)
 
     assert len(df) == rows
     assert len(df.columns) == expected_columns
@@ -18,14 +18,14 @@ def test_with_capacity(rows: int, capacity: int, expected_columns: int):
 
 def test_with_capacity_raise_rows_too_low():
     with pytest.raises(ValueError) as e:
-        dfidx.with_capacity(0, 1)
+        dfbitlookup.with_capacity(0, 1)
 
     assert str(e.value) == "number of rows must be positive, is 0"
 
 
 def test_with_capacity_raise_capacity_too_low():
     with pytest.raises(ValueError) as e:
-        dfidx.with_capacity(1, 0)
+        dfbitlookup.with_capacity(1, 0)
 
     assert str(e.value) == "capacity must be positive, is 0"
 
@@ -38,7 +38,7 @@ def test_with_capacity_raise_capacity_too_low():
     ],
 )
 def test_set_test_index(rows: int, capacity: int, mask: pd.Series, index: int):
-    df = dfidx.with_capacity(rows, capacity)
-    dfidx.set_index(df, mask, index)
+    df = dfbitlookup.with_capacity(rows, capacity)
+    dfbitlookup.set_index(df, mask, index)
 
-    assert (dfidx.test_index(df, index) == mask).all()
+    assert (dfbitlookup.test_index(df, index) == mask).all()
