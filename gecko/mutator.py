@@ -88,20 +88,20 @@ def with_function(
     **kwargs: object,
 ) -> Mutator:
     """
-    Mutate data using an arbitrary function that mutates a single value at a time.
+    Mutate series using an arbitrary function that mutates a single value at a time.
 
     Notes:
         This function should be used sparingly since it is not vectorized.
         Only use it for testing purposes or if performance is not important.
 
     Args:
-        func: function to invoke to mutate data with
+        func: function to mutate values with
         rng: random number generator to use
         *args: positional arguments to pass to `func`
         **kwargs: keyword arguments to pass to `func`
 
     Returns:
-        function returning list with strings mutated using custom function
+        function that mutates series using the custom function
     """
 
     if rng is None:
@@ -127,26 +127,32 @@ def with_function(
 
 def with_cldr_keymap_file(
     cldr_path: _t.Union[PathLike, str],
-    charset: _t.Optional[str] = None,
+    charset: _t.Optional[_t.Union[str, list[str]]] = None,
     rng: _t.Optional[np.random.Generator] = None,
 ) -> Mutator:
     """
-    Mutate data by randomly introducing typos.
+    Mutate series by randomly introducing typos.
     Potential typos are sourced from a Common Locale Data Repository (CLDR) keymap.
     Any character may be replaced with one of its horizontal or vertical neighbors on a keyboard.
     They may also be replaced with its upper- or lowercase variant.
     It is possible for a string to not be modified if a selected character has no possible replacements.
+    If the `charset` parameter is `None`, then any character present on the keymap may be mutated.
 
     Args:
         cldr_path: path to CLDR keymap file
-        charset: string with characters that may be mutated
+        charset: character string or list of characters that may be mutated
         rng: random number generator to use
 
     Returns:
-        function returning list with strings mutated by applying typos according to keymap file
+        function that mutates series using a keymap
     """
     if rng is None:
         rng = np.random.default_rng()
+
+    # break string of chars up into a list of chars
+    if charset is not None:
+        if isinstance(charset, str):
+            charset = list(charset)
 
     with Path(cldr_path).open(mode="r", encoding="utf-8") as f:
         tree = etree.parse(f)
@@ -233,7 +239,7 @@ def with_cldr_keymap_file(
     def _mutate_series(srs: pd.Series, p: float) -> pd.Series:
         _check_probability_in_bounds(p)
 
-        srs_out = srs.copy()
+        srs_out = srs.copy(deep=True)
         srs_len = len(srs_out)
 
         # make sure it aligns with the original index
@@ -343,16 +349,16 @@ def with_phonetic_replacement_table(
     rng: _t.Optional[np.random.Generator] = None,
 ) -> Mutator:
     """
-    Mutate data by randomly replacing characters with others that sound similar.
-    The rules for similar-sounding character sequences are sourced from a CSV file.
+    Mutate series by randomly replacing character sequences with others that sound similar.
+    The rules for similar-sounding character sequences are sourced from a table.
     This table must have at least three columns: a source, target and a flag column.
     A source pattern is mapped to its target under the rules imposed by the provided flags.
     These flags determine where such a replacement can take place within a string.
     If no flags are defined, it is implied that this replacement can take place anywhere in a string.
     Conversely, if `^`, `$`, `_`, or any combination of the three are set, it implies that a replacement
     can only occur at the start, end or in the middle of a string.
-    If the source, target and flags column are provided as strings, then it is automatically assumed that the CSV file
-    has a header row.
+    If the source, target and flags column are provided as strings, and if a path to a CSV file is
+    provided to this function, then it is automatically assumed that the CSV file has a header row.
 
     Args:
         data_source: path to CSV file or data frame containing phonetic replacement rules
@@ -364,7 +370,7 @@ def with_phonetic_replacement_table(
         rng: random number generator to use
 
     Returns:
-        function returning list with strings mutated by applying phonetic errors according to rules in CSV file
+       function that mutates series using phonetic rules sourced from a table
     """
 
     # list of all flags
@@ -542,15 +548,15 @@ def with_replacement_table(
     rng: _t.Optional[np.random.Generator] = None,
 ) -> Mutator:
     """
-    Mutate data by randomly substituting sequences from a replacement table.
+    Mutate series by randomly substituting character sequences from a replacement table.
     The table must have at least two columns: a source and a target value column.
     A source value may have multiple target values that it can map to.
     Strings that do not contain any possible source values are not mutated.
     It is possible for a string to not be modified if no target value could be picked for its assigned source value.
     This can only happen if a source value is mapped to multiple target values.
     In this case, each target value will be independently selected or not.
-    If the source and target column are provided as strings, then it is automatically assumed that the CSV file
-    has a header row.
+    If the source and target column are provided as strings, and a path to a CSV file is provided
+    to this function, then it is automatically assumed that the CSV file has a header row.
 
     Args:
         data_source: path to CSV file or data frame containing replacement table
@@ -563,7 +569,7 @@ def with_replacement_table(
         rng: random number generator to use
 
     Returns:
-        function returning list with strings mutated by replacing characters as specified in CSV file
+        function that mutates series according to a replacement table
     """
 
     if rng is None:
@@ -706,14 +712,14 @@ def with_missing_value(
     rng: _t.Optional[np.random.Generator] = None,
 ) -> Mutator:
     """
-    Mutate data by replacing select entries with a representative "missing" value.
+    Mutate series by replacing its values with a representative "missing" value.
 
     Args:
         value: "missing" value to replace select entries with
         rng: random number generator to use
 
     Returns:
-        function returning list where select strings will be replaced with the "missing" value
+        function that mutates series by overwriting it with a "missing" value
     """
     if rng is None:
         rng = np.random.default_rng()
@@ -750,15 +756,15 @@ def with_insert(
     rng: _t.Optional[np.random.Generator] = None,
 ) -> Mutator:
     """
-    Mutate data by inserting random characters.
+    Mutate series by inserting random characters.
     The characters are drawn from the provided charset.
 
     Args:
-        charset: string to sample random characters from
+        charset: character string or list of characters to sample from
         rng: random number generator to use
 
     Returns:
-        function returning list with strings mutated by inserting random characters
+        function that mutates series by injecting random characters
     """
     if rng is None:
         rng = np.random.default_rng()
@@ -801,6 +807,7 @@ def with_insert(
         return srs_out
 
     def _mutate(srs_lst: list[pd.Series], p: float = 1.0) -> list[pd.Series]:
+        _check_probability_in_bounds(p)
         return [_mutate_series(srs, p) for srs in srs_lst]
 
     return _mutate
@@ -808,13 +815,13 @@ def with_insert(
 
 def with_delete(rng: _t.Optional[np.random.Generator] = None) -> Mutator:
     """
-    Mutate data by randomly deleting characters.
+    Mutate series by randomly deleting characters.
 
     Args:
         rng: random number generator to use
 
     Returns:
-        function returning list with strings mutated by deleting random characters
+        function that mutates series by deleting random characters
     """
     if rng is None:
         rng = np.random.default_rng()
@@ -860,7 +867,7 @@ def with_delete(rng: _t.Optional[np.random.Generator] = None) -> Mutator:
 
 def with_transpose(rng: _t.Optional[np.random.Generator] = None) -> Mutator:
     """
-    Mutate data by randomly swapping neighboring characters.
+    Mutate series by randomly swapping neighboring characters.
 
     Notes:
         It is possible for the same two neighboring characters to be swapped.
@@ -869,7 +876,7 @@ def with_transpose(rng: _t.Optional[np.random.Generator] = None) -> Mutator:
         rng: random number generator to use
 
     Returns:
-        function returning list with strings mutated by transposing random neighboring characters
+        function that mutates series by swapping adjacent characters
     """
     if rng is None:
         rng = np.random.default_rng()
@@ -930,11 +937,11 @@ def with_substitute(
         It is possible for a character to be replaced by itself.
 
     Args:
-        charset: string to sample random characters from
+        charset: character string or list of characters to sample from
         rng: random number generator to use
 
     Returns:
-        function returning list with strings mutated by substituting random characters
+        function that mutates series by substituting random characters
     """
     if rng is None:
         rng = np.random.default_rng()
@@ -990,15 +997,16 @@ def with_substitute(
 
 def with_noop() -> Mutator:
     """
-    Mutate data by not mutating it at all.
+    Mutate series by not mutating it at all.
     This mutator returns the input series as-is.
     You might use it to leave a certain percentage of records in a series untouched.
 
     Returns:
-        function returning list of strings as-is
+        function that does not mutate series
     """
 
-    def _mutate(srs_lst: list[pd.Series], _: float) -> list[pd.Series]:
+    def _mutate(srs_lst: list[pd.Series], p: float) -> list[pd.Series]:
+        _check_probability_in_bounds(p)
         return srs_lst
 
     return _mutate
@@ -1012,11 +1020,11 @@ def with_categorical_values(
     rng: _t.Optional[np.random.Generator] = None,
 ) -> Mutator:
     """
-    Mutate data by replacing it with another from a list of categorical values.
-    This mutator reads all unique values from a column within a CSV file.
-    All strings within a series will be replaced with a different random value from this column.
-    If the value column is provided as a string, then it is automatically assumed that the CSV file
-    has a header row.
+    Mutate series by replacing values with another from a list of categorical values.
+    This mutator reads all unique values from a singular column.
+    All values within a series will be replaced with a different random value from this column.
+    If the value column is provided as a string, and a path to a CSV file is provided to this
+    function, then it is automatically assumed that the CSV file has a header row.
 
     Args:
         data_source: path to CSV file or data frame containing values
@@ -1026,7 +1034,7 @@ def with_categorical_values(
         rng: random number generator to use
 
     Returns:
-        function returning list with strings mutated by replacing values with a different one from a limited set of permitted values
+        function that mutates series by replacing values with a different one from a limited set of permitted values
     """
     if rng is None:
         rng = np.random.default_rng()
@@ -1108,14 +1116,15 @@ def with_categorical_values(
 
 def with_permute(rng: _t.Optional[np.random.Generator] = None) -> Mutator:
     """
-    Mutate data from series by permuting their contents.
-    This function ensures that for each row there is at least one permutation happening.
+    Mutate series by permuting their contents.
+    This function ensures that rows are permuted in such a way that no value remains in the series
+    it originated from.
 
     Args:
         rng: random number generator to use
 
     Returns:
-        function returning list with the entries in each series swapped
+        function that mutates series by permuting their contents
     """
     if rng is None:
         rng = np.random.default_rng()
@@ -1175,10 +1184,13 @@ def with_permute(rng: _t.Optional[np.random.Generator] = None) -> Mutator:
 
 def with_lowercase(rng: _t.Optional[np.random.Generator] = None) -> Mutator:
     """
-    Mutate data from a series by converting it into lowercase.
+    Mutate series by converting its contents to lowercase.
+
+    Args:
+        rng: random number generator to use
 
     Returns:
-        function returning list with the entries in each series converted to lowercase
+        function that mutates series by converting its contents to lowercase
     """
     if rng is None:
         rng = np.random.default_rng()
@@ -1213,10 +1225,13 @@ def with_lowercase(rng: _t.Optional[np.random.Generator] = None) -> Mutator:
 
 def with_uppercase(rng: _t.Optional[np.random.Generator] = None) -> Mutator:
     """
-    Mutate data from a series by converting it into uppercase.
+    Mutate series by converting its contents to uppercase.
+
+    Args:
+        rng: random number generator to use
 
     Returns:
-        function returning list with the entries in each series converted to uppercase
+        function that mutates series by converting its contents to uppercase
     """
     if rng is None:
         rng = np.random.default_rng()
@@ -1280,9 +1295,9 @@ def with_datetime_offset(
     rng: _t.Optional[np.random.Generator] = None,
 ) -> Mutator:
     """
-    Mutate data from a series by treating it as datetime information and offsetting it by random amounts.
-    The delta and the unit specify which datetime field should be affected, where `D`, `h`, `m` and `s` can
-    be selected for days, hours, minutes and seconds respectively.
+    Mutate series by treating their contents it as datetime information and offsetting it by random amounts.
+    The delta and the unit specify which datetime field should be affected, where possible values are
+    `d` and `days`, `h` and `hours`, `m` and `minutes`, `s` and `seconds`.
     The datetime format must include the same format codes as specified in the `datetime` Python module for the
     `strftime` function.
     By setting `prevent_wraparound` to `True`, this mutator will not apply a mutation if it will cause an
@@ -1296,7 +1311,7 @@ def with_datetime_offset(
         rng: random number generator to use
 
     Returns:
-        function returning list of datetime strings with random offsets applied to them
+        function that mutates series by applying random date and time offsets to them
     """
     if max_delta <= 0:
         raise ValueError(f"delta must be positive, is {max_delta}")
@@ -1370,7 +1385,7 @@ def with_generator(
     rng: _t.Optional[np.random.Generator] = None,
 ) -> Mutator:
     """
-    Mutate data from a series by appending, prepending or replacing it with data from another generator.
+    Mutate series by replacing its content by appending, prepending or replacing it with data from another generator.
     A character to join generated data with when appending or prepending can be provided.
 
     Args:
@@ -1380,7 +1395,7 @@ def with_generator(
         rng: random number generator to use
 
     Returns:
-        function returning list of strings that have been appended, prepended or replaced with data from a generator
+        function that mutates series using another generator
     """
     if rng is None:
         rng = np.random.default_rng()
@@ -1424,7 +1439,7 @@ def with_generator(
             for i, srs in enumerate(srs_gen_lst)
         ]
 
-        srs_lst_out = [srs.copy() for srs in srs_lst]
+        srs_lst_out = [srs.copy(deep=True) for srs in srs_lst]
 
         # perform the actual data mutation (this is where index alignment matters)
         for i, srs_gen in enumerate(srs_gen_lst_aligned):
@@ -1507,14 +1522,14 @@ def with_regex_replacement_table(
     rng: _t.Optional[np.random.Generator] = None,
 ) -> Mutator:
     """
-    Mutate data by performing regex-based substitutions sourced from a CSV file.
-    This file must contain a column with the regex patterns to look for and columns for each capture group to look up
+    Mutate series by performing regex-based substitutions sourced from a table.
+    This table must contain a column with the regex patterns to look for and columns for each capture group to look up
     substitutions.
     When using regular capture groups, the columns must be numbered starting with 1.
     When using named capture groups, the columns must be named after the capture groups they are supposed to substitute.
 
     Args:
-        data_source: path to CSV file or data frame
+        data_source: path to CSV file or data frame containing regex-based substitutions
         pattern_column: name of regex pattern column
         flags_column: name of regex flag column
         encoding: character encoding of the CSV file
@@ -1522,7 +1537,7 @@ def with_regex_replacement_table(
         rng: random number generator to use
 
     Returns:
-        function returning list with strings mutated by regex-based substitutions
+        function that mutates series by performing regex-based substitutions
     """
     if rng is None:
         rng = np.random.default_rng()
@@ -1624,15 +1639,15 @@ def with_repeat(
     join_with: str = " ", rng: _t.Optional[np.random.Generator] = None
 ) -> Mutator:
     """
-    Mutate data in a series by repeating it.
-    By default, it is appended with a whitespace.
+    Mutate series by repeating its contents.
+    By default, selected entries will be duplicated and separated by a whitespace.
 
     Args:
         join_with: joining character to use, space by default
         rng: random number generator to use
 
     Returns:
-        function returning list with repeated series values
+        function that mutates series by repeating its contents
     """
 
     if rng is None:
@@ -1684,7 +1699,7 @@ def with_group(
     rng: _t.Optional[np.random.Generator] = None,
 ) -> Mutator:
     """
-    Mutate data by applying multiple mutators on it.
+    Mutate series by applying multiple mutators on it.
     The mutators are applied in the order that they are provided in to this function.
     When providing a list of mutators, each row will be affected by each mutator with an equal probability.
     When providing a list of weighted mutators, each row will be affected by each mutator with the
@@ -1696,7 +1711,7 @@ def with_group(
         rng: random number generator to use
 
     Returns:
-        function returning list with strings modified by mutators as specified
+        function that mutates series using multiple mutually exclusive mutators at once
     """
     if all(callable(m) for m in mutator_lst):
         p_idx = 1.0 / len(mutator_lst)
@@ -1740,7 +1755,7 @@ def with_group(
             raise ValueError("series do not have the same length")
 
         srs_len = len(srs_lst[0])
-        srs_lst_out = [srs.copy() for srs in srs_lst]
+        srs_lst_out = [srs.copy(deep=True) for srs in srs_lst]
 
         # each row gets an index of the applied mutator
         arr_rows_to_mutate = rng.random(size=srs_len) < p
