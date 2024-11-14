@@ -61,7 +61,7 @@ class KeyMutation:
     col: list[str] = field(default_factory=list)
 
 
-P = _te.ParamSpec("P")
+_P = _te.ParamSpec("_P")
 
 
 def _warn_p(fn_name: str, p_expected: float, p_actual: float):
@@ -73,7 +73,7 @@ def _warn_p(fn_name: str, p_expected: float, p_actual: float):
 
 
 def with_function(
-    func: _t.Callable[_te.Concatenate[str, P], str],
+    func: _t.Callable[_te.Concatenate[str, _P], str],
     rng: _t.Optional[np.random.Generator] = None,
     *args: object,
     **kwargs: object,
