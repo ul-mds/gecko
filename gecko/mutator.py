@@ -4,7 +4,6 @@ These mutators implement common error sources such as typos based on keymaps, ra
 """
 
 __all__ = [
-    "Mutator",
     "with_cldr_keymap_file",
     "with_phonetic_replacement_table",
     "with_replacement_table",
@@ -25,7 +24,6 @@ __all__ = [
     "with_repeat",
     "with_group",
     "mutate_data_frame",
-    "PNotMetWarning",
 ]
 
 import itertools
@@ -43,9 +41,7 @@ from lxml import etree
 import typing_extensions as _te
 
 from gecko import _cldr, _dfbitlookup
-from gecko.generator import Generator
-
-Mutator = _t.Callable[[list[pd.Series], _t.Optional[float]], list[pd.Series]]
+from gecko import _typedefs as _gt
 
 
 class _PhoneticReplacementRule(_t.NamedTuple):
@@ -68,15 +64,11 @@ class KeyMutation:
 P = _te.ParamSpec("P")
 
 
-class PNotMetWarning(UserWarning):
-    pass
-
-
 def _warn_p(fn_name: str, p_expected: float, p_actual: float):
     warnings.warn(
         f"{fn_name}: desired probability of {p_expected} cannot be met since percentage of rows "
         f"that could possibly be mutated is {p_actual}",
-        PNotMetWarning,
+        _gt.GeckoWarning,
     )
 
 
@@ -85,7 +77,7 @@ def with_function(
     rng: _t.Optional[np.random.Generator] = None,
     *args: object,
     **kwargs: object,
-) -> Mutator:
+) -> _gt.Mutator:
     """
     Mutate series using an arbitrary function that mutates a single value at a time.
 
@@ -128,7 +120,7 @@ def with_cldr_keymap_file(
     cldr_path: _t.Union[PathLike, str],
     charset: _t.Optional[_t.Union[str, list[str]]] = None,
     rng: _t.Optional[np.random.Generator] = None,
-) -> Mutator:
+) -> _gt.Mutator:
     """
     Mutate series by randomly introducing typos.
     Potential typos are sourced from a Common Locale Data Repository (CLDR) keymap.
@@ -346,7 +338,7 @@ def with_phonetic_replacement_table(
     encoding: str = "utf-8",
     delimiter: str = ",",
     rng: _t.Optional[np.random.Generator] = None,
-) -> Mutator:
+) -> _gt.Mutator:
     """
     Mutate series by randomly replacing character sequences with others that sound similar.
     The rules for similar-sounding character sequences are sourced from a table.
@@ -545,7 +537,7 @@ def with_replacement_table(
     encoding: str = "utf-8",
     delimiter: str = ",",
     rng: _t.Optional[np.random.Generator] = None,
-) -> Mutator:
+) -> _gt.Mutator:
     """
     Mutate series by randomly substituting character sequences from a replacement table.
     The table must have at least two columns: a source and a target value column.
@@ -709,7 +701,7 @@ def with_replacement_table(
 def with_missing_value(
     value: str = "",
     rng: _t.Optional[np.random.Generator] = None,
-) -> Mutator:
+) -> _gt.Mutator:
     """
     Mutate series by replacing its values with a representative "missing" value.
 
@@ -753,7 +745,7 @@ def with_missing_value(
 def with_insert(
     charset: _t.Union[str, list[str]] = string.ascii_letters,
     rng: _t.Optional[np.random.Generator] = None,
-) -> Mutator:
+) -> _gt.Mutator:
     """
     Mutate series by inserting random characters.
     The characters are drawn from the provided charset.
@@ -812,7 +804,7 @@ def with_insert(
     return _mutate
 
 
-def with_delete(rng: _t.Optional[np.random.Generator] = None) -> Mutator:
+def with_delete(rng: _t.Optional[np.random.Generator] = None) -> _gt.Mutator:
     """
     Mutate series by randomly deleting characters.
 
@@ -864,7 +856,7 @@ def with_delete(rng: _t.Optional[np.random.Generator] = None) -> Mutator:
     return _mutate
 
 
-def with_transpose(rng: _t.Optional[np.random.Generator] = None) -> Mutator:
+def with_transpose(rng: _t.Optional[np.random.Generator] = None) -> _gt.Mutator:
     """
     Mutate series by randomly swapping neighboring characters.
 
@@ -927,7 +919,7 @@ def with_transpose(rng: _t.Optional[np.random.Generator] = None) -> Mutator:
 def with_substitute(
     charset: _t.Union[str, list[str]] = string.ascii_letters,
     rng: _t.Optional[np.random.Generator] = None,
-) -> Mutator:
+) -> _gt.Mutator:
     """
     Mutate data by replacing single characters with a new one.
     The characters are drawn from the provided charset.
@@ -994,7 +986,7 @@ def with_substitute(
     return _mutate
 
 
-def with_noop() -> Mutator:
+def with_noop() -> _gt.Mutator:
     """
     Mutate series by not mutating it at all.
     This mutator returns the input series as-is.
@@ -1017,7 +1009,7 @@ def with_categorical_values(
     encoding: str = "utf-8",
     delimiter: str = ",",
     rng: _t.Optional[np.random.Generator] = None,
-) -> Mutator:
+) -> _gt.Mutator:
     """
     Mutate series by replacing values with another from a list of categorical values.
     This mutator reads all unique values from a singular column.
@@ -1113,7 +1105,7 @@ def with_categorical_values(
     return _mutate
 
 
-def with_permute(rng: _t.Optional[np.random.Generator] = None) -> Mutator:
+def with_permute(rng: _t.Optional[np.random.Generator] = None) -> _gt.Mutator:
     """
     Mutate series by permuting their contents.
     This function ensures that rows are permuted in such a way that no value remains in the series
@@ -1181,7 +1173,7 @@ def with_permute(rng: _t.Optional[np.random.Generator] = None) -> Mutator:
     return _mutate
 
 
-def with_lowercase(rng: _t.Optional[np.random.Generator] = None) -> Mutator:
+def with_lowercase(rng: _t.Optional[np.random.Generator] = None) -> _gt.Mutator:
     """
     Mutate series by converting its contents to lowercase.
 
@@ -1222,7 +1214,7 @@ def with_lowercase(rng: _t.Optional[np.random.Generator] = None) -> Mutator:
     return _mutate
 
 
-def with_uppercase(rng: _t.Optional[np.random.Generator] = None) -> Mutator:
+def with_uppercase(rng: _t.Optional[np.random.Generator] = None) -> _gt.Mutator:
     """
     Mutate series by converting its contents to uppercase.
 
@@ -1292,7 +1284,7 @@ def with_datetime_offset(
     dt_format: str,
     prevent_wraparound: bool = False,
     rng: _t.Optional[np.random.Generator] = None,
-) -> Mutator:
+) -> _gt.Mutator:
     """
     Mutate series by treating their contents it as datetime information and offsetting it by random amounts.
     The delta and the unit specify which datetime field should be affected, where possible values are
@@ -1378,11 +1370,11 @@ def with_datetime_offset(
 
 
 def with_generator(
-    generator: Generator,
+    generator: _gt.Generator,
     mode: _t.Literal["prepend", "append", "replace"],
     join_with: str = " ",
     rng: _t.Optional[np.random.Generator] = None,
-) -> Mutator:
+) -> _gt.Mutator:
     """
     Mutate series by replacing its content by appending, prepending or replacing it with data from another generator.
     A character to join generated data with when appending or prepending can be provided.
@@ -1519,7 +1511,7 @@ def with_regex_replacement_table(
     encoding: str = "utf-8",
     delimiter: str = ",",
     rng: _t.Optional[np.random.Generator] = None,
-) -> Mutator:
+) -> _gt.Mutator:
     """
     Mutate series by performing regex-based substitutions sourced from a table.
     This table must contain a column with the regex patterns to look for and columns for each capture group to look up
@@ -1636,7 +1628,7 @@ def with_regex_replacement_table(
 
 def with_repeat(
     join_with: str = " ", rng: _t.Optional[np.random.Generator] = None
-) -> Mutator:
+) -> _gt.Mutator:
     """
     Mutate series by repeating its contents.
     By default, selected entries will be duplicated and separated by a whitespace.
@@ -1670,7 +1662,7 @@ def with_repeat(
     return _mutate
 
 
-_WeightedMutatorDef = tuple[_t.Union[int, float], Mutator]
+_WeightedMutatorDef = tuple[_t.Union[int, float], _gt.Mutator]
 
 
 def _is_weighted_mutator_tuple(
@@ -1694,9 +1686,9 @@ def _is_weighted_mutator_tuple_list(
 
 
 def with_group(
-    mutator_lst: _t.Union[list[Mutator], list[_WeightedMutatorDef]],
+    mutator_lst: _t.Union[list[_gt.Mutator], list[_WeightedMutatorDef]],
     rng: _t.Optional[np.random.Generator] = None,
-) -> Mutator:
+) -> _gt.Mutator:
     """
     Mutate series by applying multiple mutators on it.
     The mutators are applied in the order that they are provided in to this function.
@@ -1737,7 +1729,7 @@ def with_group(
         rng = np.random.default_rng()
 
     p_vals: tuple[_t.Union[int, float], ...]
-    mut_lst: tuple[Mutator, ...]
+    mut_lst: tuple[_gt.Mutator, ...]
     p_vals, mut_lst = zip(*mutator_lst)
 
     for mut_idx, p_idx in enumerate(p_vals):
@@ -1776,7 +1768,7 @@ def with_group(
     return _mutate
 
 
-_MutatorDef = _t.Union[Mutator, tuple[_t.Union[int, float], Mutator]]
+_MutatorDef = _t.Union[_gt.Mutator, tuple[_t.Union[int, float], _gt.Mutator]]
 _MutatorSpec = list[
     tuple[_t.Union[str, tuple[str, ...]], _t.Union[_MutatorDef, list[_MutatorDef]]]
 ]

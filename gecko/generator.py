@@ -4,7 +4,6 @@ These generators wrap around common data sources such as frequency tables and nu
 """
 
 __all__ = [
-    "Generator",
     "from_function",
     "from_uniform_distribution",
     "from_normal_distribution",
@@ -22,13 +21,14 @@ import numpy as np
 import pandas as pd
 import typing_extensions as _te
 
+from gecko import _typedefs as _gt
+
 _P = _te.ParamSpec("_P")
-Generator = _t.Callable[[int], list[pd.Series]]
 
 
 def from_function(
     func: _t.Callable[_P, str], *args: object, **kwargs: object
-) -> Generator:
+) -> _gt.Generator:
     """
     Generate data from an arbitrary function that returns a single value at a time.
 
@@ -56,7 +56,7 @@ def from_uniform_distribution(
     high: _t.Union[int, float] = 1,
     precision: int = 6,
     rng: _t.Optional[np.random.Generator] = None,
-) -> Generator:
+) -> _gt.Generator:
     """
     Generate data from a uniform distribution.
 
@@ -85,7 +85,7 @@ def from_normal_distribution(
     sd: float = 1,
     precision: int = 6,
     rng: _t.Optional[np.random.Generator] = None,
-) -> Generator:
+) -> _gt.Generator:
     """
     Generate data from a normal distribution.
 
@@ -116,7 +116,7 @@ def from_frequency_table(
     encoding: str = "utf-8",
     delimiter: str = ",",
     rng: _t.Optional[np.random.Generator] = None,
-) -> Generator:
+) -> _gt.Generator:
     """
     Generate data from a frequency table.
     The frequency table must be provided in CSV format and contain at least two columns: one containing values to
@@ -181,7 +181,7 @@ def from_multicolumn_frequency_table(
     encoding: str = "utf-8",
     delimiter: str = ",",
     rng: _t.Optional[np.random.Generator] = None,
-) -> Generator:
+) -> _gt.Generator:
     """
     Generate data from a frequency table with multiple interdependent columns..
     The frequency table must be provided in CSV format and contain at least two columns: one containing values to
@@ -268,7 +268,7 @@ def from_datetime_range(
     dt_format: str,
     unit: _t.Literal["D", "h", "m", "s"],
     rng: _t.Optional[np.random.Generator] = None,
-) -> Generator:
+) -> _gt.Generator:
     """
     Generate data from a range of dates and times.
     The start and end datetime must be provided either as a ISO 8601 datetime string or a NumPy datetime object.
@@ -315,7 +315,7 @@ def from_datetime_range(
     return _generate
 
 
-_WeightedGenerator = tuple[_t.Union[int, float], Generator]
+_WeightedGenerator = tuple[_t.Union[int, float], _gt.Generator]
 
 
 def _is_weighted_generator(x: object) -> _te.TypeGuard[_WeightedGenerator]:
@@ -328,10 +328,10 @@ def _is_weighted_generator(x: object) -> _te.TypeGuard[_WeightedGenerator]:
 
 
 def from_group(
-    generator_lst: _t.Union[list[Generator], list[_WeightedGenerator]],
+    generator_lst: _t.Union[list[_gt.Generator], list[_WeightedGenerator]],
     max_rounding_adjustment: int = 0,
     rng: _t.Optional[np.random.Generator] = None,
-) -> Generator:
+) -> _gt.Generator:
     """
     Generate data from multiple generators.
     Unless explicitly specified, all generators will generate data with equal probability.
@@ -444,7 +444,7 @@ def from_group(
     return _generate
 
 
-_GeneratorSpec = list[tuple[_t.Union[str, tuple[str, ...]], Generator]]
+_GeneratorSpec = list[tuple[_t.Union[str, tuple[str, ...]], _gt.Generator]]
 
 
 def to_data_frame(

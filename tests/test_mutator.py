@@ -4,35 +4,13 @@ import string
 import pandas as pd
 import pytest
 
-import gecko.generator
-from gecko.mutator import (
-    with_cldr_keymap_file,
-    PNotMetWarning,
-    with_missing_value,
-    with_replacement_table,
-    with_delete,
-    with_insert,
-    with_transpose,
-    with_substitute,
-    with_uppercase,
-    with_lowercase,
-    with_function,
-    with_repeat,
-    with_permute,
-    with_generator,
-    with_group,
-    with_categorical_values,
-    with_datetime_offset,
-    with_phonetic_replacement_table,
-    with_regex_replacement_table,
-    mutate_data_frame,
-)
+from gecko import Generator, mutator, GeckoWarning
 from tests.helpers import get_asset_path, random_strings, write_temporary_csv_file
 
 
 def test_with_cldr_keymap_file(rng):
     srs = pd.Series(list(string.ascii_lowercase))
-    mutate_cldr = with_cldr_keymap_file(get_asset_path("de-t-k0-windows.xml"), rng=rng)
+    mutate_cldr = mutator.with_cldr_keymap_file(get_asset_path("de-t-k0-windows.xml"), rng=rng)
     (srs_mutated,) = mutate_cldr([srs], 1.0)
 
     assert len(srs) == len(srs_mutated)
@@ -42,7 +20,7 @@ def test_with_cldr_keymap_file(rng):
 
 def test_with_cldr_keymap_file_partial(rng):
     srs = pd.Series(list(string.ascii_lowercase))
-    mutate_cldr = with_cldr_keymap_file(get_asset_path("de-t-k0-windows.xml"), rng=rng)
+    mutate_cldr = mutator.with_cldr_keymap_file(get_asset_path("de-t-k0-windows.xml"), rng=rng)
     (srs_mutated,) = mutate_cldr([srs], 0.5)
 
     assert len(srs) == len(srs_mutated)
@@ -52,7 +30,7 @@ def test_with_cldr_keymap_file_partial(rng):
 
 def test_with_cldr_keymap_file_multiple_options(rng):
     srs = pd.Series(["foobar"] * 100)
-    mutate_cldr = with_cldr_keymap_file(get_asset_path("de-t-k0-windows.xml"), rng=rng)
+    mutate_cldr = mutator.with_cldr_keymap_file(get_asset_path("de-t-k0-windows.xml"), rng=rng)
     (srs_mutated,) = mutate_cldr([srs], 1.0)
 
     assert len(srs) == len(srs_mutated)
@@ -63,11 +41,11 @@ def test_with_cldr_keymap_file_multiple_options(rng):
 def test_with_cldr_keymap_file_warn_low_p(rng):
     # restrain mutator to digits only. if p=0.5 then this should put out a warning.
     srs = pd.Series(["123"] * 20 + ["foobar"] * 80)
-    mutate_cldr = with_cldr_keymap_file(
+    mutate_cldr = mutator.with_cldr_keymap_file(
         get_asset_path("de-t-k0-windows.xml"), charset=string.digits, rng=rng
     )
 
-    with pytest.warns(PNotMetWarning) as record:
+    with pytest.warns(GeckoWarning) as record:
         (srs_mutated,) = mutate_cldr([srs], 0.5)
 
     assert len(record) == 1
@@ -89,7 +67,7 @@ def test_with_cldr_keymap_file_warn_low_p(rng):
 
 def test_with_missing_value(rng):
     srs = pd.Series(range(1_000), dtype=str)
-    mut_missing = with_missing_value(value="", rng=rng)
+    mut_missing = mutator.with_missing_value(value="", rng=rng)
     (srs_mut,) = mut_missing([srs], 1.0)
 
     assert len(srs) == len(srs_mut)
@@ -99,7 +77,7 @@ def test_with_missing_value(rng):
 
 def test_with_missing_value_partial(rng):
     srs = pd.Series(range(1_000), dtype=str)
-    mut_missing = with_missing_value(value="", rng=rng)
+    mut_missing = mutator.with_missing_value(value="", rng=rng)
     (srs_mut,) = mut_missing([srs], 0.5)
 
     assert len(srs) == len(srs_mut)
@@ -109,9 +87,9 @@ def test_with_missing_value_partial(rng):
 
 def test_with_missing_value_existing(rng):
     srs = pd.Series(["foo"] * 20 + [""] * 80)
-    mut_missing = with_missing_value(value="", rng=rng)
+    mut_missing = mutator.with_missing_value(value="", rng=rng)
 
-    with pytest.warns(PNotMetWarning) as record:
+    with pytest.warns(GeckoWarning) as record:
         (srs_mut,) = mut_missing([srs], 0.5)
 
     assert len(record) == 1
@@ -134,7 +112,7 @@ def test_with_replacement_table(rng):
         columns=["source", "target"],
     )
 
-    mut_replacement_table = with_replacement_table(
+    mut_replacement_table = mutator.with_replacement_table(
         df, source_column="source", target_column="target", rng=rng
     )
 
@@ -154,7 +132,7 @@ def test_with_replacement_table_partial(rng):
         columns=["source", "target"],
     )
 
-    mut_replacement_table = with_replacement_table(
+    mut_replacement_table = mutator.with_replacement_table(
         df, source_column="source", target_column="target", rng=rng
     )
 
@@ -175,7 +153,7 @@ def test_with_replacement_table_reverse(rng):
     )
 
     # this mutator should ensure that uppercase -> lowercase should take place
-    mut_replacement_table = with_replacement_table(
+    mut_replacement_table = mutator.with_replacement_table(
         df, source_column="source", target_column="target", reverse=True, rng=rng
     )
 
@@ -196,7 +174,7 @@ def test_with_replacement_table_inline(rng):
     )
 
     # this mutator should ensure that replacements occur inline
-    mut_replacement_table = with_replacement_table(
+    mut_replacement_table = mutator.with_replacement_table(
         df, source_column="source", target_column="target", inline=True, rng=rng
     )
 
@@ -213,11 +191,11 @@ def test_with_replacement_table_warn_p(rng):
     # no mapping for "b"
     df = pd.DataFrame.from_dict({"source": ["a"], "target": ["A"]})
 
-    mut_replacement_table = with_replacement_table(
+    mut_replacement_table = mutator.with_replacement_table(
         df, source_column="source", target_column="target", rng=rng
     )
 
-    with pytest.warns(PNotMetWarning) as record:
+    with pytest.warns(GeckoWarning) as record:
         (srs_mut,) = mut_replacement_table([srs], 0.8)
 
     assert len(record) == 1
@@ -241,7 +219,7 @@ def test_with_replacement_table_csv(rng, tmp_path):
         rows=list(zip(string.ascii_lowercase, string.ascii_uppercase)),
     )
 
-    mut_replacement_table = with_replacement_table(
+    mut_replacement_table = mutator.with_replacement_table(
         csv_file_path, source_column="source", target_column="target", rng=rng
     )
 
@@ -254,7 +232,7 @@ def test_with_replacement_table_csv(rng, tmp_path):
 
 def test_with_delete(rng):
     srs = pd.Series(random_strings(rng=rng))
-    mut_delete = with_delete(rng=rng)
+    mut_delete = mutator.with_delete(rng=rng)
 
     (srs_mut,) = mut_delete([srs], 1)
 
@@ -265,7 +243,7 @@ def test_with_delete(rng):
 
 def test_with_delete_partial(rng):
     srs = pd.Series(random_strings(rng=rng))
-    mut_delete = with_delete(rng=rng)
+    mut_delete = mutator.with_delete(rng=rng)
 
     (srs_mut,) = mut_delete([srs], 0.5)
 
@@ -276,9 +254,9 @@ def test_with_delete_partial(rng):
 
 def test_with_delete_warn_p(rng):
     srs = pd.Series(random_strings(n_strings=50, rng=rng) + [""] * 50)
-    mut_delete = with_delete(rng=rng)
+    mut_delete = mutator.with_delete(rng=rng)
 
-    with pytest.warns(PNotMetWarning) as record:
+    with pytest.warns(GeckoWarning) as record:
         (srs_mut,) = mut_delete([srs], 0.8)
 
     assert len(record) == 1
@@ -297,7 +275,7 @@ def test_with_delete_warn_p(rng):
 
 def test_with_insert(rng):
     srs = pd.Series(random_strings(rng=rng))
-    mut_insert = with_insert(rng=rng)
+    mut_insert = mutator.with_insert(rng=rng)
 
     (srs_mut,) = mut_insert([srs], 1)
 
@@ -308,7 +286,7 @@ def test_with_insert(rng):
 
 def test_with_insert_partial(rng):
     srs = pd.Series(random_strings(rng=rng))
-    mut_insert = with_insert(rng=rng)
+    mut_insert = mutator.with_insert(rng=rng)
 
     (srs_mut,) = mut_insert([srs], 0.5)
 
@@ -320,7 +298,7 @@ def test_with_insert_partial(rng):
 def test_with_insert_charset(rng):
     # test by inserting uppercase characters into lowercase strings
     srs = pd.Series(random_strings(rng=rng, charset=string.ascii_lowercase))
-    mut_insert = with_insert(charset=string.ascii_uppercase, rng=rng)
+    mut_insert = mutator.with_insert(charset=string.ascii_uppercase, rng=rng)
 
     (srs_mut,) = mut_insert([srs], 1)
 
@@ -336,7 +314,7 @@ def test_with_insert_charset(rng):
 def test_with_transpose(rng):
     # create unique strings, otherwise the same characters might be swapped
     srs = pd.Series(random_strings(unique=True, rng=rng))
-    mut_transpose = with_transpose(rng=rng)
+    mut_transpose = mutator.with_transpose(rng=rng)
 
     (srs_mut,) = mut_transpose([srs], 1)
 
@@ -348,7 +326,7 @@ def test_with_transpose(rng):
 def test_with_transpose_partial(rng):
     # create unique strings, otherwise the same characters might be swapped
     srs = pd.Series(random_strings(unique=True, rng=rng))
-    mut_transpose = with_transpose(rng=rng)
+    mut_transpose = mutator.with_transpose(rng=rng)
 
     (srs_mut,) = mut_transpose([srs], 0.5)
 
@@ -359,9 +337,9 @@ def test_with_transpose_partial(rng):
 
 def test_with_transpose_warn_p(rng):
     srs = pd.Series(random_strings(n_strings=50, unique=True, rng=rng) + ["a"] * 50)
-    mut_transpose = with_transpose(rng=rng)
+    mut_transpose = mutator.with_transpose(rng=rng)
 
-    with pytest.warns(PNotMetWarning) as record:
+    with pytest.warns(GeckoWarning) as record:
         (srs_mut,) = mut_transpose([srs], 0.8)
 
     assert len(record) == 1
@@ -380,7 +358,7 @@ def test_with_transpose_warn_p(rng):
 def test_with_substitute(rng):
     # by default, with_substitute inserts characters, so use digits to avoid replacement of same characters
     srs = pd.Series(random_strings(charset=string.digits, rng=rng))
-    mut_substitute = with_substitute(rng=rng)
+    mut_substitute = mutator.with_substitute(rng=rng)
 
     (srs_mut,) = mut_substitute([srs], 1)
 
@@ -395,7 +373,7 @@ def test_with_substitute(rng):
 
 def test_with_substitute_partial(rng):
     srs = pd.Series(random_strings(charset=string.digits, rng=rng))
-    mut_substitute = with_substitute(rng=rng)
+    mut_substitute = mutator.with_substitute(rng=rng)
 
     (srs_mut,) = mut_substitute([srs], 0.5)
 
@@ -407,7 +385,7 @@ def test_with_substitute_partial(rng):
 def test_with_substitute_charset(rng):
     # same as above, this time using a custom charset param
     srs = pd.Series(random_strings(charset=string.ascii_lowercase, rng=rng))
-    mut_substitute = with_substitute(charset=string.digits, rng=rng)
+    mut_substitute = mutator.with_substitute(charset=string.digits, rng=rng)
 
     (srs_mut,) = mut_substitute([srs], 1)
 
@@ -425,9 +403,9 @@ def test_with_substitute_warn_p(rng):
     srs = pd.Series(
         random_strings(n_strings=50, charset=string.digits, rng=rng) + [""] * 50
     )
-    mut_substitute = with_substitute(rng=rng)
+    mut_substitute = mutator.with_substitute(rng=rng)
 
-    with pytest.warns(PNotMetWarning) as record:
+    with pytest.warns(GeckoWarning) as record:
         (srs_mut,) = mut_substitute([srs], 0.8)
 
     assert len(record) == 1
@@ -445,7 +423,7 @@ def test_with_substitute_warn_p(rng):
 
 def test_with_uppercase(rng):
     srs = pd.Series(random_strings(charset=string.ascii_lowercase, rng=rng))
-    mut_uppercase = with_uppercase(rng=rng)
+    mut_uppercase = mutator.with_uppercase(rng=rng)
 
     (srs_mut,) = mut_uppercase([srs], 1)
 
@@ -456,7 +434,7 @@ def test_with_uppercase(rng):
 
 def test_with_uppercase_partial(rng):
     srs = pd.Series(random_strings(charset=string.ascii_lowercase, rng=rng))
-    mut_uppercase = with_uppercase(rng=rng)
+    mut_uppercase = mutator.with_uppercase(rng=rng)
 
     (srs_mut,) = mut_uppercase([srs], 0.5)
 
@@ -470,9 +448,9 @@ def test_with_uppercase_warn_p(rng):
         random_strings(n_strings=50, charset=string.ascii_lowercase, rng=rng)
         + random_strings(n_strings=50, charset=string.ascii_uppercase, rng=rng)
     )
-    mut_uppercase = with_uppercase(rng=rng)
+    mut_uppercase = mutator.with_uppercase(rng=rng)
 
-    with pytest.warns(PNotMetWarning) as record:
+    with pytest.warns(GeckoWarning) as record:
         (srs_mut,) = mut_uppercase([srs], 0.8)
 
     assert len(record) == 1
@@ -490,7 +468,7 @@ def test_with_uppercase_warn_p(rng):
 
 def test_with_lowercase(rng):
     srs = pd.Series(random_strings(charset=string.ascii_uppercase, rng=rng))
-    mut_lowercase = with_lowercase(rng=rng)
+    mut_lowercase = mutator.with_lowercase(rng=rng)
 
     (srs_mut,) = mut_lowercase([srs], 1)
 
@@ -501,7 +479,7 @@ def test_with_lowercase(rng):
 
 def test_with_lowercase_partial(rng):
     srs = pd.Series(random_strings(charset=string.ascii_uppercase, rng=rng))
-    mut_lowercase = with_lowercase(rng=rng)
+    mut_lowercase = mutator.with_lowercase(rng=rng)
 
     (srs_mut,) = mut_lowercase([srs], 0.5)
 
@@ -515,9 +493,9 @@ def test_with_lowercase_warn_p(rng):
         random_strings(n_strings=50, charset=string.ascii_uppercase, rng=rng)
         + random_strings(n_strings=50, charset=string.ascii_lowercase, rng=rng)
     )
-    mut_lowercase = with_lowercase(rng=rng)
+    mut_lowercase = mutator.with_lowercase(rng=rng)
 
-    with pytest.warns(PNotMetWarning) as record:
+    with pytest.warns(GeckoWarning) as record:
         (srs_mut,) = mut_lowercase([srs], 0.8)
 
     assert len(record) == 1
@@ -540,7 +518,7 @@ def test_with_function(rng):
         return f"{value}{my_rng.integers(0, 10)}"
 
     srs = pd.Series(random_strings(charset=string.ascii_letters, rng=rng))
-    mut_fn = with_function(_my_func, rng=rng, my_rng=rng)
+    mut_fn = mutator.with_function(_my_func, rng=rng, my_rng=rng)
 
     (srs_mut,) = mut_fn([srs], 1)
 
@@ -558,7 +536,7 @@ def test_with_function_partial(rng):
         return f"{value}{my_rng.integers(0, 10)}"
 
     srs = pd.Series(random_strings(charset=string.ascii_letters, rng=rng))
-    mut_fn = with_function(_my_func, rng=rng, my_rng=rng)
+    mut_fn = mutator.with_function(_my_func, rng=rng, my_rng=rng)
 
     (srs_mut,) = mut_fn([srs], 0.5)
 
@@ -569,7 +547,7 @@ def test_with_function_partial(rng):
 
 def test_with_repeat(rng):
     srs = pd.Series(random_strings(charset=string.ascii_letters, rng=rng))
-    mut_repeat = with_repeat(rng=rng)
+    mut_repeat = mutator.with_repeat(rng=rng)
 
     (srs_mut,) = mut_repeat([srs], 1.0)
 
@@ -580,7 +558,7 @@ def test_with_repeat(rng):
 
 def test_with_repeat_partial(rng):
     srs = pd.Series(random_strings(charset=string.ascii_letters, rng=rng))
-    mut_repeat = with_repeat(rng=rng)
+    mut_repeat = mutator.with_repeat(rng=rng)
 
     (srs_mut,) = mut_repeat([srs], 0.5)
 
@@ -591,7 +569,7 @@ def test_with_repeat_partial(rng):
 
 def test_with_repeat_join_character(rng):
     srs = pd.Series(random_strings(charset=string.ascii_letters, rng=rng))
-    mut_repeat = with_repeat(join_with=":", rng=rng)
+    mut_repeat = mutator.with_repeat(join_with=":", rng=rng)
 
     (srs_mut,) = mut_repeat([srs], 1.0)
 
@@ -602,7 +580,7 @@ def test_with_repeat_join_character(rng):
 def test_with_permute(rng):
     srs_a = pd.Series(random_strings(charset=string.ascii_lowercase, rng=rng))
     srs_b = pd.Series(random_strings(charset=string.ascii_uppercase, rng=rng))
-    mut_permute = with_permute(rng=rng)
+    mut_permute = mutator.with_permute(rng=rng)
 
     (srs_a_mut, srs_b_mut) = mut_permute([srs_a, srs_b], 1.0)
 
@@ -615,7 +593,7 @@ def test_with_permute_multicolumn(rng):
     srs_a = pd.Series(random_strings(charset=string.ascii_lowercase, rng=rng))
     srs_b = pd.Series(random_strings(charset=string.ascii_uppercase, rng=rng))
     srs_c = pd.Series(random_strings(charset=string.digits, rng=rng))
-    mut_permute = with_permute(rng=rng)
+    mut_permute = mutator.with_permute(rng=rng)
 
     (srs_a_mut, srs_b_mut, srs_c_mut) = mut_permute([srs_a, srs_b, srs_c], 1.0)
 
@@ -635,7 +613,7 @@ def test_with_permute_multicolumn(rng):
 def test_with_permute_partial(rng):
     srs_a = pd.Series(random_strings(charset=string.ascii_lowercase, rng=rng))
     srs_b = pd.Series(random_strings(charset=string.ascii_uppercase, rng=rng))
-    mut_permute = with_permute(rng=rng)
+    mut_permute = mutator.with_permute(rng=rng)
 
     # most entries should be flipped
     (srs_a_mut, srs_b_mut) = mut_permute([srs_a, srs_b], 0.8)
@@ -652,7 +630,7 @@ def test_with_permute_partial(rng):
     assert srs_b_flipped.sum() > (~srs_b_flipped).sum()
 
 
-def _from_scalar_value(column_values) -> gecko.generator.Generator:
+def _from_scalar_value(column_values) -> Generator:
     if isinstance(column_values, str):
         column_values = (column_values,)
 
@@ -669,7 +647,7 @@ def _from_scalar_value(column_values) -> gecko.generator.Generator:
 
 def test_with_generator_replace(rng):
     srs = pd.Series(random_strings(charset=string.ascii_letters, rng=rng))
-    mut_generator = with_generator(
+    mut_generator = mutator.with_generator(
         _from_scalar_value("foobar"), mode="replace", rng=rng
     )
     (srs_mut,) = mut_generator([srs], 1.0)
@@ -681,7 +659,7 @@ def test_with_generator_replace(rng):
 
 def test_with_generator_partial(rng):
     srs = pd.Series(random_strings(charset=string.ascii_letters, rng=rng))
-    mut_generator = with_generator(
+    mut_generator = mutator.with_generator(
         _from_scalar_value("foobar"), mode="replace", rng=rng
     )
     (srs_mut,) = mut_generator([srs], 0.8)
@@ -696,7 +674,7 @@ def test_with_generator_partial(rng):
 
 def test_with_generator_prepend(rng):
     srs = pd.Series(random_strings(charset=string.digits, rng=rng))
-    mut_generator = with_generator(
+    mut_generator = mutator.with_generator(
         _from_scalar_value("foobar"), mode="prepend", rng=rng
     )
     (srs_mut,) = mut_generator([srs], 1.0)
@@ -708,7 +686,7 @@ def test_with_generator_prepend(rng):
 
 def test_with_generator_append(rng):
     srs = pd.Series(random_strings(charset=string.digits, rng=rng))
-    mut_generator = with_generator(_from_scalar_value("foobar"), mode="append", rng=rng)
+    mut_generator = mutator.with_generator(_from_scalar_value("foobar"), mode="append", rng=rng)
     (srs_mut,) = mut_generator([srs], 1.0)
 
     assert len(srs) == len(srs_mut)
@@ -718,7 +696,7 @@ def test_with_generator_append(rng):
 
 def test_with_generator_prepend_join_char(rng):
     srs = pd.Series(random_strings(charset=string.digits, rng=rng))
-    mut_generator = with_generator(
+    mut_generator = mutator.with_generator(
         _from_scalar_value("foobar"), mode="prepend", join_with="-", rng=rng
     )
     (srs_mut,) = mut_generator([srs], 1.0)
@@ -730,7 +708,7 @@ def test_with_generator_prepend_join_char(rng):
 
 def test_with_generator_append_join_char(rng):
     srs = pd.Series(random_strings(charset=string.digits, rng=rng))
-    mut_generator = with_generator(
+    mut_generator = mutator.with_generator(
         _from_scalar_value("foobar"), mode="append", join_with="-", rng=rng
     )
     (srs_mut,) = mut_generator([srs], 1.0)
@@ -744,7 +722,7 @@ def test_with_generator_multi_column(rng):
     srs_a = pd.Series(random_strings(charset=string.ascii_letters, rng=rng))
     srs_b = pd.Series(random_strings(charset=string.ascii_letters, rng=rng))
 
-    mut_generator = with_generator(
+    mut_generator = mutator.with_generator(
         _from_scalar_value(("foobar", "foobaz")), mode="replace", rng=rng
     )
     (srs_a_mut, srs_b_mut) = mut_generator([srs_a, srs_b], 1.0)
@@ -759,7 +737,7 @@ def test_with_generator_multi_column(rng):
 
 def test_with_generator_raise_mismatched_columns(rng):
     srs = pd.Series(random_strings(charset=string.ascii_letters, rng=rng))
-    mut_generator = with_generator(
+    mut_generator = mutator.with_generator(
         _from_scalar_value(("foobar", "foobaz")), mode="replace", rng=rng
     )
 
@@ -774,10 +752,10 @@ def test_with_generator_raise_mismatched_columns(rng):
 
 def test_with_group(rng):
     srs = pd.Series(random_strings(charset=string.ascii_letters, str_len=20, rng=rng))
-    mut_group = with_group(
+    mut_group = mutator.with_group(
         [
-            with_insert(charset=string.digits, rng=rng),
-            with_delete(rng=rng),
+            mutator.with_insert(charset=string.digits, rng=rng),
+            mutator.with_delete(rng=rng),
         ],
         rng=rng,
     )
@@ -792,10 +770,10 @@ def test_with_group(rng):
 
 def test_with_group_partial(rng):
     srs = pd.Series(random_strings(charset=string.ascii_letters, str_len=20, rng=rng))
-    mut_group = with_group(
+    mut_group = mutator.with_group(
         [
-            with_insert(charset=string.digits, rng=rng),
-            with_delete(rng=rng),
+            mutator.with_insert(charset=string.digits, rng=rng),
+            mutator.with_delete(rng=rng),
         ],
         rng=rng,
     )
@@ -809,10 +787,10 @@ def test_with_group_partial(rng):
 
 def test_with_group_weighted(rng):
     srs = pd.Series(random_strings(charset=string.ascii_letters, str_len=20, rng=rng))
-    mut_group = with_group(
+    mut_group = mutator.with_group(
         [
-            (0.2, with_insert(charset=string.digits, rng=rng)),
-            (0.8, with_delete(rng=rng)),
+            (0.2, mutator.with_insert(charset=string.digits, rng=rng)),
+            (0.8, mutator.with_delete(rng=rng)),
         ],
         rng=rng,
     )
@@ -827,9 +805,9 @@ def test_with_group_weighted(rng):
 
 def test_with_group_padded(rng):
     srs = pd.Series(random_strings(charset=string.ascii_letters, rng=rng))
-    mut_group = with_group(
+    mut_group = mutator.with_group(
         [
-            (0.2, with_insert(charset=string.digits, rng=rng)),
+            (0.2, mutator.with_insert(charset=string.digits, rng=rng)),
         ],
         rng=rng,
     )
@@ -844,10 +822,10 @@ def test_with_group_padded(rng):
 
 def test_with_group_raise_p_sum_too_high(rng):
     with pytest.raises(ValueError) as e:
-        _ = with_group(
+        _ = mutator.with_group(
             [
-                (0.6, with_delete(rng=rng)),
-                (0.41, with_insert(rng=rng)),
+                (0.6, mutator.with_delete(rng=rng)),
+                (0.41, mutator.with_insert(rng=rng)),
             ],
             rng=rng,
         )
@@ -857,10 +835,10 @@ def test_with_group_raise_p_sum_too_high(rng):
 
 def test_with_group_raise_p_sum_too_low(rng):
     with pytest.raises(ValueError) as e:
-        _ = with_group(
+        _ = mutator.with_group(
             [
-                (0, with_delete(rng=rng)),
-                (0, with_insert(rng=rng)),
+                (0, mutator.with_delete(rng=rng)),
+                (0, mutator.with_insert(rng=rng)),
             ],
             rng=rng,
         )
@@ -874,7 +852,7 @@ def test_with_categorical_values(rng):
 
     df_cat = pd.DataFrame.from_dict({"values": list("abcd")})
 
-    mut_categorical = with_categorical_values(df_cat, value_column="values", rng=rng)
+    mut_categorical = mutator.with_categorical_values(df_cat, value_column="values", rng=rng)
 
     (srs_mut,) = mut_categorical([srs], 1.0)
 
@@ -895,7 +873,7 @@ def test_with_categorical_values_partial(rng):
 
     df_cat = pd.DataFrame.from_dict({"values": list("abcd")})
 
-    mut_categorical = with_categorical_values(df_cat, value_column="values", rng=rng)
+    mut_categorical = mutator.with_categorical_values(df_cat, value_column="values", rng=rng)
 
     (srs_mut,) = mut_categorical([srs], 0.5)
 
@@ -910,9 +888,9 @@ def test_with_categorical_values_warn_p(rng):
     # only two values from the series can be mutated, so p should be approx. 50%
     df_cat = pd.DataFrame.from_dict({"values": list("ab")})
 
-    mut_categorical = with_categorical_values(df_cat, value_column="values", rng=rng)
+    mut_categorical = mutator.with_categorical_values(df_cat, value_column="values", rng=rng)
 
-    with pytest.warns(PNotMetWarning) as record:
+    with pytest.warns(GeckoWarning) as record:
         (srs_mut,) = mut_categorical([srs], 0.8)
 
     assert len(record) == 1
@@ -932,7 +910,7 @@ def test_with_categorical_values_raise_too_few_values(rng):
     df_cat = pd.DataFrame.from_dict({"values": list("a")})
 
     with pytest.raises(ValueError) as e:
-        _ = with_categorical_values(df_cat, value_column="values", rng=rng)
+        _ = mutator.with_categorical_values(df_cat, value_column="values", rng=rng)
 
     assert str(e.value) == "column must contain at least two unique values, has 1"
 
@@ -945,7 +923,7 @@ def test_with_categorical_values_csv(rng, tmp_path):
         rows=list(string.ascii_letters),
     )
 
-    mut_categorical = with_categorical_values(
+    mut_categorical = mutator.with_categorical_values(
         csv_file_path, value_column="values", rng=rng
     )
 
@@ -962,7 +940,7 @@ def test_with_datetime_offset(rng, unit):
     srs = pd.Series(
         pd.date_range("2020-01-01", "2021-01-01", freq="h", inclusive="left")
     )
-    mut_datetime_offset = with_datetime_offset(5, unit, "%Y-%m-%d %H:%M:%S", rng=rng)
+    mut_datetime_offset = mutator.with_datetime_offset(5, unit, "%Y-%m-%d %H:%M:%S", rng=rng)
     (srs_mut,) = mut_datetime_offset([srs], 1)
 
     assert len(srs) == len(srs_mut)
@@ -976,7 +954,7 @@ def test_with_datetime_offset_partial(rng, unit):
     srs = pd.Series(
         pd.date_range("2020-01-01", "2021-01-01", freq="h", inclusive="left")
     )
-    mut_datetime_offset = with_datetime_offset(5, unit, "%Y-%m-%d %H:%M:%S", rng=rng)
+    mut_datetime_offset = mutator.with_datetime_offset(5, unit, "%Y-%m-%d %H:%M:%S", rng=rng)
     (srs_mut,) = mut_datetime_offset([srs], 0.5)
 
     assert len(srs) == len(srs_mut)
@@ -989,11 +967,11 @@ def test_with_datetime_offset_partial(rng, unit):
 )
 def test_with_datetime_offset_prevent_wraparound(rng, unit):
     srs = pd.Series(["2020-01-01 00:00:00"] * 1_000)
-    mut_datetime_offset = with_datetime_offset(
+    mut_datetime_offset = mutator.with_datetime_offset(
         5, unit, "%Y-%m-%d %H:%M:%S", prevent_wraparound=True, rng=rng
     )
 
-    with pytest.warns(PNotMetWarning) as record:
+    with pytest.warns(GeckoWarning) as record:
         (srs_mut,) = mut_datetime_offset([srs], 1)
 
     assert len(record) == 1
@@ -1012,7 +990,7 @@ def test_with_datetime_offset_custom_format(rng):
     srs = pd.Series(pd.date_range("2020-01-01", periods=28, freq="D")).dt.strftime(
         "%d.%m.%Y"
     )
-    mut_datetime_offset = with_datetime_offset(5, "d", "%d.%m.%Y", rng=rng)
+    mut_datetime_offset = mutator.with_datetime_offset(5, "d", "%d.%m.%Y", rng=rng)
     (srs_mut,) = mut_datetime_offset([srs], 1)
 
     assert len(srs) == len(srs_mut)
@@ -1022,7 +1000,7 @@ def test_with_datetime_offset_custom_format(rng):
 
 def test_with_datetime_offset_raise_invalid_delta(rng):
     with pytest.raises(ValueError) as e:
-        _ = with_datetime_offset(0, "d", "%Y-%m-%d", rng=rng)
+        _ = mutator.with_datetime_offset(0, "d", "%Y-%m-%d", rng=rng)
 
     assert str(e.value) == "delta must be positive, is 0"
 
@@ -1033,7 +1011,7 @@ def test_with_phonetic_replacement_table(rng):
         {"source": list("abcbcca"), "target": list("0123456"), "flags": list("^^^$$__")}
     )
 
-    mut_phonetic = with_phonetic_replacement_table(
+    mut_phonetic = mutator.with_phonetic_replacement_table(
         df_phon,
         source_column="source",
         target_column="target",
@@ -1054,7 +1032,7 @@ def test_with_phonetic_replacement_table_partial(rng):
         {"source": list("abcbcca"), "target": list("0123456"), "flags": list("^^^$$__")}
     )
 
-    mut_phonetic = with_phonetic_replacement_table(
+    mut_phonetic = mutator.with_phonetic_replacement_table(
         df_phon,
         source_column="source",
         target_column="target",
@@ -1083,7 +1061,7 @@ def test_with_phonetic_replacement_table_no_flags(rng):
 
     df_phon = pd.DataFrame.from_dict({"source": ["a"], "target": ["0"], "flags": [""]})
 
-    mut_phonetic = with_phonetic_replacement_table(
+    mut_phonetic = mutator.with_phonetic_replacement_table(
         df_phon,
         source_column="source",
         target_column="target",
@@ -1107,7 +1085,7 @@ def test_with_phonetic_replacement_table_csv(rng, tmp_path):
         rows=list(zip("abcbcca", "0123456", "^^^$$__")),
     )
 
-    mut_phonetic = with_phonetic_replacement_table(
+    mut_phonetic = mutator.with_phonetic_replacement_table(
         csv_file_path,
         source_column="source",
         target_column="target",
@@ -1126,7 +1104,7 @@ def test_with_phonetic_replacement_table_warn_p(rng):
     srs = pd.Series(["abc", "def"] * 100)
     df_phon = pd.DataFrame.from_dict({"source": ["a"], "target": ["0"], "flags": ["^"]})
 
-    mut_phonetic = with_phonetic_replacement_table(
+    mut_phonetic = mutator.with_phonetic_replacement_table(
         df_phon,
         source_column="source",
         target_column="target",
@@ -1134,7 +1112,7 @@ def test_with_phonetic_replacement_table_warn_p(rng):
         rng=rng,
     )
 
-    with pytest.warns(PNotMetWarning) as record:
+    with pytest.warns(GeckoWarning) as record:
         (srs_mut,) = mut_phonetic([srs], 0.8)
 
     assert len(record) == 1
@@ -1154,7 +1132,7 @@ def test_with_phonetic_replacement_table_warn_p(rng):
 
 def test_with_phonetic_replacement_table_raise_no_rules(rng):
     with pytest.raises(ValueError) as e:
-        _ = with_phonetic_replacement_table(
+        _ = mutator.with_phonetic_replacement_table(
             pd.DataFrame.from_dict(
                 {
                     "source": [],
@@ -1175,7 +1153,7 @@ def test_with_regex_replacement_table_unnamed_capture_group(rng):
 
     df_table = pd.DataFrame.from_dict({"pattern": ["a(bc)", "d(ef)"], "1": ["1", "2"]})
 
-    mut_regex = with_regex_replacement_table(
+    mut_regex = mutator.with_regex_replacement_table(
         df_table, pattern_column="pattern", rng=rng
     )
 
@@ -1191,7 +1169,7 @@ def test_with_regex_replacement_table_unnamed_capture_group_partial(rng):
 
     df_table = pd.DataFrame.from_dict({"pattern": ["a(bc)", "d(ef)"], "1": ["1", "2"]})
 
-    mut_regex = with_regex_replacement_table(
+    mut_regex = mutator.with_regex_replacement_table(
         df_table, pattern_column="pattern", rng=rng
     )
 
@@ -1209,7 +1187,7 @@ def test_with_regex_replacement_table_named_capture_group(rng):
         {"pattern": ["a(?P<foo>bc)", "d(?P<foo>ef)"], "foo": ["1", "2"]}
     )
 
-    mut_regex = with_regex_replacement_table(
+    mut_regex = mutator.with_regex_replacement_table(
         df_table, pattern_column="pattern", rng=rng
     )
 
@@ -1231,7 +1209,7 @@ def test_with_regex_replacement_table_flags(rng):
         }
     )
 
-    mut_regex = with_regex_replacement_table(
+    mut_regex = mutator.with_regex_replacement_table(
         df_table, pattern_column="pattern", flags_column="flags", rng=rng
     )
 
@@ -1247,11 +1225,11 @@ def test_with_regex_replacement_table_warn_p(rng):
 
     df_table = pd.DataFrame.from_dict({"pattern": ["a(bc)"], "1": ["1"]})
 
-    mut_regex = with_regex_replacement_table(
+    mut_regex = mutator.with_regex_replacement_table(
         df_table, pattern_column="pattern", rng=rng
     )
 
-    with pytest.warns(PNotMetWarning) as record:
+    with pytest.warns(GeckoWarning) as record:
         (srs_mut,) = mut_regex([srs], 0.8)
 
     assert len(record) == 1
@@ -1271,7 +1249,7 @@ def test_with_regex_replacement_table_warn_p(rng):
 
 def test_with_regex_replacement_table_raise_no_rules(rng):
     with pytest.raises(ValueError) as e:
-        _ = with_regex_replacement_table(
+        _ = mutator.with_regex_replacement_table(
             pd.DataFrame({"pattern": []}), pattern_column="pattern", rng=rng
         )
 
@@ -1289,7 +1267,7 @@ def test_with_regex_replacement_table_csv(rng, tmp_path):
         ],
     )
 
-    mut_regex = with_regex_replacement_table(
+    mut_regex = mutator.with_regex_replacement_table(
         csv_path, pattern_column="pattern", rng=rng
     )
 
@@ -1321,26 +1299,26 @@ def test_mutate_data_frame(rng):
         }
     )
 
-    df_mut = mutate_data_frame(
+    df_mut = mutator.mutate_data_frame(
         df,
         [
             # col 1 should have these mutators applied to all rows
             (
                 "col_1",
                 [
-                    with_delete(rng=rng),
-                    with_uppercase(rng=rng),
+                    mutator.with_delete(rng=rng),
+                    mutator.with_uppercase(rng=rng),
                 ],
             ),
             # col 2 should have these mutators applied to approx. 50% of all rows
             (
                 "col_2",
                 [
-                    (0.5, with_insert(charset=string.ascii_uppercase, rng=rng)),
+                    (0.5, mutator.with_insert(charset=string.ascii_uppercase, rng=rng)),
                 ],
             ),
             # col 3 and 4 should be permuted
-            (("col_3", "col_4"), with_permute(rng=rng)),
+            (("col_3", "col_4"), mutator.with_permute(rng=rng)),
         ],
     )
 
