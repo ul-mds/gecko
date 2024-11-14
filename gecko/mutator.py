@@ -222,9 +222,7 @@ def with_cldr_keymap_file(
             # check that there are any candidates
             if len(kb_char_candidates) > 0:
                 kb_char_to_candidates_dict[kb_char] = "".join(
-                    sorted(
-                        list(kb_char_candidates)
-                    )  # needs to be sorted to ensure reproducibility
+                    sorted(list(kb_char_candidates))  # needs to be sorted to ensure reproducibility
                 )
 
     def _mutate_series(srs: pd.Series, p: float) -> pd.Series:
@@ -257,9 +255,7 @@ def with_cldr_keymap_file(
         # draw random rows to actually perform mutation on
         arr_rng_vals = rng.random(size=srs_selected_for_mutation.sum())
         # update the mutation mask (it may happen that rows that were True might flip to False)
-        srs_selected_for_mutation.loc[srs_selected_for_mutation] = (
-            arr_rng_vals < p_subset_select
-        )
+        srs_selected_for_mutation.loc[srs_selected_for_mutation] = arr_rng_vals < p_subset_select
         # this is now the amount of all rows that will definitely be mutated
         rows_to_mutate_count = srs_selected_for_mutation.sum()
 
@@ -269,52 +265,36 @@ def with_cldr_keymap_file(
 
         # draw random candidate chars
         arr_rng_vals = rng.random(size=rows_to_mutate_count)
-        arr_rng_idxs = np.floor(
-            srs_candidate_chars.loc[srs_selected_for_mutation].str.len() * arr_rng_vals
-        ).astype(int)
+        arr_rng_idxs = np.floor(srs_candidate_chars.loc[srs_selected_for_mutation].str.len() * arr_rng_vals).astype(int)
 
         # iterate over all unique indices and select the char at the i-th position
         for idx in arr_rng_idxs.unique():
             idx_mask = arr_rng_idxs == idx
-            srs_this_idx = srs_candidate_chars.loc[srs_selected_for_mutation].loc[
-                idx_mask
-            ]
+            srs_this_idx = srs_candidate_chars.loc[srs_selected_for_mutation].loc[idx_mask]
             srs_candidates_selected.update(srs_this_idx.str[idx])
 
         # now do the same process for replacement chars
         srs_replacements_selected = pd.Series([""] * srs_len, index=srs.index)
 
-        for candidate_char in srs_candidates_selected.loc[
-            srs_selected_for_mutation
-        ].unique():
+        for candidate_char in srs_candidates_selected.loc[srs_selected_for_mutation].unique():
             srs_this_candidate_char = srs_candidates_selected == candidate_char
             # count all affected rows
             candidate_char_count = srs_this_candidate_char.sum()
             # fetch replacement chars
             replacement_chars = kb_char_to_candidates_dict[candidate_char]
             # draw random replacement chars for each row
-            arr_rng_repl = rng.choice(
-                list(replacement_chars), size=candidate_char_count
-            )
+            arr_rng_repl = rng.choice(list(replacement_chars), size=candidate_char_count)
             # and update the replacement char series
             srs_replacements_selected.loc[srs_this_candidate_char] = arr_rng_repl
 
         # and now we do the actual replacements
-        for candidate_char in srs_candidates_selected.loc[
-            srs_selected_for_mutation
-        ].unique():
+        for candidate_char in srs_candidates_selected.loc[srs_selected_for_mutation].unique():
             # filter by global mask and rows that contain this candidate char
-            srs_this_replacement_char = srs_selected_for_mutation & (
-                srs_candidates_selected == candidate_char
-            )
+            srs_this_replacement_char = srs_selected_for_mutation & (srs_candidates_selected == candidate_char)
 
-            for replacement_char in srs_replacements_selected.loc[
-                srs_this_replacement_char
-            ].unique():
+            for replacement_char in srs_replacements_selected.loc[srs_this_replacement_char].unique():
                 srs_out.update(
-                    srs_out.loc[srs_this_replacement_char].str.replace(
-                        candidate_char, replacement_char, n=1
-                    )
+                    srs_out.loc[srs_this_replacement_char].str.replace(candidate_char, replacement_char, n=1)
                 )
 
         return srs_out
@@ -384,16 +364,12 @@ def with_phonetic_replacement_table(
     if rng is None:
         rng = np.random.default_rng()
 
-    if type(source_column) is not type(target_column) or type(
-        target_column
-    ) is not type(flags_column):
+    if type(source_column) is not type(target_column) or type(target_column) is not type(flags_column):
         raise ValueError("source, target and flags columns must be of the same type")
 
     # skip check for source and target column bc they are of same type already
     if not isinstance(flags_column, str) and not isinstance(flags_column, int):
-        raise ValueError(
-            "source, target and flags columns must be either a string or an integer"
-        )
+        raise ValueError("source, target and flags columns must be either a string or an integer")
 
     if isinstance(data_source, pd.DataFrame):
         df = data_source
@@ -420,9 +396,7 @@ def with_phonetic_replacement_table(
         flags = _validate_flags(row[flags_column])
 
         for flag in flags:
-            phonetic_replacement_rules.append(
-                _PhoneticReplacementRule(pattern, replacement, flag)
-            )
+            phonetic_replacement_rules.append(_PhoneticReplacementRule(pattern, replacement, flag))
 
     if len(phonetic_replacement_rules) == 0:
         raise ValueError("must provide at least one phonetic replacement rule")
@@ -433,9 +407,7 @@ def with_phonetic_replacement_table(
         # track string lengths
         srs_str_len = srs.str.len()
         # create index df
-        df_idx = _dfbitlookup.with_capacity(
-            len(srs), len(phonetic_replacement_rules), index=srs.index
-        )
+        df_idx = _dfbitlookup.with_capacity(len(srs), len(phonetic_replacement_rules), index=srs.index)
 
         # track which rules can be applied to each row
         for rule_idx, rule in enumerate(phonetic_replacement_rules):
@@ -446,17 +418,12 @@ def with_phonetic_replacement_table(
                 _dfbitlookup.set_index(df_idx, srs_pattern_idx == 0, rule_idx)
             elif rule.flag == _PHON_FLAG_END:
                 # mark all rows containing this pattern at the end
-                _dfbitlookup.set_index(
-                    df_idx, srs_pattern_idx + len(rule.pattern) == srs_str_len, rule_idx
-                )
+                _dfbitlookup.set_index(df_idx, srs_pattern_idx + len(rule.pattern) == srs_str_len, rule_idx)
             elif rule.flag == _PHON_FLAG_MIDDLE:
                 # mark all rows containing this pattern not at the start nor the end
                 _dfbitlookup.set_index(
                     df_idx,
-                    (
-                        (srs_pattern_idx > 0)
-                        & (srs_pattern_idx + len(rule.pattern) < srs_str_len)
-                    ),
+                    ((srs_pattern_idx > 0) & (srs_pattern_idx + len(rule.pattern) < srs_str_len)),
                     rule_idx,
                 )
             else:
@@ -476,9 +443,7 @@ def with_phonetic_replacement_table(
 
         # perform selection
         arr_rng_vals = rng.random(size=possible_rows_to_mutate)
-        srs_rows_to_mutate.loc[srs_rows_to_mutate] = arr_rng_vals < min(
-            1.0, p / p_actual
-        )
+        srs_rows_to_mutate.loc[srs_rows_to_mutate] = arr_rng_vals < min(1.0, p / p_actual)
 
         # TODO see with_replacement_table on better selection of rules
         # randomize the order in which the existing rules might be applied
@@ -492,23 +457,17 @@ def with_phonetic_replacement_table(
             srs_selected_rows_mask = (
                 srs_rows_to_mutate  # select eligible rows
                 & (srs == srs_out)  # AND select rows that haven't been mutated yet
-                & (
-                    _dfbitlookup.test_index(df_idx, rule_idx)
-                )  # AND select rows that match this rule
+                & (_dfbitlookup.test_index(df_idx, rule_idx))  # AND select rows that match this rule
             )
 
             # apply the rule
             if rule.flag == _PHON_FLAG_START:
                 srs_out.update(
-                    srs.loc[srs_selected_rows_mask].str.replace(
-                        f"^{rule.pattern}", rule.replacement, n=1, regex=True
-                    )
+                    srs.loc[srs_selected_rows_mask].str.replace(f"^{rule.pattern}", rule.replacement, n=1, regex=True)
                 )
             elif rule.flag == _PHON_FLAG_END:
                 srs_out.update(
-                    srs.loc[srs_selected_rows_mask].str.replace(
-                        f"{rule.pattern}$", rule.replacement, n=1, regex=True
-                    )
+                    srs.loc[srs_selected_rows_mask].str.replace(f"{rule.pattern}$", rule.replacement, n=1, regex=True)
                 )
             elif rule.flag == _PHON_FLAG_MIDDLE:
                 srs_out.update(
@@ -574,9 +533,7 @@ def with_replacement_table(
 
     # skip check for source_column bc they are both of the same type already
     if not isinstance(target_column, str) and not isinstance(target_column, int):
-        raise ValueError(
-            "source and target columns must be either a string or an integer"
-        )
+        raise ValueError("source and target columns must be either a string or an integer")
 
     if isinstance(data_source, pd.DataFrame):
         df = data_source
@@ -615,9 +572,7 @@ def with_replacement_table(
         # create copy
         srs_out = srs.copy(deep=True)
         # create index df
-        df_idx = _dfbitlookup.with_capacity(
-            len(srs), len(arr_unique_source_values), index=srs.index
-        )
+        df_idx = _dfbitlookup.with_capacity(len(srs), len(arr_unique_source_values), index=srs.index)
 
         for src_idx, source in enumerate(arr_unique_source_values):
             if inline:
@@ -669,13 +624,9 @@ def with_replacement_table(
             # filter by all rows that have this source value applied to them
             srs_this_source = srs_source_values == source_value
             # collect all possible target values
-            target_values = df.loc[
-                df[source_column] == source_value, target_column
-            ].array
+            target_values = df.loc[df[source_column] == source_value, target_column].array
             # select random target values
-            target_values_selected = rng.choice(
-                target_values, size=srs_this_source.sum()
-            )
+            target_values_selected = rng.choice(target_values, size=srs_this_source.sum())
             # update target values
             srs_target_values.loc[srs_this_source] = target_values_selected
 
@@ -687,11 +638,7 @@ def with_replacement_table(
                 srs_to_mutate = srs_this_source & (srs_target_values == target_value)
 
                 if inline:
-                    srs_out.update(
-                        srs_out.loc[srs_to_mutate].str.replace(
-                            source_value, target_value, n=1, regex=False
-                        )
-                    )
+                    srs_out.update(srs_out.loc[srs_to_mutate].str.replace(source_value, target_value, n=1, regex=False))
                 else:
                     srs_out.loc[srs_to_mutate] = target_value
 
@@ -784,8 +731,7 @@ def with_insert(
         # generate random indices to insert values at
         arr_rng_vals = rng.random(size=rows_to_mutate_count)
         arr_ins_idx = np.floor(
-            (srs.loc[srs_rows_to_mutate].str.len() + 1)
-            * arr_rng_vals  # +1 because letters can be inserted at the end
+            (srs.loc[srs_rows_to_mutate].str.len() + 1) * arr_rng_vals  # +1 because letters can be inserted at the end
         ).astype(int)
 
         # generate random characters to insert
@@ -798,11 +744,7 @@ def with_insert(
             arr_this_idx = arr_ins_idx == ins_idx
             srs_this_idx = srs_in_rows.loc[arr_this_idx]
             # then update all affected rows
-            srs_out.update(
-                srs_this_idx.str[:ins_idx]
-                + arr_rng_chars[arr_this_idx]
-                + srs_this_idx.str[ins_idx:]
-            )
+            srs_out.update(srs_this_idx.str[:ins_idx] + arr_rng_chars[arr_this_idx] + srs_this_idx.str[ins_idx:])
 
         return srs_out
 
@@ -850,9 +792,7 @@ def with_delete(rng: _t.Optional[np.random.Generator] = None) -> _gt.Mutator:
 
         # generate random indices
         arr_rng_vals = rng.random(size=rows_to_mutate_count)
-        arr_rng_idx = np.floor(
-            srs.loc[srs_rows_to_mutate].str.len() * arr_rng_vals
-        ).astype(int)
+        arr_rng_idx = np.floor(srs.loc[srs_rows_to_mutate].str.len() * arr_rng_vals).astype(int)
 
         # perform the character deletion (don't need to dropna() here)
         for del_idx in arr_rng_idx.unique():
@@ -909,17 +849,13 @@ def with_transpose(rng: _t.Optional[np.random.Generator] = None) -> _gt.Mutator:
         # generate random indices to transpose characters at
         arr_rng_vals = rng.random(size=rows_to_mutate_count)
         arr_rng_idx = np.floor(
-            (srs.loc[srs_rows_to_mutate].str.len() - 1)
-            * arr_rng_vals  # -1 to account for neighboring chars
+            (srs.loc[srs_rows_to_mutate].str.len() - 1) * arr_rng_vals  # -1 to account for neighboring chars
         ).astype(int)
 
         for idx in arr_rng_idx.unique():
             srs_this_idx = srs.loc[srs_rows_to_mutate].loc[arr_rng_idx == idx]
             srs_out.update(
-                srs_this_idx.str[:idx]
-                + srs_this_idx.str[idx + 1]
-                + srs_this_idx.str[idx]
-                + srs_this_idx.str[idx + 2 :]
+                srs_this_idx.str[:idx] + srs_this_idx.str[idx + 1] + srs_this_idx.str[idx] + srs_this_idx.str[idx + 2 :]
             )
 
         return srs_out
@@ -979,9 +915,7 @@ def with_substitute(
 
         # generate random indices
         arr_rng_vals = rng.random(size=rows_to_mutate_count)
-        arr_rng_idx = np.floor(
-            srs.loc[srs_rows_to_mutate].str.len() * arr_rng_vals
-        ).astype(int)
+        arr_rng_idx = np.floor(srs.loc[srs_rows_to_mutate].str.len() * arr_rng_vals).astype(int)
 
         # generate random characters to insert
         arr_rng_chars = rng.choice(charset, size=rows_to_mutate_count)
@@ -989,11 +923,7 @@ def with_substitute(
         for idx in arr_rng_idx.unique():
             arr_this_idx = arr_rng_idx == idx
             srs_this_idx = srs.loc[srs_rows_to_mutate].loc[arr_this_idx]
-            srs_out.update(
-                srs_this_idx.str[:idx]
-                + arr_rng_chars[arr_this_idx]
-                + srs_this_idx.str[idx + 1 :]
-            )
+            srs_out.update(srs_this_idx.str[:idx] + arr_rng_chars[arr_this_idx] + srs_this_idx.str[idx + 1 :])
 
         return srs_out
 
@@ -1071,9 +1001,7 @@ def with_categorical_values(
     arr_unique_values = np.array(sorted(df.loc[:, value_column].unique()))
 
     if len(arr_unique_values) < 2:
-        raise ValueError(
-            f"column must contain at least two unique values, has {len(arr_unique_values)}"
-        )
+        raise ValueError(f"column must contain at least two unique values, has {len(arr_unique_values)}")
 
     def _mutate_series(srs: pd.Series, p: float) -> pd.Series:
         # create copy
@@ -1113,9 +1041,7 @@ def with_categorical_values(
             # get the set of unique values minus the one that is currently processed
             arr_unique_values_without_this = np.setdiff1d(arr_unique_values, val)
             # perform the update
-            srs_out.loc[srs_this_val] = rng.choice(
-                arr_unique_values_without_this, size=rows_to_mutate_count
-            )
+            srs_out.loc[srs_this_val] = rng.choice(arr_unique_values_without_this, size=rows_to_mutate_count)
 
         return srs_out
 
@@ -1167,9 +1093,7 @@ def with_permute(rng: _t.Optional[np.random.Generator] = None) -> _gt.Mutator:
 
         # generate all series index permutations and remove the tuple with all indices in order.
         # filter out all tuples that keep values from any column in the same column.
-        srs_idx_permutations = sorted(
-            filter(_filter_permutations, itertools.permutations(range(len(srs_lst))))
-        )
+        srs_idx_permutations = sorted(filter(_filter_permutations, itertools.permutations(range(len(srs_lst)))))
 
         # select rows
         arr_rows_to_mutate = rng.random(size=srs_0_len) < p
@@ -1345,9 +1269,9 @@ def with_datetime_offset(
         arr_rows_to_mutate = rng.random(size=len(srs)) < p
 
         # draw random amount of time units for rows to modify
-        arr_rng_vals = rng.integers(
-            low=1, high=max_delta, size=len(srs_dt), endpoint=True
-        ) * rng.choice((-1, 1), size=len(srs_dt))
+        arr_rng_vals = rng.integers(low=1, high=max_delta, size=len(srs_dt), endpoint=True) * rng.choice(
+            (-1, 1), size=len(srs_dt)
+        )
 
         for sgn in (-1, 1):
             for val in range(1, max_delta + 1):
@@ -1374,14 +1298,10 @@ def with_datetime_offset(
                         raise ValueError(f"unrecognized unit: `{unit}`")
 
                     # use original values (could probably be solved a bit more elegantly?)
-                    srs_dt_out.loc[wraparound_patch_mask] = srs_dt.loc[
-                        wraparound_patch_mask
-                    ]
+                    srs_dt_out.loc[wraparound_patch_mask] = srs_dt.loc[wraparound_patch_mask]
 
         # check if all rows that were marked for mutation actually got mutated
-        srs_mutated_rows = (
-            srs_dt.loc[arr_rows_to_mutate] != srs_dt_out.loc[arr_rows_to_mutate]
-        )
+        srs_mutated_rows = srs_dt.loc[arr_rows_to_mutate] != srs_dt_out.loc[arr_rows_to_mutate]
         p_actual = srs_mutated_rows.sum() / len(srs)
 
         if not srs_mutated_rows.all():
@@ -1430,10 +1350,7 @@ def with_generator(
 
         # check that the indices of all input series are aligned
         if len(srs_lst) > 1:
-            indices_aligned = [
-                (srs_lst[0].index == srs_lst[i].index).all()
-                for i in range(1, len(srs_lst))
-            ]
+            indices_aligned = [(srs_lst[0].index == srs_lst[i].index).all() for i in range(1, len(srs_lst))]
 
             if not all(indices_aligned):
                 raise ValueError("indices of input series are not aligned")
@@ -1452,10 +1369,7 @@ def with_generator(
 
         # align indices with the input series index. use ffill to
         # avoid nas when reindexing.
-        srs_gen_lst_aligned = [
-            srs.reindex(srs_lst[i].index, method="ffill")
-            for i, srs in enumerate(srs_gen_lst)
-        ]
+        srs_gen_lst_aligned = [srs.reindex(srs_lst[i].index, method="ffill") for i, srs in enumerate(srs_gen_lst)]
 
         srs_lst_out = [srs.copy(deep=True) for srs in srs_lst]
 
@@ -1464,9 +1378,7 @@ def with_generator(
             if mode == "replace":
                 srs_lst_out[i].loc[arr_rows_to_mutate] = srs_gen
             elif mode == "prepend":
-                srs_lst_out[i].loc[arr_rows_to_mutate] = (
-                    srs_gen + join_with + srs_lst_out[i][:]
-                )
+                srs_lst_out[i].loc[arr_rows_to_mutate] = srs_gen + join_with + srs_lst_out[i][:]
             elif mode == "append":
                 srs_lst_out[i].loc[arr_rows_to_mutate] += join_with + srs_gen
             else:
@@ -1500,16 +1412,12 @@ def _new_regex_replacement_fn(srs: pd.Series) -> _t.Callable[[re.Match], str]:
             repl_col = span_to_repl_col_dict[span]
 
             if repl_col not in srs.index:
-                raise ValueError(
-                    f"match group with index `{repl_col}` is not present in CSV file"
-                )
+                raise ValueError(f"match group with index `{repl_col}` is not present in CSV file")
 
             repl_value = srs[repl_col]
 
             for group_name in match.groupdict().keys():
-                repl_value = repl_value.replace(
-                    f"(?P<{group_name}>)", match.group(group_name)
-                )
+                repl_value = repl_value.replace(f"(?P<{group_name}>)", match.group(group_name))
 
             out_str += repl_value
             last_idx = span[1]
@@ -1622,9 +1530,7 @@ def with_regex_replacement_table(
 
         # perform selection
         arr_rng_vals = rng.random(size=possible_rows_to_mutate)
-        srs_rows_to_mutate.loc[srs_rows_to_mutate] = arr_rng_vals < min(
-            1.0, p / p_actual
-        )
+        srs_rows_to_mutate.loc[srs_rows_to_mutate] = arr_rng_vals < min(1.0, p / p_actual)
 
         # randomize order in which regexes are applied
         arr_rgx_idx = np.arange(0, regex_count)
@@ -1635,16 +1541,12 @@ def with_regex_replacement_table(
             srs_selected_rows_mask = (
                 srs_rows_to_mutate  # select eligible rows
                 & (srs == srs_out)  # AND select rows that haven't been mutated yet
-                & _dfbitlookup.test_index(
-                    df_idx, rgx_idx
-                )  # AND select rows that match this regex
+                & _dfbitlookup.test_index(df_idx, rgx_idx)  # AND select rows that match this regex
             )
 
             # apply the regex
             srs_out.update(
-                srs.loc[srs_selected_rows_mask].str.replace(
-                    regexes[rgx_idx], regex_repl_fns[rgx_idx], regex=True
-                )
+                srs.loc[srs_selected_rows_mask].str.replace(regexes[rgx_idx], regex_repl_fns[rgx_idx], regex=True)
             )
 
         return srs_out
@@ -1656,9 +1558,7 @@ def with_regex_replacement_table(
     return _mutate
 
 
-def with_repeat(
-    join_with: str = " ", rng: _t.Optional[np.random.Generator] = None
-) -> _gt.Mutator:
+def with_repeat(join_with: str = " ", rng: _t.Optional[np.random.Generator] = None) -> _gt.Mutator:
     """
     Mutate series by repeating its contents.
     By default, selected entries will be duplicated and separated by a whitespace.
@@ -1677,11 +1577,7 @@ def with_repeat(
     def _mutate_series(srs: pd.Series, p: float) -> pd.Series:
         srs_out = srs.copy(deep=True)
         srs_rows_to_mutate = pd.Series(rng.random(size=len(srs)) < p, index=srs.index)
-        srs_out.update(
-            srs_out.loc[srs_rows_to_mutate]
-            + join_with
-            + srs_out.loc[srs_rows_to_mutate]
-        )
+        srs_out.update(srs_out.loc[srs_rows_to_mutate] + join_with + srs_out.loc[srs_rows_to_mutate])
 
         return srs_out
 
@@ -1698,12 +1594,7 @@ _WeightedMutatorDef = tuple[_t.Union[int, float], _gt.Mutator]
 def _is_weighted_mutator_tuple(
     x: object,
 ) -> _te.TypeGuard[_WeightedMutatorDef]:
-    return (
-        isinstance(x, tuple)
-        and len(x) == 2
-        and isinstance(x[0], (float, int))
-        and callable(x[1])
-    )
+    return isinstance(x, tuple) and len(x) == 2 and isinstance(x[0], (float, int)) and callable(x[1])
 
 
 def _is_weighted_mutator_tuple_list(
@@ -1739,9 +1630,7 @@ def with_group(
         mutator_lst = [(p_idx, m) for m in mutator_lst]
 
     if not _is_weighted_mutator_tuple_list(mutator_lst):
-        raise ValueError(
-            "invalid argument, must be a list of mutators or weighted mutators"
-        )
+        raise ValueError("invalid argument, must be a list of mutators or weighted mutators")
 
     p_sum = sum(t[0] for t in mutator_lst)
 
@@ -1764,9 +1653,7 @@ def with_group(
 
     for mut_idx, p_idx in enumerate(p_vals):
         if p_idx <= 0:
-            raise ValueError(
-                f"weight of mutator at index {mut_idx} must be higher than zero, is {p_idx}"
-            )
+            raise ValueError(f"weight of mutator at index {mut_idx} must be higher than zero, is {p_idx}")
 
     def _mutate(srs_lst: list[pd.Series], p: float = 1.0) -> list[pd.Series]:
         _check_probability_in_bounds(p)
@@ -1799,9 +1686,7 @@ def with_group(
 
 
 _MutatorDef = _t.Union[_gt.Mutator, tuple[_t.Union[int, float], _gt.Mutator]]
-_MutatorSpec = list[
-    tuple[_t.Union[str, tuple[str, ...]], _t.Union[_MutatorDef, list[_MutatorDef]]]
-]
+_MutatorSpec = list[tuple[_t.Union[str, tuple[str, ...]], _t.Union[_MutatorDef, list[_MutatorDef]]]]
 
 
 def mutate_data_frame(
@@ -1834,9 +1719,7 @@ def mutate_data_frame(
         # check that each column name is valid
         for column_name in column_spec:
             if column_name not in df_out.columns:
-                raise ValueError(
-                    f"column `{column_name}` does not exist, must be one of `{','.join(df_in.columns)}`"
-                )
+                raise ValueError(f"column `{column_name}` does not exist, must be one of `{','.join(df_in.columns)}`")
 
         # if the column is assigned a mutator, assign it a 100% weight and wrap it into a list
         if callable(mutator_spec):
@@ -1850,8 +1733,7 @@ def mutate_data_frame(
         # to a list yet, then something went wrong.
         if not isinstance(mutator_spec, list):
             raise ValueError(
-                f"invalid type `{type(mutator_spec)}` for mutator definition "
-                f"of column `{', '.join(column_spec)}`"
+                f"invalid type `{type(mutator_spec)}` for mutator definition " f"of column `{', '.join(column_spec)}`"
             )
 
         # if the list contains functions only, apply them all with 1.0 probability

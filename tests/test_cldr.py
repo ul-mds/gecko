@@ -49,7 +49,7 @@ def test_unescape_kb_char():
         "rbl-noshift",
         "blt-noshift",
         "ltb-noshift",
-    ]
+    ],
 )
 def test_get_neighbor_kb_pos_for(kb_pos, max_row, max_col, expected_kb_pos_list):
     actual_kb_pos_list = _cldr.get_neighbor_kb_pos_for(kb_pos, max_row, max_col)

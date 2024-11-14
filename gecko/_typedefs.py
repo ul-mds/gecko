@@ -11,4 +11,5 @@ class GeckoWarning(UserWarning):
     """
     Generic class that represents all warnings emitted by Gecko.
     """
+
     pass

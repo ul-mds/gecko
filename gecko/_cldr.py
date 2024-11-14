@@ -41,9 +41,7 @@ def decode_iso_kb_pos(iso_kb_pos_str: str) -> (int, int):
     return uppercase_char_to_index(kb_row_str), int(kb_col_str)
 
 
-def get_neighbor_kb_pos_for(
-    kb_pos: tuple[int, int, int], max_row: int, max_col: int
-) -> list[tuple[int, int, int]]:
+def get_neighbor_kb_pos_for(kb_pos: tuple[int, int, int], max_row: int, max_col: int) -> list[tuple[int, int, int]]:
     kb_neighbors: list[tuple[int, int, int]] = []
     _kb_row, _kb_col, _kb_mod = kb_pos
 
