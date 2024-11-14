@@ -1,5 +1,28 @@
 # Release notes
 
+## 0.6.0 (Nov 15, 2024)
+
+### Breaking changes
+
+- Change mutator type definition from `Callable[[list[pd.Series]], list[pd.Series]]` to `Callable[[list[pd.Series], Optional[float]], list[pd.Series]]` to delegate the selection of rows to mutate to the mutators themselves
+- `Generator` and `Mutator` type definitions are now exported at the top level of the module
+- Replace `D` option in favor of `d` for `unit` parameter in `with_datetime_offset`
+- Remove `strategy` parameter from `with_missing_value`
+- Remove `rng` parameter from `mutate_data_frame`
+- Remove `with_edit` in favor of `with_group`
+
+### Features
+
+- `with_replacement_table`, `with_regex_replacement_table` and `with_phonetic_replacement_table` now favor rare replacements over common ones
+- Add `rng` parameter to `with_function`, `with_lowercase`, `with_missing_value`, `with_noop`, `with_repeat`, `with_uppercase`
+- `with_permute` now permutes series contents in a way that values are guaranteed to not remain in their original series
+- Add `days`, `hours`, `minutes` and `seconds` to list of permitted `unit` values for `with_datetime_offset`
+- Add `list[str]` as option to `charset` parameter of `with_cldr_keymap_file`, `with_insert` and `with_substitute`
+
+### Fixes
+
+- When providing a list of mutators to a column in `mutate_data_frame`, all mutators are now applied to all rows instead of with a `1 / mutator_count` probability
+
 ## 0.5.2 (Nov 5, 2024)
 
 ### Features
