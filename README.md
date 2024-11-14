@@ -52,7 +52,7 @@ from gecko import generator, mutator
 # create a RNG with a set seed for reproducible results
 rng = np.random.default_rng(727)
 # path to the Gecko data repository
-gecko_data_dir = Path(__file__).parent / "gecko-data"
+gecko_data_dir = Path("gecko-data")
 
 # create a data frame with 10,000 rows and a single column called "last_name" 
 # which sources its values from the frequency table with the same name
@@ -74,7 +74,6 @@ df_mutated = mutator.mutate_data_frame(
     [
         ("last_name", (.01, mutator.with_delete(rng))),
     ],
-    rng,
 )
 
 # export both data frames using Pandas' to_csv function
