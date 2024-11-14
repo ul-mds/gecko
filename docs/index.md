@@ -93,7 +93,7 @@ import numpy as np
 from gecko import generator, mutator
 
 rng = np.random.default_rng(727)  # (1)!
-gecko_data_dir = Path(__file__).parent / "gecko-data"  # (2)!
+gecko_data_dir = Path("gecko-data")  # (2)!
 
 df_generated = generator.to_data_frame([  # (3)!
     (("given_name", "gender"), generator.from_multicolumn_frequency_table(  # (4)!
@@ -117,7 +117,6 @@ df_mutated = mutator.mutate_data_frame(  # (7)!
         ))),
         ("age", (.02, mutator.with_transpose(rng))),  # (9)!
     ],
-    rng,
 )
 
 df_generated.to_csv("german-generated.csv", index_label="id")  # (10)!
