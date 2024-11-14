@@ -64,7 +64,7 @@ def test_index(df: pd.DataFrame, idx: int) -> pd.Series:
         series of booleans representing rows where the selected bit is set
     """
     col_idx, int_idx = divmod(idx, _UINT_CAPACITY)
-    return (df.loc[:, col_idx] & (1 << int_idx)) != 0
+    return (df.loc[:, col_idx] & 1 << int_idx) != 0
 
 
 def any_set(df: pd.DataFrame) -> pd.Series:
@@ -78,3 +78,18 @@ def any_set(df: pd.DataFrame) -> pd.Series:
         series of booleans representing rows where any bit is set
     """
     return (df != 0).any(axis=1)
+
+
+def count_bits_per_index(df: pd.DataFrame, capacity: _t.Optional[int] = None) -> list[tuple[int, int]]:
+    max_df_capacity = _UINT_CAPACITY * len(df.columns)
+
+    if capacity is None:
+        capacity = max_df_capacity
+    else:
+        if capacity <= 0:
+            raise ValueError(f"capacity must be positive, is {capacity}")
+
+        if capacity > max_df_capacity:
+            raise ValueError(f"capacity must not be higher than {max_df_capacity}, is {capacity}")
+
+    return list((idx, test_index(df, idx).sum()) for idx in range(capacity))

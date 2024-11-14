@@ -330,6 +330,7 @@ def with_phonetic_replacement_table(
     can only occur at the start, end or in the middle of a string.
     If the source, target and flags column are provided as strings, and if a path to a CSV file is
     provided to this function, then it is automatically assumed that the CSV file has a header row.
+    This mutator will favor less common replacements over more common ones.
 
     Args:
         data_source: path to CSV file or data frame containing phonetic replacement rules
@@ -445,12 +446,16 @@ def with_phonetic_replacement_table(
         arr_rng_vals = rng.random(size=possible_rows_to_mutate)
         srs_rows_to_mutate.loc[srs_rows_to_mutate] = arr_rng_vals < min(1.0, p / p_actual)
 
-        # TODO see with_replacement_table on better selection of rules
-        # randomize the order in which the existing rules might be applied
-        arr_rng_rule_idx = np.arange(0, len(phonetic_replacement_rules))
-        rng.shuffle(arr_rng_rule_idx)
+        # retrieve the frequencies of each rule matching across all rows
+        arr_set_indices = _dfbitlookup.count_bits_per_index(df_idx, len(phonetic_replacement_rules))
+        # keep only indices that have at least one match
+        arr_set_indices = list(filter(lambda tpl: tpl[1] != 0, arr_set_indices))
+        # sort in ascending order of frequency
+        arr_set_indices.sort(key=lambda tpl: tpl[1])
+        # keep only the indices
+        arr_rule_idx = np.array([tpl[0] for tpl in arr_set_indices])
 
-        for rule_idx in arr_rng_rule_idx:
+        for rule_idx in arr_rule_idx:
             # retrieve the appropriate rule
             rule = phonetic_replacement_rules[rule_idx]
             # check which rules are affected by this rule
@@ -510,6 +515,7 @@ def with_replacement_table(
     In this case, each target value will be independently selected or not.
     If the source and target column are provided as strings, and a path to a CSV file is provided
     to this function, then it is automatically assumed that the CSV file has a header row.
+    The mutator will favor less common replacements over more common ones.
 
     Args:
         data_source: path to CSV file or data frame containing replacement table
@@ -599,14 +605,17 @@ def with_replacement_table(
 
         # create new series to track selected source values
         srs_source_values = pd.Series([pd.NA] * len(srs), dtype=str, index=srs.index)
-        # randomize order of source indices
-        # TODO instead of shuffling, this should probably favor source values that don't appear often
-        # one way could be to have _dfbitlookup output sums for every index, then sort them in ascending order
-        arr_rng_src_idx = np.arange(0, len(arr_unique_source_values))
-        rng.shuffle(arr_rng_src_idx)
+
+        arr_set_indices = _dfbitlookup.count_bits_per_index(df_idx, len(arr_unique_source_values))
+        # keep only indices that have at least one match
+        arr_set_indices = list(filter(lambda tpl: tpl[1] != 0, arr_set_indices))
+        # sort in ascending order of frequency
+        arr_set_indices.sort(key=lambda tpl: tpl[1])
+        # keep only the indices
+        arr_src_idx = np.array([tpl[0] for tpl in arr_set_indices])
 
         # populate the source value series
-        for src_idx in arr_rng_src_idx:
+        for src_idx in arr_src_idx:
             srs_src_indexed = _dfbitlookup.test_index(df_idx, src_idx)
             # check which rows will have this source value replaced
             srs_src_selected = (
@@ -1453,6 +1462,7 @@ def with_regex_replacement_table(
     substitutions.
     When using regular capture groups, the columns must be numbered starting with 1.
     When using named capture groups, the columns must be named after the capture groups they are supposed to substitute.
+    The mutator will favor less common substitutions over more common ones.
 
     Args:
         data_source: path to CSV file or data frame containing regex-based substitutions
@@ -1532,9 +1542,13 @@ def with_regex_replacement_table(
         arr_rng_vals = rng.random(size=possible_rows_to_mutate)
         srs_rows_to_mutate.loc[srs_rows_to_mutate] = arr_rng_vals < min(1.0, p / p_actual)
 
-        # randomize order in which regexes are applied
-        arr_rgx_idx = np.arange(0, regex_count)
-        rng.shuffle(arr_rgx_idx)
+        arr_set_indices = _dfbitlookup.count_bits_per_index(df_idx, regex_count)
+        # keep only indices that have at least one match
+        arr_set_indices = list(filter(lambda tpl: tpl[1] != 0, arr_set_indices))
+        # sort in ascending order of frequency
+        arr_set_indices.sort(key=lambda tpl: tpl[1])
+        # keep only the indices
+        arr_rgx_idx = np.array([tpl[0] for tpl in arr_set_indices])
 
         for rgx_idx in arr_rgx_idx:
             # check which rows are affected by this regex

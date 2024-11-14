@@ -111,6 +111,20 @@ def test_with_replacement_table(rng):
     assert (srs.str.len() == srs_mut.str.len()).all()
 
 
+def test_with_replacement_table_favor_rare_replacements(rng):
+    srs = pd.Series(["foobar"] * 100 + ["foobaz"] * 50)
+
+    df = pd.DataFrame.from_dict({"source": ["foobar", "foobaz"], "target": ["0", "1"]})
+
+    mut_replacement_table = mutator.with_replacement_table(df, source_column="source", target_column="target", rng=rng)
+
+    (srs_mutated,) = mut_replacement_table([srs], 1)
+
+    assert len(srs) == len(srs_mutated)
+    assert (srs != srs_mutated).all()
+    assert (srs_mutated == ["0"] * 100 + ["1"] * 50).all()
+
+
 def test_with_replacement_table_partial(rng):
     srs = pd.Series(list(string.ascii_lowercase))
 
@@ -932,6 +946,25 @@ def test_with_phonetic_replacement_table(rng):
     assert not srs_mut.str.isalpha().all()
 
 
+def test_with_phonetic_replacement_table_favor_rare_rules(rng):
+    srs = pd.Series(["foobar", "foobaz", "foobat"] * 100)
+    df_phon = pd.DataFrame.from_dict({"source": ["foo", "z"], "target": ["0", "1"], "flags": ["^", "$"]})
+
+    mut_phonetic = mutator.with_phonetic_replacement_table(
+        df_phon,
+        source_column="source",
+        target_column="target",
+        flags_column="flags",
+        rng=rng,
+    )
+
+    (srs_mut,) = mut_phonetic([srs], 1)
+
+    assert len(srs) == len(srs_mut)
+    assert (srs != srs_mut).all()
+    assert (srs_mut == ["0bar", "fooba1", "0bat"] * 100).all()
+
+
 def test_with_phonetic_replacement_table_partial(rng):
     srs = pd.Series(["".join(tpl) for tpl in itertools.permutations("abc")])
     df_phon = pd.DataFrame.from_dict({"source": list("abcbcca"), "target": list("0123456"), "flags": list("^^^$$__")})
@@ -1052,9 +1085,7 @@ def test_with_phonetic_replacement_table_raise_no_rules(rng):
 
 def test_with_regex_replacement_table_unnamed_capture_group(rng):
     srs = pd.Series(["abc", "def"] * 100)
-
     df_table = pd.DataFrame.from_dict({"pattern": ["a(bc)", "d(ef)"], "1": ["1", "2"]})
-
     mut_regex = mutator.with_regex_replacement_table(df_table, pattern_column="pattern", rng=rng)
 
     (srs_mut,) = mut_regex([srs], 1)
@@ -1062,6 +1093,18 @@ def test_with_regex_replacement_table_unnamed_capture_group(rng):
     assert len(srs) == len(srs_mut)
     assert (srs != srs_mut).all()
     assert not srs_mut.str.isalpha().all()
+
+
+def test_with_regex_replacement_table_favor_rare_regexes(rng):
+    srs = pd.Series(["abc"] * 100 + ["def"] * 50)
+    df_table = pd.DataFrame.from_dict({"pattern": ["a(bc)", "d(ef)"], "1": ["1", "2"]})
+    mut_regex = mutator.with_regex_replacement_table(df_table, pattern_column="pattern", rng=rng)
+
+    (srs_mut,) = mut_regex([srs], 1)
+
+    assert len(srs) == len(srs_mut)
+    assert (srs != srs_mut).all()
+    assert (srs_mut == ["a1"] * 100 + ["d2"] * 50).all()
 
 
 def test_with_regex_replacement_table_unnamed_capture_group_partial(rng):
