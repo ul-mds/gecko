@@ -603,9 +603,6 @@ def with_replacement_table(
         arr_rng_vals = rng.random(size=possible_rows_to_mutate)
         srs_rows_to_mutate.loc[srs_rows_to_mutate] = arr_rng_vals < p_subset_select
 
-        # create new series to track selected source values
-        srs_source_values = pd.Series([pd.NA] * len(srs), dtype=str, index=srs.index)
-
         arr_set_indices = _dfbitlookup.count_bits_per_index(df_idx, len(arr_unique_source_values))
         # keep only indices that have at least one match
         arr_set_indices = list(filter(lambda tpl: tpl[1] != 0, arr_set_indices))
@@ -614,42 +611,28 @@ def with_replacement_table(
         # keep only the indices
         arr_src_idx = np.array([tpl[0] for tpl in arr_set_indices])
 
-        # populate the source value series
+        # iterate over source values
         for src_idx in arr_src_idx:
-            srs_src_indexed = _dfbitlookup.test_index(df_idx, src_idx)
+            # retrieve the assigned source value
+            src_value = arr_unique_source_values[src_idx]
             # check which rows will have this source value replaced
             srs_src_selected = (
                 srs_rows_to_mutate  # select rows that are eligible for mutation
-                & pd.isna(srs_source_values)  # AND that have no source value set yet
-                & srs_src_indexed  # AND that contain this source value
+                & (srs == srs_out)  # AND that have not been mutated yet
+                & _dfbitlookup.test_index(df_idx, src_idx)  # AND that contain this source value
             )
-            # update the source value series accordingly
-            srs_source_values.loc[srs_src_selected] = arr_unique_source_values[src_idx]
 
-        # populate the target value series
-        srs_target_values = pd.Series([pd.NA] * len(srs), dtype=str, index=srs.index)
+            # randomize target values
+            arr_target_values = df.loc[df[source_column] == src_value, target_column].array
+            arr_target_values_selected = rng.choice(arr_target_values, size=srs_src_selected.sum())
 
-        for source_value in srs_source_values.dropna().unique():
-            # filter by all rows that have this source value applied to them
-            srs_this_source = srs_source_values == source_value
-            # collect all possible target values
-            target_values = df.loc[df[source_column] == source_value, target_column].array
-            # select random target values
-            target_values_selected = rng.choice(target_values, size=srs_this_source.sum())
-            # update target values
-            srs_target_values.loc[srs_this_source] = target_values_selected
-
-        # perform the actual replacements
-        for source_value in srs_source_values.dropna().unique():
-            srs_this_source = srs_source_values == source_value
-
-            for target_value in srs_target_values.loc[srs_this_source].unique():
-                srs_to_mutate = srs_this_source & (srs_target_values == target_value)
-
-                if inline:
-                    srs_out.update(srs_out.loc[srs_to_mutate].str.replace(source_value, target_value, n=1, regex=False))
-                else:
-                    srs_out.loc[srs_to_mutate] = target_value
+            # perform replacements
+            for target_value in np.unique(arr_target_values_selected):
+                srs_out.update(
+                    srs.loc[srs_src_selected]
+                    .loc[arr_target_values_selected == target_value]
+                    .str.replace(src_value, target_value, n=1, regex=False)
+                )
 
         return srs_out
 
