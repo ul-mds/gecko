@@ -1,5 +1,11 @@
 # Release notes
 
+## 0.6.1 (Nov 15, 2024)
+
+### Fixes
+
+- Fix indexing behavior in `dfbitlookup` when using NumPy data types
+
 ## 0.6.0 (Nov 15, 2024)
 
 ### Breaking changes
