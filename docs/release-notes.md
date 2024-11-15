@@ -24,6 +24,10 @@
 - When providing a list of mutators to a column in `mutate_data_frame`, all mutators are now applied to all rows instead of with a `1 / mutator_count` probability
 - Fix `with_regex_replacement_table` interpreting numbers in pattern and substitution columns as belonging to a named capture group 
 
+### Documentation
+
+- Use section-style navigation instead of tabs in Gecko docs
+
 ## 0.5.2 (Nov 5, 2024)
 
 ### Features

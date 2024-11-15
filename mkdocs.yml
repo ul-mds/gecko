@@ -20,7 +20,7 @@ theme:
     - search.share
     - navigation.expand
     - navigation.footer
-    - navigation.tabs
+    - navigation.sections
   palette:
     - media: "(prefers-color-scheme: light)"
       scheme: default
