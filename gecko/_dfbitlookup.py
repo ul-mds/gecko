@@ -96,6 +96,18 @@ def any_set(df: pd.DataFrame) -> pd.Series:
 
 
 def count_bits_per_index(df: pd.DataFrame, capacity: _t.Optional[int] = None) -> list[tuple[int, int]]:
+    """
+    Count the bits set for each index across all rows.
+    If provided, this function will use the capacity argument as the upper bound for indices to count.
+    If not provided, it will be inferred from the number of columns in the data frame.
+
+    Args:
+        df: data frame to perform operation on
+        capacity: maximum amount of bits to test
+
+    Returns:
+        list of tuples where the first int representing the index and the second int representing the number of set bits
+    """
     max_df_capacity = int(_UINT_CAPACITY * len(df.columns))
 
     if capacity is None:
