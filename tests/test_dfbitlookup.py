@@ -81,3 +81,56 @@ def test_count_bits_per_index_raise_capacity_too_high():
         _ = _dfbitlookup.count_bits_per_index(df, 65)
 
     assert str(e.value) == "capacity must not be higher than 64, is 65"
+
+
+# this would throw an error because (1 << 63) as a regular int would be treated as a bool instead of an int.
+@pytest.mark.parametrize(
+    "index",
+    [
+        63,
+        np.int64(63),
+        np.uint64(63),
+        127,
+        np.int64(127),
+        np.uint64(127),
+    ],
+    ids=["py-int-63", "np-int64-63", "np-uint64-63", "py-int-127", "np-int64-127", "np-uint64-127"],
+)
+def test_no_raise_on_test_int_idx_63(index):
+    df = _dfbitlookup.with_capacity(1, 128)
+    df.loc[:, :] |= 1 << 63
+    _ = _dfbitlookup.test_index(df, index)
+
+
+@pytest.mark.parametrize(
+    "index",
+    [
+        63,
+        np.int64(63),
+        np.uint64(63),
+        127,
+        np.int64(127),
+        np.uint64(127),
+    ],
+    ids=["py-int-63", "np-int64-63", "np-uint64-63", "py-int-127", "np-int64-127", "np-uint64-127"],
+)
+def test_no_raise_on_set_int_idx_63(index):
+    df = _dfbitlookup.with_capacity(1, 128)
+    _ = _dfbitlookup.set_index(df, [True], index)
+
+
+@pytest.mark.parametrize(
+    "index",
+    [
+        63,
+        np.int64(63),
+        np.uint64(63),
+        127,
+        np.int64(127),
+        np.uint64(127),
+    ],
+    ids=["py-int-63", "np-int64-63", "np-uint64-63", "py-int-127", "np-int64-127", "np-uint64-127"],
+)
+def test_no_raise_on_count_int_idx_63(index):
+    df = _dfbitlookup.with_capacity(1, 128)
+    _ = _dfbitlookup.count_bits_per_index(df, index + 1)
