@@ -671,6 +671,26 @@ def test_with_generator_append_join_char(rng):
     assert srs_mut.str.match(r"\d+-foobar").all()
 
 
+def test_with_generator_prepend_join_char_insert(rng):
+    srs = pd.Series(random_strings(charset=string.digits, rng=rng))
+    mut_generator = mutator.with_generator(_from_scalar_value("foobar"), mode="prepend", join_with=" ({}) ", rng=rng)
+    (srs_mut,) = mut_generator([srs], 1.0)
+
+    assert len(srs) == len(srs_mut)
+    assert (srs != srs_mut).all()
+    assert srs_mut.str.match(r" \(foobar\) \d+").all()
+
+
+def test_with_generator_append_join_char_insert(rng):
+    srs = pd.Series(random_strings(charset=string.digits, rng=rng))
+    mut_generator = mutator.with_generator(_from_scalar_value("foobar"), mode="append", join_with=" ({}) ", rng=rng)
+    (srs_mut,) = mut_generator([srs], 1.0)
+
+    assert len(srs) == len(srs_mut)
+    assert (srs != srs_mut).all()
+    assert srs_mut.str.match(r"\d+ \(foobar\) ").all()
+
+
 def test_with_generator_multi_column(rng):
     srs_a = pd.Series(random_strings(charset=string.ascii_letters, rng=rng))
     srs_b = pd.Series(random_strings(charset=string.ascii_letters, rng=rng))
