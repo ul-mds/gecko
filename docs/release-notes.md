@@ -1,5 +1,11 @@
 # Release notes
 
+## 0.6.2 (Nov 27, 2024)
+
+### Features
+
+- Add placeholder option to `with_generator` for inserting generated values
+
 ## 0.6.1 (Nov 15, 2024)
 
 ### Fixes
