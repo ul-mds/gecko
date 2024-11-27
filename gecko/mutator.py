@@ -1316,12 +1316,14 @@ def with_generator(
 ) -> _gt.Mutator:
     """
     Mutate series by replacing its content by appending, prepending or replacing it with data from another generator.
-    A character to join generated data with when appending or prepending can be provided.
+    A string to join generated data with when appending or prepending can be provided.
+    Using `{}` in the `join_with` parameter will cause it to be replaced by generated values.
+    Only the first occurrence of `{}` will be replaced.
 
     Args:
         generator: generator to source data from
         mode: either append, prepend or replace
-        join_with: join character when appending or prepending
+        join_with: string to join present and generated data with
         rng: random number generator to use
 
     Returns:
@@ -1329,6 +1331,21 @@ def with_generator(
     """
     if rng is None:
         rng = np.random.default_rng()
+
+    # {} denotes the place where the generated values should be inserted (only when prepending or appending)
+    join_with_before, join_with_after = " ", " "
+    join_with_parts = join_with.split("{}", maxsplit=1)
+
+    if len(join_with_parts) == 1:
+        # no {} could be found, prepend or append join character as usual
+        if mode == "prepend":
+            join_with_before, join_with_after = "", join_with_parts[0]
+        elif mode == "append":
+            join_with_before, join_with_after = join_with_parts[0], ""
+    else:
+        # otherwise fill in characters before and after {}
+        # [:2] avoids errors in destructuring (although len(join_with_parts) should always be 2...)
+        join_with_before, join_with_after = join_with_parts[:2]
 
     def _mutate(srs_lst: list[pd.Series], p: float = 1.0) -> list[pd.Series]:
         # check that all series are of the same length
@@ -1370,9 +1387,11 @@ def with_generator(
             if mode == "replace":
                 srs_lst_out[i].loc[arr_rows_to_mutate] = srs_gen
             elif mode == "prepend":
-                srs_lst_out[i].loc[arr_rows_to_mutate] = srs_gen + join_with + srs_lst_out[i][:]
+                srs_lst_out[i].loc[arr_rows_to_mutate] = (
+                    join_with_before + srs_gen + join_with_after + srs_lst_out[i][:]
+                )
             elif mode == "append":
-                srs_lst_out[i].loc[arr_rows_to_mutate] += join_with + srs_gen
+                srs_lst_out[i].loc[arr_rows_to_mutate] += join_with_before + srs_gen + join_with_after
             else:
                 raise ValueError(f"invalid mode: `{mode}`")
 
