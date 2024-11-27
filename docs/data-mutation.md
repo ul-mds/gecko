@@ -641,6 +641,11 @@ print(gen_replace_mutator([srs], 1.0))
 gen_append_mutator = mutator.with_generator(generate_foobar_suffix(rng), "append", join_with="")
 print(gen_append_mutator([srs], 1.0))
 # => ["foobat", "foobat", ..., "foobat", "foobaz"]
+
+# {} can be used as a placeholder for generated values
+gen_prepend_placeholder_mutator = mutator.with_generator(generate_foobar_suffix(rng), "append", join_with=" ({})")
+print(gen_prepend_placeholder_mutator([srs], 1.0))
+# => ["foo (bar)", "foo (baz)", ..., "foo (bat)", "foo (bar)"]
 ```
 
 ### Grouped mutators
