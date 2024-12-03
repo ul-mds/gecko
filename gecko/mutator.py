@@ -398,14 +398,16 @@ def with_phonetic_replacement_table(
         for flag in flags:
             phonetic_replacement_rules.append(_PhoneticReplacementRule(pattern, replacement, flag))
 
-    if len(phonetic_replacement_rules) == 0:
+    num_rules = len(phonetic_replacement_rules)
+
+    if num_rules == 0:
         raise ValueError("must provide at least one phonetic replacement rule")
 
     def _mutate_series(srs: pd.Series, p: float) -> pd.Series:
         # create copy
         srs_out = srs.copy(deep=True)
         # create index df
-        df_idx = _dfbitlookup.with_capacity(len(srs), len(phonetic_replacement_rules), index=srs.index)
+        df_idx = _dfbitlookup.with_capacity(len(srs), num_rules, index=srs.index)
 
         # track which rules can be applied to each row
         for rule_idx, rule in enumerate(phonetic_replacement_rules):
@@ -437,7 +439,7 @@ def with_phonetic_replacement_table(
         srs_rows_to_mutate.loc[srs_rows_to_mutate] = arr_rng_vals < min(1.0, p / p_actual)
 
         # retrieve the frequencies of each rule matching across all rows
-        arr_set_indices = _dfbitlookup.count_bits_per_index(df_idx, len(phonetic_replacement_rules))
+        arr_set_indices = _dfbitlookup.count_bits_per_index(df_idx, num_rules)
         # keep only indices that have at least one match
         arr_set_indices = list(filter(lambda tpl: tpl[1] != 0, arr_set_indices))
         # sort in descending order of frequency. rare replacements are more likely to happen this
@@ -448,7 +450,7 @@ def with_phonetic_replacement_table(
         arr_rule_idx = np.array([tpl[0] for tpl in arr_set_indices])
 
         # get amount of set bits per row
-        srs_set_bit_count_per_row = _dfbitlookup.count_bits_per_row(df_idx, len(phonetic_replacement_rules)).astype(float)
+        srs_set_bit_count_per_row = _dfbitlookup.count_bits_per_row(df_idx, num_rules).astype(float)
         # check which rows are not zero to avoid div by 0
         srs_count_not_zero = srs_set_bit_count_per_row != 0
 
