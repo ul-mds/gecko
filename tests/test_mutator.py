@@ -1001,7 +1001,7 @@ def test_with_phonetic_replacement_table_random_values(rng):
 
     assert len(srs) == len(srs_mut)
     assert (srs != srs_mut).all()
-    assert len(srs_mut.unique()) > 1
+    assert len(srs_mut.unique()) == 3
 
 
 def test_with_phonetic_replacement_table_partial(rng):
