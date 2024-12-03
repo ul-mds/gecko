@@ -448,7 +448,7 @@ def with_phonetic_replacement_table(
         arr_rule_idx = np.array([tpl[0] for tpl in arr_set_indices])
 
         # get amount of set bits per row
-        srs_set_bit_count_per_row = _dfbitlookup.count_bits_per_row(df_idx, len(phonetic_replacement_rules))
+        srs_set_bit_count_per_row = _dfbitlookup.count_bits_per_row(df_idx, len(phonetic_replacement_rules)).astype(float)
         # check which rows are not zero to avoid div by 0
         srs_count_not_zero = srs_set_bit_count_per_row != 0
 
