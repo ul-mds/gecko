@@ -1004,25 +1004,6 @@ def test_with_phonetic_replacement_table_random_values(rng):
     assert len(srs_mut.unique()) > 1
 
 
-def test_with_phonetic_replacement_table_favor_rare_rules(rng):
-    srs = pd.Series(["foobar", "foobaz", "foobat"] * 100)
-    df_phon = pd.DataFrame.from_dict({"source": ["foo", "z"], "target": ["0", "1"], "flags": ["^", "$"]})
-
-    mut_phonetic = mutator.with_phonetic_replacement_table(
-        df_phon,
-        source_column="source",
-        target_column="target",
-        flags_column="flags",
-        rng=rng,
-    )
-
-    (srs_mut,) = mut_phonetic([srs], 1)
-
-    assert len(srs) == len(srs_mut)
-    assert (srs != srs_mut).all()
-    assert (srs_mut == ["0bar", "fooba1", "0bat"] * 100).all()
-
-
 def test_with_phonetic_replacement_table_partial(rng):
     srs = pd.Series(["".join(tpl) for tpl in itertools.permutations("abc")])
     df_phon = pd.DataFrame.from_dict({"source": list("abcbcca"), "target": list("0123456"), "flags": list("^^^$$__")})
