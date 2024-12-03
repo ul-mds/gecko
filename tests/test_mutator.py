@@ -111,6 +111,25 @@ def test_with_replacement_table(rng):
     assert (srs.str.len() == srs_mut.str.len()).all()
 
 
+def test_with_replacement_table_random_values(rng):
+    srs = pd.Series(["aaa"] * 1_000)
+    df_replacement_table = pd.DataFrame.from_dict({"source": ["a", "a", "a"], "target": ["0", "1", "2"]})
+
+    mut_replacement_table = mutator.with_replacement_table(
+        df_replacement_table,
+        source_column="source",
+        target_column="target",
+        inline=True,
+        rng=rng,
+    )
+
+    (srs_mut,) = mut_replacement_table([srs], 1)
+
+    assert len(srs) == len(srs_mut)
+    assert (srs != srs_mut).all()
+    assert len(srs_mut.unique()) > 1
+
+
 def test_with_replacement_table_favor_rare_replacements(rng):
     srs = pd.Series(["foobar"] * 100 + ["foobaz"] * 50)
 
@@ -966,6 +985,25 @@ def test_with_phonetic_replacement_table(rng):
     assert not srs_mut.str.isalpha().all()
 
 
+def test_with_phonetic_replacement_table_random_values(rng):
+    srs = pd.Series(["aaa"] * 1_000)
+    df_phon = pd.DataFrame.from_dict({"source": ["a", "a", "a"], "target": ["0", "1", "2"], "flags": ["^", "_", "$"]})
+
+    mut_phonetic = mutator.with_phonetic_replacement_table(
+        df_phon,
+        source_column="source",
+        target_column="target",
+        flags_column="flags",
+        rng=rng,
+    )
+
+    (srs_mut,) = mut_phonetic([srs], 1)
+
+    assert len(srs) == len(srs_mut)
+    assert (srs != srs_mut).all()
+    assert len(srs_mut.unique()) > 1
+
+
 def test_with_phonetic_replacement_table_favor_rare_rules(rng):
     srs = pd.Series(["foobar", "foobaz", "foobat"] * 100)
     df_phon = pd.DataFrame.from_dict({"source": ["foo", "z"], "target": ["0", "1"], "flags": ["^", "$"]})
@@ -1221,6 +1259,23 @@ def test_with_regex_replacement_table_csv(rng, tmp_path):
     assert len(srs) == len(srs_mut)
     assert (srs != srs_mut).all()
     assert not srs_mut.str.isalpha().all()
+
+
+def test_with_regex_replacement_table_random_values(rng):
+    srs = pd.Series(["aaa"] * 1_000)
+    df_regex_replacement_table = pd.DataFrame.from_dict({"pattern": [".(a).", ".(a).", ".(a)."], "1": ["0", "1", "2"]})
+
+    mut_regex_replacement_table = mutator.with_regex_replacement_table(
+        df_regex_replacement_table,
+        pattern_column="pattern",
+        rng=rng,
+    )
+
+    (srs_mut,) = mut_regex_replacement_table([srs], 1)
+
+    assert len(srs) == len(srs_mut)
+    assert (srs != srs_mut).all()
+    assert len(srs_mut.unique()) > 1
 
 
 def test_mutate_data_frame(rng):
