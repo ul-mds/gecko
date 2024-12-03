@@ -122,3 +122,29 @@ def count_bits_per_index(df: pd.DataFrame, capacity: _t.Optional[int] = None) ->
             raise ValueError(f"capacity must not be higher than {max_df_capacity}, is {capacity}")
 
     return list((idx, test_index(df, idx).sum()) for idx in range(capacity))
+
+
+def count_bits_per_row(df: pd.DataFrame, capacity: _t.Optional[int] = None) -> pd.Series:
+    max_df_capacity = int(_UINT_CAPACITY * len(df.columns))
+
+    if capacity is None:
+        capacity = max_df_capacity
+    else:
+        capacity = int(capacity)
+
+        if capacity <= 0:
+            raise ValueError(f"capacity must be positive, is {capacity}")
+
+        if capacity > max_df_capacity:
+            raise ValueError(f"capacity must not be higher than {max_df_capacity}, is {capacity}")
+
+    srs_count = pd.Series(
+        np.zeros(len(df), dtype=np.uint32),
+        copy=False,
+        index=df.index,
+    )
+
+    for idx in range(capacity):
+        srs_count[test_index(df, idx)] += 1
+
+    return srs_count
