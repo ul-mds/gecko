@@ -1475,7 +1475,6 @@ def with_regex_replacement_table(
     substitutions.
     When using regular capture groups, the columns must be numbered starting with 1.
     When using named capture groups, the columns must be named after the capture groups they are supposed to substitute.
-    The mutator will favor less common substitutions over more common ones.
 
     Args:
         data_source: path to CSV file or data frame containing regex-based substitutions
@@ -1558,18 +1557,35 @@ def with_regex_replacement_table(
         arr_set_indices = _dfbitlookup.count_bits_per_index(df_idx, regex_count)
         # keep only indices that have at least one match
         arr_set_indices = list(filter(lambda tpl: tpl[1] != 0, arr_set_indices))
-        # sort in ascending order of frequency
-        arr_set_indices.sort(key=lambda tpl: tpl[1])
+        # sort in descending order of frequency
+        arr_set_indices.sort(key=lambda tpl: -tpl[1])
         # keep only the indices
         arr_rgx_idx = np.array([tpl[0] for tpl in arr_set_indices])
 
+        # get amount of set bits per row
+        srs_set_bit_count_per_row = _dfbitlookup.count_bits_per_row(df_idx, regex_count).astype(float)
+        # check which rows are not zero to avoid div by 0
+        srs_count_not_zero = srs_set_bit_count_per_row != 0
+
         for rgx_idx in arr_rgx_idx:
+            # draw random values
+            arr_rng_vals = rng.random(size=len(srs))
+
+            # determine the likelihood of each row for being chosen in this iteration
+            srs_rng_prob = srs_set_bit_count_per_row.copy(deep=True)
+            srs_rng_prob[srs_count_not_zero] = 1.0 / srs_rng_prob[srs_count_not_zero]
+
             # check which rows are affected by this regex
             srs_selected_rows_mask = (
                 srs_rows_to_mutate  # select eligible rows
                 & (srs == srs_out)  # AND select rows that haven't been mutated yet
                 & _dfbitlookup.test_index(df_idx, rgx_idx)  # AND select rows that match this regex
+                & (arr_rng_vals < srs_rng_prob)  # AND select rows that are randomly selected
             )
+
+            # increase chance of being picked for rows that match this rule and that
+            # have NOT been selected by chance this time
+            srs_set_bit_count_per_row[_dfbitlookup.test_index(df_idx, rgx_idx) & (~srs_selected_rows_mask)] -= 1
 
             # apply the regex
             srs_out.update(
