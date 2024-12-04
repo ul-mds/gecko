@@ -45,6 +45,18 @@ def test_set_test_index(rows: int, capacity: int, mask: pd.Series, index: int):
     assert (_dfbitlookup.test_index(df, index) == mask).all()
 
 
+def test_count_bits_per_row():
+    df = pd.DataFrame([0b1001, 0b0101, 0, 0b1101], dtype=np.uint64)
+
+    # [0] =>  1  0  0  1  => 2
+    # [1] =>  1  0  1  0  => 2
+    # [2] =>  0  0  0  0  => 0
+    # [3] =>  1  0  1  1  => 3
+
+    expected = [2, 2, 0, 3]
+    assert (_dfbitlookup.count_bits_per_row(df) == expected).all()
+
+
 def test_count_bits_per_index():
     df = pd.DataFrame([0b1001, 0b0101, 0b1101], dtype=np.uint64)
 

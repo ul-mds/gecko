@@ -330,7 +330,6 @@ def with_phonetic_replacement_table(
     can only occur at the start, end or in the middle of a string.
     If the source, target and flags column are provided as strings, and if a path to a CSV file is
     provided to this function, then it is automatically assumed that the CSV file has a header row.
-    This mutator will favor less common replacements over more common ones.
 
     Args:
         data_source: path to CSV file or data frame containing phonetic replacement rules
@@ -399,34 +398,27 @@ def with_phonetic_replacement_table(
         for flag in flags:
             phonetic_replacement_rules.append(_PhoneticReplacementRule(pattern, replacement, flag))
 
-    if len(phonetic_replacement_rules) == 0:
+    num_rules = len(phonetic_replacement_rules)
+
+    if num_rules == 0:
         raise ValueError("must provide at least one phonetic replacement rule")
 
     def _mutate_series(srs: pd.Series, p: float) -> pd.Series:
         # create copy
         srs_out = srs.copy(deep=True)
-        # track string lengths
-        srs_str_len = srs.str.len()
         # create index df
-        df_idx = _dfbitlookup.with_capacity(len(srs), len(phonetic_replacement_rules), index=srs.index)
+        df_idx = _dfbitlookup.with_capacity(len(srs), num_rules, index=srs.index)
 
         # track which rules can be applied to each row
         for rule_idx, rule in enumerate(phonetic_replacement_rules):
-            srs_pattern_idx = srs.str.find(rule.pattern)
-
             if rule.flag == _PHON_FLAG_START:
                 # mark all rows containing this pattern at the start
-                _dfbitlookup.set_index(df_idx, srs_pattern_idx == 0, rule_idx)
+                _dfbitlookup.set_index(df_idx, srs.str.startswith(rule.pattern), rule_idx)
             elif rule.flag == _PHON_FLAG_END:
                 # mark all rows containing this pattern at the end
-                _dfbitlookup.set_index(df_idx, srs_pattern_idx + len(rule.pattern) == srs_str_len, rule_idx)
+                _dfbitlookup.set_index(df_idx, srs.str.endswith(rule.pattern), rule_idx)
             elif rule.flag == _PHON_FLAG_MIDDLE:
-                # mark all rows containing this pattern not at the start nor the end
-                _dfbitlookup.set_index(
-                    df_idx,
-                    ((srs_pattern_idx > 0) & (srs_pattern_idx + len(rule.pattern) < srs_str_len)),
-                    rule_idx,
-                )
+                _dfbitlookup.set_index(df_idx, srs.str.slice(1, -1).str.contains(rule.pattern), rule_idx)
             else:
                 raise _new_unknown_flag_error(flag)
 
@@ -447,23 +439,42 @@ def with_phonetic_replacement_table(
         srs_rows_to_mutate.loc[srs_rows_to_mutate] = arr_rng_vals < min(1.0, p / p_actual)
 
         # retrieve the frequencies of each rule matching across all rows
-        arr_set_indices = _dfbitlookup.count_bits_per_index(df_idx, len(phonetic_replacement_rules))
+        arr_set_indices = _dfbitlookup.count_bits_per_index(df_idx, num_rules)
         # keep only indices that have at least one match
         arr_set_indices = list(filter(lambda tpl: tpl[1] != 0, arr_set_indices))
-        # sort in ascending order of frequency
-        arr_set_indices.sort(key=lambda tpl: tpl[1])
+        # sort in descending order of frequency. rare replacements are more likely to happen this
+        # way because rows with few replacement options will eventually be guaranteed to have these
+        # replacements applied to them.
+        arr_set_indices.sort(key=lambda tpl: -tpl[1])
         # keep only the indices
         arr_rule_idx = np.array([tpl[0] for tpl in arr_set_indices])
+
+        # get amount of set bits per row
+        srs_set_bit_count_per_row = _dfbitlookup.count_bits_per_row(df_idx, num_rules).astype(float)
+        # check which rows are not zero to avoid div by 0
+        srs_count_not_zero = srs_set_bit_count_per_row != 0
 
         for rule_idx in arr_rule_idx:
             # retrieve the appropriate rule
             rule = phonetic_replacement_rules[rule_idx]
+            # draw random values
+            arr_rng_vals = rng.random(size=len(srs))
+
+            # determine the likelihood of each row for being chosen in this iteration
+            srs_rng_prob = srs_set_bit_count_per_row.copy(deep=True)
+            srs_rng_prob[srs_count_not_zero] = 1.0 / srs_rng_prob[srs_count_not_zero]
+
             # check which rules are affected by this rule
             srs_selected_rows_mask = (
                 srs_rows_to_mutate  # select eligible rows
                 & (srs == srs_out)  # AND select rows that haven't been mutated yet
                 & (_dfbitlookup.test_index(df_idx, rule_idx))  # AND select rows that match this rule
+                & (arr_rng_vals < srs_rng_prob)  # AND select rows that are randomly selected
             )
+
+            # increase chance of being picked for rows that match this rule and that
+            # have NOT been selected by chance this time
+            srs_set_bit_count_per_row[_dfbitlookup.test_index(df_idx, rule_idx) & (~srs_selected_rows_mask)] -= 1
 
             # apply the rule
             if rule.flag == _PHON_FLAG_START:
@@ -1464,7 +1475,6 @@ def with_regex_replacement_table(
     substitutions.
     When using regular capture groups, the columns must be numbered starting with 1.
     When using named capture groups, the columns must be named after the capture groups they are supposed to substitute.
-    The mutator will favor less common substitutions over more common ones.
 
     Args:
         data_source: path to CSV file or data frame containing regex-based substitutions
@@ -1547,18 +1557,35 @@ def with_regex_replacement_table(
         arr_set_indices = _dfbitlookup.count_bits_per_index(df_idx, regex_count)
         # keep only indices that have at least one match
         arr_set_indices = list(filter(lambda tpl: tpl[1] != 0, arr_set_indices))
-        # sort in ascending order of frequency
-        arr_set_indices.sort(key=lambda tpl: tpl[1])
+        # sort in descending order of frequency
+        arr_set_indices.sort(key=lambda tpl: -tpl[1])
         # keep only the indices
         arr_rgx_idx = np.array([tpl[0] for tpl in arr_set_indices])
 
+        # get amount of set bits per row
+        srs_set_bit_count_per_row = _dfbitlookup.count_bits_per_row(df_idx, regex_count).astype(float)
+        # check which rows are not zero to avoid div by 0
+        srs_count_not_zero = srs_set_bit_count_per_row != 0
+
         for rgx_idx in arr_rgx_idx:
+            # draw random values
+            arr_rng_vals = rng.random(size=len(srs))
+
+            # determine the likelihood of each row for being chosen in this iteration
+            srs_rng_prob = srs_set_bit_count_per_row.copy(deep=True)
+            srs_rng_prob[srs_count_not_zero] = 1.0 / srs_rng_prob[srs_count_not_zero]
+
             # check which rows are affected by this regex
             srs_selected_rows_mask = (
                 srs_rows_to_mutate  # select eligible rows
                 & (srs == srs_out)  # AND select rows that haven't been mutated yet
                 & _dfbitlookup.test_index(df_idx, rgx_idx)  # AND select rows that match this regex
+                & (arr_rng_vals < srs_rng_prob)  # AND select rows that are randomly selected
             )
+
+            # increase chance of being picked for rows that match this rule and that
+            # have NOT been selected by chance this time
+            srs_set_bit_count_per_row[_dfbitlookup.test_index(df_idx, rgx_idx) & (~srs_selected_rows_mask)] -= 1
 
             # apply the regex
             srs_out.update(
