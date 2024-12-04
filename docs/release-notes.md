@@ -1,5 +1,15 @@
 # Release notes
 
+## 0.6.3 (Dec 4, 2024)
+
+### Features
+
+- Improve randomized selection of replacements in mutators using replacement tables
+
+### Fixes
+
+- Fix phonetic replacement rules not being matched correctly against original data when the desired pattern occurs in multiple places
+
 ## 0.6.2 (Nov 27, 2024)
 
 ### Features
