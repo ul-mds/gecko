@@ -29,6 +29,7 @@ __all__ = [
 import itertools
 import re
 import string
+import sys
 import warnings
 from dataclasses import dataclass, field
 from os import PathLike
@@ -1427,7 +1428,7 @@ def _new_regex_replacement_fn(srs: pd.Series) -> _t.Callable[[re.Match], str]:
         # sort by starting index
         sorted_spans = sorted(span_to_repl_col_dict.keys(), key=lambda t: t[0])
 
-        out_str, last_idx = "", 0
+        out_str, last_idx = "", match.span(0)[0]
 
         for span in sorted_spans:
             out_str += match.string[last_idx : span[0]]
@@ -1444,7 +1445,9 @@ def _new_regex_replacement_fn(srs: pd.Series) -> _t.Callable[[re.Match], str]:
             out_str += repl_value
             last_idx = span[1]
 
-        return out_str + match.string[last_idx:]
+        # only output string up until the last index of the matched region.
+        # span(0) is the entire match, [1] indexes the end of the match.
+        return out_str + match.string[last_idx : match.span(0)[1]]
 
     return _replace
 
@@ -1534,9 +1537,18 @@ def with_regex_replacement_table(
         # create index df
         df_idx = _dfbitlookup.with_capacity(len(srs), regex_count, index=srs.index)
 
-        # track which regexes match each row
-        for rgx_idx, rgx in enumerate(regexes):
-            _dfbitlookup.set_index(df_idx, srs.str.match(rgx), rgx_idx)
+        # pandas will warn if str.contains is used with regexes that have capture groups. this is very much
+        # intended and the warning can therefore be ignored.
+        if sys.version_info >= (3, 11):
+            warning_cm = warnings.catch_warnings(category=UserWarning, record=True, action="ignore")
+        else:
+            # in python 3.10 and before, the category and ignore args are not present.
+            warning_cm = warnings.catch_warnings(record=True)
+
+        with warning_cm:
+            # track which regexes match each row
+            for rgx_idx, rgx in enumerate(regexes):
+                _dfbitlookup.set_index(df_idx, srs.str.contains(rgx, regex=True), rgx_idx)
 
         # check rows that can be mutated
         srs_rows_to_mutate = _dfbitlookup.any_set(df_idx)
