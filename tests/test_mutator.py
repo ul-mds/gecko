@@ -1242,6 +1242,33 @@ def test_with_regex_replacement_table_csv(rng, tmp_path):
     assert not srs_mut.str.isalpha().all()
 
 
+@pytest.mark.parametrize(
+    "pattern",
+    [
+        [r"^(?P<value>a).", r".(?P<value>b).", r".(?P<value>c)$"],
+        [r"^(?P<value>a)\w+", r"\w+(?P<value>b)\w+", r"\w+(?P<value>c)$"],
+    ],
+)
+def test_with_regex_replacement_table_partial(rng, pattern):
+    srs = pd.Series(["aaa", "bbb", "ccc"])
+    mut_regex = mutator.with_regex_replacement_table(
+        pd.DataFrame.from_dict(
+            {
+                "pattern": pattern,
+                "value": ["0", "1", "2"],
+            }
+        ),
+        pattern_column="pattern",
+        rng=rng,
+    )
+
+    (srs_mut,) = mut_regex([srs], 1)
+
+    assert len(srs) == len(srs_mut)
+    assert (srs != srs_mut).all()
+    assert (srs_mut == ["0aa", "b1b", "cc2"]).all()
+
+
 def test_with_regex_replacement_table_random_values(rng):
     srs = pd.Series(["aaa"] * 1_000)
     df_regex_replacement_table = pd.DataFrame.from_dict({"pattern": [".(a).", ".(a).", ".(a)."], "1": ["0", "1", "2"]})
