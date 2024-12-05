@@ -29,6 +29,7 @@ __all__ = [
 import itertools
 import re
 import string
+import sys
 import warnings
 from dataclasses import dataclass, field
 from os import PathLike
@@ -1536,9 +1537,15 @@ def with_regex_replacement_table(
         # create index df
         df_idx = _dfbitlookup.with_capacity(len(srs), regex_count, index=srs.index)
 
-        # this outputs a warning if capture groups are included. pd hints they can be extracted but this
-        # is intended behavior.
-        with warnings.catch_warnings(category=UserWarning, record=False, action="ignore"):
+        # pandas will warn if str.contains is used with regexes that have capture groups. this is very much
+        # intended and the warning can therefore be ignored.
+        if sys.version_info > (3, 10):
+            warning_cm = warnings.catch_warnings(category=UserWarning, record=False, action="ignore")
+        else:
+            # in python 3.10 and before, the category arg is not present.
+            warning_cm = warnings.catch_warnings(record=False, action="ignore")
+
+        with warning_cm:
             # track which regexes match each row
             for rgx_idx, rgx in enumerate(regexes):
                 _dfbitlookup.set_index(df_idx, srs.str.contains(rgx, regex=True), rgx_idx)
