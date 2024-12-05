@@ -1540,10 +1540,10 @@ def with_regex_replacement_table(
         # pandas will warn if str.contains is used with regexes that have capture groups. this is very much
         # intended and the warning can therefore be ignored.
         if sys.version_info >= (3, 11):
-            warning_cm = warnings.catch_warnings(category=UserWarning, record=False, action="ignore")
+            warning_cm = warnings.catch_warnings(category=UserWarning, record=True, action="ignore")
         else:
             # in python 3.10 and before, the category and ignore args are not present.
-            warning_cm = warnings.catch_warnings(record=False)
+            warning_cm = warnings.catch_warnings(record=True)
 
         with warning_cm:
             # track which regexes match each row
