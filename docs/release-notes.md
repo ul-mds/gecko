@@ -1,5 +1,11 @@
 # Release notes
 
+## 0.6.4 (Dec 6, 2024)
+
+### Fixes
+
+- Fix `with_regex_replacement_table` mutator not behaving correctly when pattern only matches partly
+
 ## 0.6.3 (Dec 4, 2024)
 
 ### Features
