@@ -110,6 +110,15 @@ As it stands, it satisfies our internal use cases within the Medical Data Scienc
 adoption.
 If you find any issues or improvements with the library, do not hesitate to contact us.
 
+# Citing Gecko
+
+If you found Gecko useful, then we highly appreciate proper citations of our work in your own publications.
+GitHub supports the [Citation File Format (CFF)](https://citation-file-format.github.io/) and can parse the 
+corresponding file contained within this project. 
+Simply click "Cite this repository" on this project's GitHub page.
+[We also provide extensive information on how to cite Gecko in our documentation](https://ul-mds.github.io/gecko/citing-gecko/), 
+as well as links to all of our original publications and presentations. 
+
 # License
 
 Gecko is released under the MIT License.
