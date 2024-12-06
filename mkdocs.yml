@@ -60,6 +60,7 @@ nav:
       - Mutating data: data-mutation.md
       - Examples with Gecko:
           - German population dataset: examples/german.md
+  - Citing Gecko: citing-gecko.md
   - API reference: api-reference.md
   - Release notes: release-notes.md
 
