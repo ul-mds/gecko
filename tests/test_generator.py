@@ -125,7 +125,7 @@ def test_from_multicolumn_frequency_table(rng):
 
 
 def test_from_datetime_range(rng):
-    gen_datetime = generator.from_datetime_range("1920-01-01", "2020-01-01", "%d.%m.%Y", "D", rng=rng)
+    gen_datetime = generator.from_datetime_range("1920-01-01", "2020-01-01", "%d.%m.%Y", "days", rng=rng)
 
     (dt_srs,) = gen_datetime(100)
     assert dt_srs.str.fullmatch(r"\d{2}\.\d{2}\.\d{4}").all()
@@ -133,19 +133,19 @@ def test_from_datetime_range(rng):
 
 def test_from_datetime_range_invalid_start_datetime(rng):
     with pytest.raises(ValueError) as e:
-        generator.from_datetime_range("foobar", "2020-01-01", "%d.%m.%Y", "D")
+        generator.from_datetime_range("foobar", "2020-01-01", "%d.%m.%Y", "days")
 
     assert str(e.value).startswith("Error parsing datetime string")
 
 
 def test_from_datetime_range_invalid_end_datetime(rng):
     with pytest.raises(ValueError) as e:
-        generator.from_datetime_range("1920-01-01", "foobar", "%d.%m.%Y", "D")
+        generator.from_datetime_range("1920-01-01", "foobar", "%d.%m.%Y", "days")
 
     assert str(e.value).startswith("Error parsing datetime string")
 
 
-@pytest.mark.parametrize("unit", ["D", "h", "m", "s"])
+@pytest.mark.parametrize("unit", ["d", "days", "h", "hours", "m", "minutes", "s", "seconds"])
 def test_from_datetime_range_all_units(rng, unit):
     gen_datetime = generator.from_datetime_range("1920-01-01", "2020-01-01", "%d.%m.%Y %H:%M:%S", unit, rng=rng)
 
@@ -155,9 +155,9 @@ def test_from_datetime_range_all_units(rng, unit):
 
     assert df_matches["date"].notna().all()
 
-    hour_not_all_zero = unit in ("h", "m", "s")
-    minute_not_all_zero = unit in ("m", "s")
-    second_not_all_zero = unit == "s"
+    hour_not_all_zero = unit in ("h", "hours", "m", "minutes", "s", "seconds")
+    minute_not_all_zero = unit in ("m", "minutes", "s", "seconds")
+    second_not_all_zero = unit in ("s", "seconds")
 
     assert (not (df_matches["hour"] == "00").all()) == hour_not_all_zero
     assert (not (df_matches["minute"] == "00").all()) == minute_not_all_zero
@@ -166,7 +166,7 @@ def test_from_datetime_range_all_units(rng, unit):
 
 def test_from_datetime_range_end_before_start(rng):
     with pytest.raises(ValueError) as e:
-        generator.from_datetime_range("2020-01-01", "1920-01-01", "%d.%m.%Y", "D", rng=rng)
+        generator.from_datetime_range("2020-01-01", "1920-01-01", "%d.%m.%Y", "days", rng=rng)
 
     assert str(e.value) == "start datetime `2020-01-01` is greater than end datetime `1920-01-01`"
 

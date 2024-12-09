@@ -1210,32 +1210,9 @@ def with_uppercase(rng: _t.Optional[np.random.Generator] = None) -> _gt.Mutator:
     return _mutate
 
 
-_gecko_to_pd_dt_unit_dict = {
-    "d": "D",
-    "days": "D",
-    "h": "h",
-    "hours": "h",
-    "m": "m",
-    "minutes": "m",
-    "s": "s",
-    "seconds": "s",
-}
-
-
-def _to_pd_dt_unit(unit: str) -> str:
-    pd_dt_unit = _gecko_to_pd_dt_unit_dict.get(unit)
-
-    if pd_dt_unit is None:
-        raise ValueError(
-            f"unrecognized unit `{unit}`, must be one of: `{'`, `'.join(sorted(_gecko_to_pd_dt_unit_dict.keys()))}`"
-        )
-
-    return pd_dt_unit
-
-
 def with_datetime_offset(
     max_delta: int,
-    unit: _t.Literal["d", "days", "h", "hours", "m", "minutes", "s", "seconds"],
+    unit: _gt.DateTimeUnit,
     dt_format: str,
     prevent_wraparound: bool = False,
     rng: _t.Optional[np.random.Generator] = None,
@@ -1282,7 +1259,7 @@ def with_datetime_offset(
                 # compute the delta
                 this_delta = sgn * val
                 # wrap it into a timedelta
-                this_timedelta = pd.Timedelta(this_delta, _to_pd_dt_unit(unit))
+                this_timedelta = pd.Timedelta(this_delta, _gt.convert_gecko_date_time_unit_to_pandas(unit))
                 # select all rows that have this delta applied to them
                 this_srs_mask = (arr_rng_vals == this_delta) & arr_rows_to_mutate
                 # update rows
