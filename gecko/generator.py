@@ -258,7 +258,7 @@ def from_datetime_range(
     start_dt: _t.Union[str, np.datetime64],
     end_dt: _t.Union[str, np.datetime64],
     dt_format: str,
-    unit: _t.Literal["D", "h", "m", "s"],
+    unit: _gt.DateTimeUnit,
     rng: _t.Optional[np.random.Generator] = None,
 ) -> _gt.Generator:
     """
@@ -293,11 +293,13 @@ def from_datetime_range(
     if rng is None:
         rng = np.random.default_rng()
 
+    pd_dt_unit = _gt.convert_gecko_date_time_unit_to_pandas(unit)
+
     def _generate(count: int) -> list[pd.Series]:
         delta_td = end_dt - start_dt
-        delta_amt = int(delta_td / np.timedelta64(1, unit))
+        delta_amt = int(delta_td / np.timedelta64(1, pd_dt_unit))
         random_vals = rng.integers(low=0, high=delta_amt, size=count, endpoint=True)
-        random_dts = start_dt + random_vals.astype(f"timedelta64[{unit}]")
+        random_dts = start_dt + random_vals.astype(f"timedelta64[{pd_dt_unit}]")
         dt_srs = pd.Series(random_dts)
 
         return [dt_srs.dt.strftime(dt_format)]
