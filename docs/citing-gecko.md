@@ -55,6 +55,18 @@ This page is intended to point you to all our published research to date and to 
 
 ## Presentations
 
+### 18th Leipzig Research Festival for Life Sciences (Jan 30, 2025)
+
+- Abstract: Improving record linkage quality on identification data in the Leipzig Obesity BioBank
+- DOI: _to be released_
+- Slides: [Download (PDF)](static/2025-01-30-Gecko-LOBB-LRF25.pdf)
+
+??? Abstract
+
+    Within longitudinal medical studies, identification data (IDAT) is collected from participants which enables them to be reidentified across multiple sessions. Trusted third parties may then consolidate medical records obtained from the same person before handing them off to data scientists to conduct their research. This process of merging records using stable or quasi-identifiers is referred to as “record linkage”. Due to the nature of these studies, errors arise in the collected data due to changing data entry methods and staff over time. Determining the required level of similarity to classify a record pair as a match therefore becomes a reoccurring challenge in the field of record linkage. 
+
+    We present a method for estimating similarity thresholds for privacy-preserving record linkage (PPRL) using IDAT from two sub-studies of the Leipzig Obesity BioBank (LOBB). LOBB collects samples from over 8000 patients to conduct research on diseases related to obesity. We analyze the types and frequencies of typographical errors present in their IDAT. This information is used to infer a configuration for Gecko, which is a software library used to generate a set of realistic personal IDAT that closely replicates the errors found in the LOBB data. We then evaluate the impact of each error class on match quality using these datasets. Our findings provide needed insights into the challenges of integrating real-world IDAT, which is necessary in PPRL where access to such data is often prohibited, and underline its significance in enhancing research validity and reliability. 
+
 ### 69th Annual GMDS Conference (Sep 9, 2024)
 
 - Abstract: [Generation and mutation of realistic personal identification data for the evaluation of record linkage algorithms](https://www.egms.de/static/de/meetings/gmds2024/24gmds020.shtml)
